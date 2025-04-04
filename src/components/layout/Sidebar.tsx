@@ -27,6 +27,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { currentTheme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
 
   // 화면 크기가 변경될 때 사이드바 상태 관리
   useEffect(() => {
@@ -42,6 +43,13 @@ export default function Sidebar() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // 호버 상태에 따라 사이드바 열기/닫기
+  useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setIsOpen(isHovered);
+    }
+  }, [isHovered]);
 
   const toggleThemeMode = () => {
     const currentMode = currentTheme.mode;
@@ -94,18 +102,9 @@ export default function Sidebar() {
           currentTheme.border
         } border-r z-40 transition-all duration-300 ease-in-out ${
           isOpen ? "w-64" : "w-20"
-        } cursor-pointer`}
-        onClick={(e) => {
-          // 메뉴 아이템이나 버튼 클릭 시에는 토글하지 않음
-          const target = e.target as HTMLElement;
-          if (
-            !target.closest('a') && 
-            !target.closest('button') && 
-            window.innerWidth >= 768
-          ) {
-            setIsOpen(!isOpen);
-          }
-        }}
+        }`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* 로고 영역 */}
         <div className="flex h-16 shrink-0 items-center justify-between px-6">
