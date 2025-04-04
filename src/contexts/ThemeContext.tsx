@@ -21,6 +21,7 @@ export type Theme = {
   textColor: string;
   profileGradient: string;
   chartColors: string[];
+  inputBg: string;
 };
 
 export const themes: Theme[] = [
@@ -41,6 +42,7 @@ export const themes: Theme[] = [
     textColor: "text-gray-600",
     profileGradient: "from-blue-600 to-indigo-600",
     chartColors: ["#3b82f6", "#6366f1", "#a5b4fc"],
+    inputBg: "bg-white",
   },
   {
     name: "Modern-Dark",
@@ -59,6 +61,7 @@ export const themes: Theme[] = [
     textColor: "text-gray-400",
     profileGradient: "from-blue-500 to-indigo-500",
     chartColors: ["#60a5fa", "#818cf8", "#c7d2fe"],
+    inputBg: "bg-gray-700",
   },
   {
     name: "Ocean-Light",
@@ -77,6 +80,7 @@ export const themes: Theme[] = [
     textColor: "text-slate-600",
     profileGradient: "from-cyan-600 to-teal-600",
     chartColors: ["#0d9488", "#14b8a6", "#5eead4"],
+    inputBg: "bg-white",
   },
   {
     name: "Ocean-Dark",
@@ -95,6 +99,7 @@ export const themes: Theme[] = [
     textColor: "text-slate-400",
     profileGradient: "from-cyan-500 to-teal-500",
     chartColors: ["#14b8a6", "#2dd4bf", "#99f6e4"],
+    inputBg: "bg-slate-700",
   },
   {
     name: "Sunset-Light",
@@ -113,6 +118,7 @@ export const themes: Theme[] = [
     textColor: "text-gray-600",
     profileGradient: "from-orange-600 to-pink-600",
     chartColors: ["#ea580c", "#f97316", "#fdba74"],
+    inputBg: "bg-white",
   },
   {
     name: "Sunset-Dark",
@@ -131,6 +137,7 @@ export const themes: Theme[] = [
     textColor: "text-gray-400",
     profileGradient: "from-orange-500 to-pink-500",
     chartColors: ["#f97316", "#fb923c", "#fed7aa"],
+    inputBg: "bg-gray-700",
   },
 ];
 
