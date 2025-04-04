@@ -4,7 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 interface PageHeaderProps {
   title: string;
-  description: string;
+  description?: string;
 }
 
 export default function PageHeader({ title, description }: PageHeaderProps) {
