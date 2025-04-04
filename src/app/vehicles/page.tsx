@@ -8,7 +8,8 @@ export default function LogsPage() {
     <PageLayout>
       <div className="p-8">
         <PageHeader 
-          title="대시 보드" 
+          title="차량 관리" 
+          description="차량을 관리하고 조회할 수 있습니다." 
         />
       </div>
     </PageLayout>
