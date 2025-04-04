@@ -234,11 +234,11 @@ export default function DashboardPage() {
                           <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
                         )}
                         <div>
-                          <h3 className={`font-medium ${currentTheme.text}`}>{notice.title}</h3>
-                          <p className={`text-sm ${currentTheme.subtext} mt-1`}>{notice.content}</p>
+                          <h3 className={`font-medium ${notice.isImportant ? 'text-black dark:text-black' : currentTheme.text}`}>{notice.title}</h3>
+                          <p className={`text-sm ${notice.isImportant ? 'text-black dark:text-black mt-1' : `${currentTheme.subtext} mt-1`}`}>{notice.content}</p>
                         </div>
                       </div>
-                      <span className={`text-xs ${currentTheme.subtext} whitespace-nowrap ml-4`}>{notice.date}</span>
+                      <span className={`text-xs ${notice.isImportant ? 'text-black dark:text-black' : currentTheme.subtext} whitespace-nowrap ml-4`}>{notice.date}</span>
                     </div>
                   </div>
                 ))}
