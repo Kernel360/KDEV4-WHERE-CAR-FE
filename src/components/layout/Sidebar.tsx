@@ -64,6 +64,9 @@ export default function Sidebar() {
   useEffect(() => {
     const mainContent = document.querySelector('main');
     if (mainContent) {
+      // 트랜지션 효과 추가
+      mainContent.style.transition = 'margin-left 300ms ease-in-out';
+      
       if (isOpen) {
         mainContent.classList.add('md:ml-64');
         mainContent.classList.remove('md:ml-20');
@@ -72,6 +75,13 @@ export default function Sidebar() {
         mainContent.classList.add('md:ml-20');
       }
     }
+    
+    // 컴포넌트 언마운트 시 트랜지션 제거
+    return () => {
+      if (mainContent) {
+        mainContent.style.transition = '';
+      }
+    };
   }, [isOpen]);
 
   return (
@@ -100,19 +110,20 @@ export default function Sidebar() {
       <div
         className={`fixed inset-y-0 left-0 flex flex-col ${currentTheme.cardBg} shadow-lg ${
           currentTheme.border
-        } border-r z-40 transition-all duration-300 ease-in-out ${
+        } border-r z-40 transition-all duration-300 ease-in-out overflow-hidden ${
           isOpen ? "w-64" : "w-20"
         }`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* 로고 영역 */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-6">
-          {isOpen ? (
-            <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide">WHERE CAR</h1>
-          ) : (
-            <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide mx-auto">WC</h1>
-          )}
+        <div className="flex h-16 shrink-0 items-center justify-between px-6 overflow-hidden">
+          <div className={`transition-opacity duration-300 w-full ${isOpen ? 'opacity-100' : 'opacity-0 absolute'}`}>
+            <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap overflow-hidden">WHERE CAR</h1>
+          </div>
+          <div className={`transition-opacity duration-300 w-full flex justify-center ${isOpen ? 'opacity-0 absolute' : 'opacity-100'}`}>
+            <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap">WC</h1>
+          </div>
           <button
             onClick={() => setIsOpen(false)}
             className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200"
@@ -122,7 +133,7 @@ export default function Sidebar() {
         </div>
 
         {/* 메뉴 영역 */}
-        <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto">
+        <nav className="flex-1 space-y-1.5 p-4 overflow-y-auto overflow-x-hidden">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -130,11 +141,11 @@ export default function Sidebar() {
                 key={item.name}
                 href={item.href}
                 onClick={() => window.innerWidth < 768 && setIsOpen(false)}
-                className={`group flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                className={`group flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-2.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
-                    : `${currentTheme.textColor} ${currentTheme.hoverBg} hover:${currentTheme.text}`
-                }`}
+                    : `${currentTheme.textColor} ${currentTheme.hoverBg}`
+                } ${!isActive && 'hover:text-gray-900 dark:hover:text-white'}`}
                 title={!isOpen ? item.name : undefined}
               >
                 <item.icon
@@ -142,7 +153,7 @@ export default function Sidebar() {
                     isActive 
                       ? currentTheme.activeText
                       : currentTheme.iconColor
-                  }`}
+                  } ${!isOpen && 'mx-auto'}`}
                   aria-hidden="true"
                 />
                 {isOpen && (
@@ -156,43 +167,45 @@ export default function Sidebar() {
         </nav>
 
         {/* 테마 선택 */}
-        <div className={`px-4 py-2 border-t ${currentTheme.border}`}>
-          <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} px-4 py-2`}>
-            {isOpen ? (
-              <>
-                <div className="flex items-center">
-                  <SwatchIcon className={`h-5 w-5 ${currentTheme.iconColor} mr-2`} />
-                  <span className={`text-sm font-medium ${currentTheme.textColor}`}>테마</span>
+        <div className={`px-4 py-2 border-t ${currentTheme.border} overflow-hidden`}>
+          <div className="relative h-10 px-4">
+            {/* 확장된 테마 섹션 - 사이드바가 열렸을 때 */}
+            <div className={`absolute inset-0 flex items-center justify-between transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div className="flex items-center">
+                <SwatchIcon className={`h-5 w-5 ${currentTheme.iconColor} mr-2`} />
+                <span className={`text-sm font-medium ${currentTheme.textColor} whitespace-nowrap`}>테마</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={toggleThemeMode}
+                  className={`p-1.5 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor}`}
+                  title={`${currentTheme.mode === 'light' ? '다크' : '라이트'} 모드로 전환`}
+                >
+                  {currentTheme.mode === 'light' ? (
+                    <MoonIcon className="h-5 w-5" />
+                  ) : (
+                    <SunIcon className="h-5 w-5" />
+                  )}
+                </button>
+                <div className="flex space-x-2">
+                  {themes
+                    .filter((theme) => theme.mode === currentTheme.mode)
+                    .map((theme) => (
+                      <button
+                        key={theme.name}
+                        onClick={() => setTheme(theme)}
+                        className={`w-6 h-6 rounded-full ${theme.logoBackground} ${
+                          currentTheme.name === theme.name ? 'ring-2 ring-offset-2 ring-slate-600' : ''
+                        }`}
+                        title={theme.name.split("-")[0]}
+                      />
+                    ))}
                 </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={toggleThemeMode}
-                    className={`p-1.5 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor}`}
-                    title={`${currentTheme.mode === 'light' ? '다크' : '라이트'} 모드로 전환`}
-                  >
-                    {currentTheme.mode === 'light' ? (
-                      <MoonIcon className="h-5 w-5" />
-                    ) : (
-                      <SunIcon className="h-5 w-5" />
-                    )}
-                  </button>
-                  <div className="flex space-x-2">
-                    {themes
-                      .filter((theme) => theme.mode === currentTheme.mode)
-                      .map((theme) => (
-                        <button
-                          key={theme.name}
-                          onClick={() => setTheme(theme)}
-                          className={`w-6 h-6 rounded-full ${theme.logoBackground} ${
-                            currentTheme.name === theme.name ? 'ring-2 ring-offset-2 ring-slate-600' : ''
-                          }`}
-                          title={theme.name.split("-")[0]}
-                        />
-                      ))}
-                  </div>
-                </div>
-              </>
-            ) : (
+              </div>
+            </div>
+            
+            {/* 축소된 테마 섹션 - 사이드바가 닫혔을 때 */}
+            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <button
                 onClick={toggleThemeMode}
                 className={`p-1.5 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor}`}
@@ -204,7 +217,7 @@ export default function Sidebar() {
                   <SunIcon className="h-5 w-5" />
                 )}
               </button>
-            )}
+            </div>
           </div>
         </div>
 
