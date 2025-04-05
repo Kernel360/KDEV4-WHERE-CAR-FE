@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { CarLogResponse, CarLogsParams } from '@/types/logs';
 import { API_BASE_URL, fetchApi } from '@/lib/api';
 
-// 업데이트용 타입 정의
 interface CarLogUpdateData {
   driveType: string | null;
   driver: string;
@@ -17,7 +16,6 @@ interface CarLogsState {
   totalPages: number;
   pageSize: number;
   
-  // Actions
   fetchCarLogs: (params?: Partial<CarLogsParams>) => Promise<void>;
   updateCarLog: (logId: number, data: CarLogUpdateData) => Promise<{ success: boolean; message: string }>;
   deleteCarLog: (logId: number) => Promise<{ success: boolean; message: string }>;
@@ -63,7 +61,6 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      // PUT 요청으로 운행 기록 수정
       const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
         method: 'PUT',
         headers: {
@@ -77,13 +74,10 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         throw new Error(`API 요청 실패: ${response.status}`);
       }
       
-      // 응답이 단순 문자열인 경우 처리
       const responseText = await response.text();
       
-      // 업데이트 후 목록 새로고침
       await get().fetchCarLogs();
       
-      // 서버 응답 메시지 반환
       return {
         success: true,
         message: responseText || '수정되었습니다.'
@@ -105,7 +99,6 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      // DELETE 요청으로 운행 기록 삭제
       const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
         method: 'DELETE',
         headers: {
@@ -121,10 +114,8 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       // 응답이 단순 문자열인 경우 처리
       const responseText = await response.text();
       
-      // 상태 업데이트 (로딩 완료)
       set({ isLoading: false });
       
-      // 서버 응답 메시지 반환
       return {
         success: true,
         message: responseText || '삭제되었습니다.'
