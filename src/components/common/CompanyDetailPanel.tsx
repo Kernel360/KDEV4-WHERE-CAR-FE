@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { 
@@ -15,6 +15,7 @@ import {
   TrashIcon, 
   CheckIcon 
 } from '@heroicons/react/24/outline';
+import { useCompanyStore, CompanyRequest } from '@/lib/companyStore';
 
 export interface Company {
   name: string;
@@ -22,7 +23,7 @@ export interface Company {
   phone: string;
   email: string;
   description: string;
-  foundedYear: number;
+  website: string;
 }
 
 interface CompanyDetailPanelProps {
@@ -39,8 +40,10 @@ export default function CompanyDetailPanel({
   onUpdate 
 }: CompanyDetailPanelProps) {
   const { currentTheme } = useTheme();
+  const { updateMyCompany, updating, updateError, updateSuccess } = useCompanyStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedCompany, setEditedCompany] = useState<Company | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleEdit = () => {
     if (company) {
@@ -52,13 +55,52 @@ export default function CompanyDetailPanel({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedCompany(null);
+    setSaveError(null);
   };
 
-  const handleSaveEdit = () => {
-    if (editedCompany && onUpdate) {
-      onUpdate(editedCompany);
-      setIsEditing(false);
-      setEditedCompany(null);
+  const handleSaveEdit = async () => {
+    if (editedCompany) {
+      setSaveError(null);
+      
+      try {
+        // API로 회사 정보 업데이트
+        const companyRequest: CompanyRequest = {
+          name: editedCompany.name,
+          address: editedCompany.address,
+          phone: editedCompany.phone,
+          email: editedCompany.email,
+          description: editedCompany.description,
+          website: editedCompany.website
+        };
+        
+        const success = await updateMyCompany(companyRequest);
+        
+        if (success) {
+          if (onUpdate) {
+            onUpdate(editedCompany);
+          }
+          
+          setIsEditing(false);
+          setEditedCompany(null);
+          
+          // 잠시 후 패널 닫기 (사용자가 성공 메시지를 볼 수 있도록)
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        } else {
+          setSaveError('회사 정보를 업데이트하는 중 오류가 발생했습니다.');
+        }
+      } catch (error) {
+        console.error('회사 정보 업데이트 중 오류 발생:', error);
+        setSaveError('회사 정보를 업데이트하는 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('정말로 회사 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      // 실제 API가 없으므로 알림만 표시
+      alert('회사 정보 삭제 기능이 구현되지 않았습니다. 관리자에게 문의하세요.');
     }
   };
 
@@ -120,16 +162,32 @@ export default function CompanyDetailPanel({
                                 <span className="sr-only">수정</span>
                                 <PencilIcon className="h-5 w-5" aria-hidden="true" />
                               </button>
+                              <button
+                                type="button"
+                                className={`rounded-md ${currentTheme.text} hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2`}
+                                onClick={handleDelete}
+                              >
+                                <span className="sr-only">삭제</span>
+                                <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                              </button>
                             </>
                           ) : (
                             <>
                               <button
                                 type="button"
-                                className={`rounded-md ${currentTheme.text} hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+                                className={`rounded-md ${currentTheme.text} hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={handleSaveEdit}
+                                disabled={updating}
                               >
                                 <span className="sr-only">저장</span>
-                                <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                {updating ? (
+                                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                )}
                               </button>
                               <button
                                 type="button"
@@ -154,6 +212,20 @@ export default function CompanyDetailPanel({
                     </div>
 
                     <div className="relative flex-1 px-6 py-6">
+                      {/* 정보 업데이트 성공 메시지 */}
+                      {updateSuccess && (
+                        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700">
+                          <p className="text-sm font-medium">회사 정보가 성공적으로 업데이트되었습니다.</p>
+                        </div>
+                      )}
+                      
+                      {/* 에러 메시지 */}
+                      {(saveError || updateError) && (
+                        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
+                          <p className="text-sm font-medium">{saveError || updateError}</p>
+                        </div>
+                      )}
+                      
                       <div className="space-y-8">
                         {/* 회사 프로필 헤더 */}
                         <div className="flex flex-col items-center">
@@ -248,19 +320,28 @@ export default function CompanyDetailPanel({
                           <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
                             <div className="flex items-start">
                               <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
-                                <CalendarIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
+                                <svg className={`h-5 w-5 ${currentTheme.activeText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
                               </div>
                               <div className="ml-3 flex-1">
-                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>설립연도</p>
+                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>웹사이트</p>
                                 {isEditing ? (
                                   <input
-                                    type="number"
-                                    value={editedCompany?.foundedYear || ''}
-                                    onChange={(e) => handleInputChange('foundedYear', parseInt(e.target.value))}
+                                    type="url"
+                                    value={editedCompany?.website || ''}
+                                    onChange={(e) => handleInputChange('website', e.target.value)}
                                     className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                   />
                                 ) : (
-                                  <p className={`text-base font-semibold ${currentTheme.text}`}>{displayCompany.foundedYear}년</p>
+                                  <a 
+                                    href={displayCompany.website} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`text-base font-semibold ${currentTheme.text} hover:underline`}
+                                  >
+                                    {displayCompany.website}
+                                  </a>
                                 )}
                               </div>
                             </div>
@@ -298,4 +379,4 @@ export default function CompanyDetailPanel({
       </Dialog>
     </Transition.Root>
   );
-} 
+}
