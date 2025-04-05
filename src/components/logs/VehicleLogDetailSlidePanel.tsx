@@ -1,9 +1,10 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CalendarIcon, ClockIcon, TruckIcon, UserIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
 import { VehicleLog, DriveType } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
+import { useCarLogsStore } from '@/lib/carLogsStore';
 
 interface VehicleLogDetailSlidePanelProps {
   isOpen: boolean;
@@ -17,6 +18,16 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const { currentTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedLog, setEditedLog] = useState<VehicleLog | null>(null);
+  const { updateCarLog, deleteCarLog } = useCarLogsStore();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // log가 변경되면 editedLog도 업데이트
+  useEffect(() => {
+    if (log) {
+      setEditedLog({ ...log });
+    }
+  }, [log]);
 
   const handleEdit = () => {
     if (log) {
@@ -27,14 +38,45 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedLog(null);
+    if (log) {
+      setEditedLog({ ...log });  // 원래 값으로 되돌림
+    }
   };
 
-  const handleSaveEdit = () => {
-    if (editedLog && onUpdate) {
-      onUpdate(editedLog);
-      setIsEditing(false);
-      setEditedLog(null);
+  const handleSaveEdit = async () => {
+    if (editedLog) {
+      setIsUpdating(true);
+      
+      try {
+        const updateData = {
+          driveType: editedLog.driveType === 'UNREGISTERED' ? null : editedLog.driveType,
+          driver: editedLog.driver?.name || '',
+          description: editedLog.note || ''
+        };
+        
+        const logId = parseInt(editedLog.id, 10);
+        if (isNaN(logId)) {
+          throw new Error('유효하지 않은 로그 ID');
+        }
+        
+        const result = await updateCarLog(logId, updateData);
+        
+        if (result.success) {
+          console.log('수정 성공:', result.message);
+          
+          if (onUpdate) {
+            onUpdate(editedLog);
+          }
+          setIsEditing(false);
+          onClose(); // 수정 완료 후 패널 닫기
+        } else {
+          console.error('수정 실패:', result.message);
+        }
+      } catch (error) {
+        console.error('운행 기록 업데이트 오류:', error);
+      } finally {
+        setIsUpdating(false);
+      }
     }
   };
 
@@ -42,8 +84,37 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const handleDelete = () => {
     if (log && onDelete) {
       if (window.confirm('정말로 이 운행 기록을 삭제하시겠습니까?')) {
-        onDelete(log.id);
-        onClose();
+        setIsDeleting(true);
+        
+        // 로그 ID 파싱
+        const logId = parseInt(log.id, 10);
+        if (isNaN(logId)) {
+          alert('유효하지 않은 로그 ID입니다.');
+          setIsDeleting(false);
+          return;
+        }
+        
+        // 삭제 API 호출
+        deleteCarLog(logId)
+          .then(result => {
+            if (result.success) {
+              console.log('삭제 성공:', result.message);
+              
+              onClose();
+
+              onDelete(log.id);
+            } else {
+              console.error('삭제 실패:', result.message);
+              alert('삭제 중 오류가 발생했습니다.');
+            }
+          })
+          .catch(error => {
+            console.error('운행 기록 삭제 오류:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+          })
+          .finally(() => {
+            setIsDeleting(false);
+          });
       }
     }
   };
@@ -61,9 +132,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   const getDriveTypeClass = (type: DriveType) => {
     switch (type) {
-      case 'PERSONAL':
+      case 'COMMUTE':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-50 dark:text-blue-700';
-      case 'CORPORATE':
+      case 'WORK':
         return 'bg-teal-50 text-teal-700 dark:bg-teal-50 dark:text-teal-700';
       case 'UNREGISTERED':
         return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
@@ -74,8 +145,8 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   const getDriveTypeLabel = (type: DriveType) => {
     const types = {
-      PERSONAL: '개인',
-      CORPORATE: '법인',
+      COMMUTE: '출퇴근',
+      WORK: '업무',
       UNREGISTERED: '미등록',
     } as const;
     return types[type];
@@ -130,9 +201,17 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                             {onDelete && (
                               <button 
                                 onClick={handleDelete}
-                                className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 focus:outline-none ml-1"
+                                disabled={isDeleting}
+                                className={`p-1.5 rounded-lg text-gray-500 ${isDeleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50 hover:text-red-500'} focus:outline-none ml-1`}
                               >
-                                <TrashIcon className="h-5 w-5" />
+                                {isDeleting ? (
+                                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <TrashIcon className="h-5 w-5" />
+                                )}
                               </button>
                             )}
                           </>
@@ -153,15 +232,29 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                         <button
                           onClick={handleCancelEdit}
                           className={`px-3 py-1.5 border ${currentTheme.border} rounded-lg text-sm ${currentTheme.text}`}
+                          disabled={isUpdating}
                         >
                           취소
                         </button>
                         <button
                           onClick={handleSaveEdit}
-                          className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+                          disabled={isUpdating}
+                          className={`px-3 py-1.5 ${isUpdating ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg text-sm flex items-center`}
                         >
-                          <CheckIcon className="h-4 w-4 inline mr-1" />
-                          저장
+                          {isUpdating ? (
+                            <>
+                              <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              저장 중...
+                            </>
+                          ) : (
+                            <>
+                              <CheckIcon className="h-4 w-4 inline mr-1" />
+                              저장
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
@@ -185,8 +278,8 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                                 onChange={(e) => handleInputChange('driveType', e.target.value as DriveType)}
                                 className={`ml-2 rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                               >
-                                <option value="PERSONAL">개인</option>
-                                <option value="CORPORATE">법인</option>
+                                <option value="COMMUTE">출퇴근</option>
+                                <option value="WORK">업무</option>
                                 <option value="UNREGISTERED">미등록</option>
                               </select>
                             )}

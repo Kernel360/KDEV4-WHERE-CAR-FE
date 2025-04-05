@@ -1,4 +1,4 @@
-export type DriveType = 'PERSONAL' | 'CORPORATE' | 'UNREGISTERED';
+export type DriveType = 'COMMUTE' | 'WORK' | 'UNREGISTERED';
 
 export interface Driver {
   id: string;

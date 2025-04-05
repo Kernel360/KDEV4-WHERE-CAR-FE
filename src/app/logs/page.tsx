@@ -18,7 +18,7 @@ export default function LogsPage() {
   const [selectedLog, setSelectedLog] = useState<VehicleLog | null>(null);
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   
-  const { fetchCarLogs, isLoading, carLogs } = useCarLogsStore();
+  const { fetchCarLogs, isLoading, carLogs, deleteCarLog } = useCarLogsStore();
   
   useEffect(() => {
     fetchCarLogs();
@@ -51,10 +51,21 @@ export default function LogsPage() {
 
   const handleDeleteLog = (id: string) => {
     console.log(`삭제할 운행 기록 ID: ${id}`);
+    
+    setSelectedLog(null);
+    
+    setIsSlidePanelOpen(false);
+    
+    setTimeout(() => {
+      fetchCarLogs().catch(err => {
+        console.error('목록 새로고침 오류:', err);
+      });
+    }, 1000);
   };
   
   const handleUpdateLog = (log: VehicleLog) => {
     console.log('운행 기록 업데이트:', log);
+    fetchCarLogs();
   };
   
   return (
@@ -68,20 +79,28 @@ export default function LogsPage() {
           onClick={() => {
             // VehicleLogList 컴포넌트에서 filteredLogs를 가져올 수 없으므로 
             // carLogs를 VehicleLog 형식으로 변환해서 전달
-            const mappedLogs = carLogs.map(log => ({
-              id: log.logId.toString(),
-              vehicleNumber: log.mdn,
-              startTime: log.onTime,
-              endTime: log.offTime,
-              startMileage: log.onMileage,
-              endMileage: log.offMileage,
-              totalDistance: log.totalMileage || log.offMileage - log.onMileage,
-              driveType: (log.driveType === 'WORK' ? 'CORPORATE' : 'PERSONAL') as DriveType,
-              driver: log.driver ? { id: '1', name: log.driver } : null,
-              note: log.description,
-              createdAt: log.onTime,
-              updatedAt: log.offTime
-            }));
+            const mappedLogs = carLogs.map(log => {
+              // API 응답의 driveType을 변환
+              let driveType: DriveType = 'UNREGISTERED';
+              if (log.driveType === 'COMMUTE' || log.driveType === 'WORK') {
+                driveType = log.driveType as DriveType;
+              }
+              
+              return {
+                id: log.logId.toString(),
+                vehicleNumber: log.mdn,
+                startTime: log.onTime,
+                endTime: log.offTime,
+                startMileage: log.onMileage,
+                endMileage: log.offMileage,
+                totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+                driveType: driveType,
+                driver: log.driver ? { id: '1', name: log.driver } : null,
+                note: log.description,
+                createdAt: log.onTime,
+                updatedAt: log.offTime
+              };
+            });
             handleExportExcel(mappedLogs);
           }} 
           className={`flex items-center px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm`}

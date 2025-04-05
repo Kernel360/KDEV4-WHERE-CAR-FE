@@ -17,290 +17,6 @@ interface VehicleLogListProps {
   isLoading?: boolean;
 }
 
-// 임시 데이터 - 실제로는 API에서 가져와야 함
-const mockData: VehicleLog[] = [
-  {
-    id: '1',
-    vehicleNumber: '서울 123가 4567',
-    startTime: '2024-03-20T09:00:00Z',
-    endTime: '2024-03-20T18:00:00Z',
-    startMileage: 50000,
-    endMileage: 50150,
-    totalDistance: 150,
-    driveType: 'CORPORATE',
-    driver: { id: '1', name: '홍길동' },
-    note: '업무 출장',
-    createdAt: '2024-03-20T09:00:00Z',
-    updatedAt: '2024-03-20T18:00:00Z',
-  },
-  {
-    id: '2',
-    vehicleNumber: '경기 456나 7890',
-    startTime: '2024-03-21T08:30:00Z',
-    endTime: '2024-03-21T17:30:00Z',
-    startMileage: 35000,
-    endMileage: 35180,
-    totalDistance: 180,
-    driveType: 'PERSONAL',
-    driver: { id: '2', name: '김철수' },
-    note: '개인 용무',
-    createdAt: '2024-03-21T08:30:00Z',
-    updatedAt: '2024-03-21T17:30:00Z',
-  },
-  {
-    id: '3',
-    vehicleNumber: '부산 789다 1234',
-    startTime: '2024-03-22T10:00:00Z',
-    endTime: '2024-03-22T16:00:00Z',
-    startMileage: 42000,
-    endMileage: 42120,
-    totalDistance: 120,
-    driveType: 'UNREGISTERED',
-    driver: null,
-    note: '임시 운행',
-    createdAt: '2024-03-22T10:00:00Z',
-    updatedAt: '2024-03-22T16:00:00Z',
-  },
-  {
-    id: '4',
-    vehicleNumber: '서울 123가 4567',
-    startTime: '2024-03-23T09:00:00Z',
-    endTime: '2024-03-23T18:00:00Z',
-    startMileage: 50150,
-    endMileage: 50300,
-    totalDistance: 150,
-    driveType: 'CORPORATE',
-    driver: { id: '1', name: '홍길동' },
-    note: '거래처 방문',
-    createdAt: '2024-03-23T09:00:00Z',
-    updatedAt: '2024-03-23T18:00:00Z',
-  },
-  {
-    id: '5',
-    vehicleNumber: '인천 012라 5678',
-    startTime: '2024-03-24T08:00:00Z',
-    endTime: '2024-03-24T17:00:00Z',
-    startMileage: 27000,
-    endMileage: 27250,
-    totalDistance: 250,
-    driveType: 'PERSONAL',
-    driver: { id: '3', name: '이영희' },
-    note: '주말 여행',
-    createdAt: '2024-03-24T08:00:00Z',
-    updatedAt: '2024-03-24T17:00:00Z',
-  },
-  {
-    id: '6',
-    vehicleNumber: '대전 234마 9012',
-    startTime: '2024-03-25T09:30:00Z',
-    endTime: '2024-03-25T16:30:00Z',
-    startMileage: 62000,
-    endMileage: 62130,
-    totalDistance: 130,
-    driveType: 'CORPORATE',
-    driver: { id: '4', name: '박지민' },
-    note: '본사 방문',
-    createdAt: '2024-03-25T09:30:00Z',
-    updatedAt: '2024-03-25T16:30:00Z',
-  },
-  {
-    id: '7',
-    vehicleNumber: '광주 345바 3456',
-    startTime: '2024-03-26T10:00:00Z',
-    endTime: '2024-03-26T15:00:00Z',
-    startMileage: 45000,
-    endMileage: 45220,
-    totalDistance: 220,
-    driveType: 'PERSONAL',
-    driver: { id: '5', name: '정수민' },
-    note: '가족 방문',
-    createdAt: '2024-03-26T10:00:00Z',
-    updatedAt: '2024-03-26T15:00:00Z',
-  },
-  {
-    id: '8',
-    vehicleNumber: '대구 456사 6789',
-    startTime: '2024-03-27T08:00:00Z',
-    endTime: '2024-03-27T18:00:00Z',
-    startMileage: 38000,
-    endMileage: 38300,
-    totalDistance: 300,
-    driveType: 'CORPORATE',
-    driver: { id: '6', name: '최현우' },
-    note: '고객사 미팅',
-    createdAt: '2024-03-27T08:00:00Z',
-    updatedAt: '2024-03-27T18:00:00Z',
-  },
-  {
-    id: '9',
-    vehicleNumber: '부산 789다 1234',
-    startTime: '2024-03-28T09:00:00Z',
-    endTime: '2024-03-28T17:00:00Z',
-    startMileage: 42120,
-    endMileage: 42270,
-    totalDistance: 150,
-    driveType: 'UNREGISTERED',
-    driver: null,
-    note: '차량 점검',
-    createdAt: '2024-03-28T09:00:00Z',
-    updatedAt: '2024-03-28T17:00:00Z',
-  },
-  {
-    id: '10',
-    vehicleNumber: '서울 123가 4567',
-    startTime: '2024-03-29T08:30:00Z',
-    endTime: '2024-03-29T18:30:00Z',
-    startMileage: 50300,
-    endMileage: 50450,
-    totalDistance: 150,
-    driveType: 'CORPORATE',
-    driver: { id: '1', name: '홍길동' },
-    note: '프로젝트 미팅',
-    createdAt: '2024-03-29T08:30:00Z',
-    updatedAt: '2024-03-29T18:30:00Z',
-  },
-  {
-    id: '11',
-    vehicleNumber: '경기 456나 7890',
-    startTime: '2024-03-30T10:00:00Z',
-    endTime: '2024-03-30T16:00:00Z',
-    startMileage: 35180,
-    endMileage: 35280,
-    totalDistance: 100,
-    driveType: 'PERSONAL',
-    driver: { id: '2', name: '김철수' },
-    note: '쇼핑',
-    createdAt: '2024-03-30T10:00:00Z',
-    updatedAt: '2024-03-30T16:00:00Z',
-  },
-  {
-    id: '12',
-    vehicleNumber: '인천 012라 5678',
-    startTime: '2024-03-31T09:00:00Z',
-    endTime: '2024-03-31T19:00:00Z',
-    startMileage: 27250,
-    endMileage: 27450,
-    totalDistance: 200,
-    driveType: 'PERSONAL',
-    driver: { id: '3', name: '이영희' },
-    note: '친구 방문',
-    createdAt: '2024-03-31T09:00:00Z',
-    updatedAt: '2024-03-31T19:00:00Z',
-  },
-  {
-    id: '13',
-    vehicleNumber: '대전 234마 9012',
-    startTime: '2024-04-01T08:00:00Z',
-    endTime: '2024-04-01T17:00:00Z',
-    startMileage: 62130,
-    endMileage: 62230,
-    totalDistance: 100,
-    driveType: 'CORPORATE',
-    driver: { id: '4', name: '박지민' },
-    note: '정기 회의',
-    createdAt: '2024-04-01T08:00:00Z',
-    updatedAt: '2024-04-01T17:00:00Z',
-  },
-  {
-    id: '14',
-    vehicleNumber: '광주 345바 3456',
-    startTime: '2024-04-02T09:30:00Z',
-    endTime: '2024-04-02T15:30:00Z',
-    startMileage: 45220,
-    endMileage: 45350,
-    totalDistance: 130,
-    driveType: 'PERSONAL',
-    driver: { id: '5', name: '정수민' },
-    note: '개인 용무',
-    createdAt: '2024-04-02T09:30:00Z',
-    updatedAt: '2024-04-02T15:30:00Z',
-  },
-  {
-    id: '15',
-    vehicleNumber: '대구 456사 6789',
-    startTime: '2024-04-03T08:30:00Z',
-    endTime: '2024-04-03T18:30:00Z',
-    startMileage: 38300,
-    endMileage: 38450,
-    totalDistance: 150,
-    driveType: 'CORPORATE',
-    driver: { id: '6', name: '최현우' },
-    note: '업무 출장',
-    createdAt: '2024-04-03T08:30:00Z',
-    updatedAt: '2024-04-03T18:30:00Z',
-  },
-  {
-    id: '16',
-    vehicleNumber: '서울 567아 7890',
-    startTime: '2024-04-04T10:00:00Z',
-    endTime: '2024-04-04T17:00:00Z',
-    startMileage: 18000,
-    endMileage: 18150,
-    totalDistance: 150,
-    driveType: 'CORPORATE',
-    driver: { id: '7', name: '강민준' },
-    note: '고객 미팅',
-    createdAt: '2024-04-04T10:00:00Z',
-    updatedAt: '2024-04-04T17:00:00Z',
-  },
-  {
-    id: '17',
-    vehicleNumber: '부산 678자 8901',
-    startTime: '2024-04-05T09:00:00Z',
-    endTime: '2024-04-05T16:00:00Z',
-    startMileage: 55000,
-    endMileage: 55200,
-    totalDistance: 200,
-    driveType: 'UNREGISTERED',
-    driver: null,
-    note: '차량 테스트',
-    createdAt: '2024-04-05T09:00:00Z',
-    updatedAt: '2024-04-05T16:00:00Z',
-  },
-  {
-    id: '18',
-    vehicleNumber: '경기 789차 9012',
-    startTime: '2024-04-06T08:00:00Z',
-    endTime: '2024-04-06T15:00:00Z',
-    startMileage: 23000,
-    endMileage: 23100,
-    totalDistance: 100,
-    driveType: 'PERSONAL',
-    driver: { id: '8', name: '윤서연' },
-    note: '쇼핑',
-    createdAt: '2024-04-06T08:00:00Z',
-    updatedAt: '2024-04-06T15:00:00Z',
-  },
-  {
-    id: '19',
-    vehicleNumber: '인천 890카 0123',
-    startTime: '2024-04-07T09:30:00Z',
-    endTime: '2024-04-07T17:30:00Z',
-    startMileage: 72000,
-    endMileage: 72250,
-    totalDistance: 250,
-    driveType: 'CORPORATE',
-    driver: { id: '9', name: '임준호' },
-    note: '업무 미팅',
-    createdAt: '2024-04-07T09:30:00Z',
-    updatedAt: '2024-04-07T17:30:00Z',
-  },
-  {
-    id: '20',
-    vehicleNumber: '대전 901타 1234',
-    startTime: '2024-04-08T10:00:00Z',
-    endTime: '2024-04-08T16:00:00Z',
-    startMileage: 41000,
-    endMileage: 41120,
-    totalDistance: 120,
-    driveType: 'PERSONAL',
-    driver: { id: '10', name: '한지훈' },
-    note: '가족 여행',
-    createdAt: '2024-04-08T10:00:00Z',
-    updatedAt: '2024-04-08T16:00:00Z',
-  },
-];
-
 export function VehicleLogList({ 
   filter, 
   searchTerm = '',
@@ -326,55 +42,65 @@ export function VehicleLogList({
     setPage 
   } = useCarLogsStore();
 
-  // 컴포넌트 마운트 시 데이터 가져오기
-  useEffect(() => {
-    fetchCarLogs({ page: 0, size: 10 });
-  }, [fetchCarLogs]);
-
   // API 응답 데이터를 VehicleLog 형식으로 변환
   const mappedLogs = useMemo(() => {
-    return carLogs.map(log => ({
-      id: log.logId.toString(),
-      vehicleNumber: log.mdn,
-      startTime: log.onTime,
-      endTime: log.offTime,
-      startMileage: log.onMileage,
-      endMileage: log.offMileage,
-      totalDistance: log.totalMileage || log.offMileage - log.onMileage,
-      driveType: (log.driveType === 'WORK' ? 'CORPORATE' : 'PERSONAL') as DriveType,
-      driver: log.driver ? { id: '1', name: log.driver } : null,
-      note: log.description,
-      createdAt: log.onTime,
-      updatedAt: log.offTime
-    }));
+    return carLogs.map(log => {
+      // API 응답의 driveType을 변환
+      let driveType: DriveType = 'UNREGISTERED';
+      if (log.driveType === 'COMMUTE' || log.driveType === 'WORK') {
+        driveType = log.driveType as DriveType;
+      }
+      
+      const mappedLog = {
+        id: log.logId.toString(),
+        vehicleNumber: log.mdn,
+        startTime: log.onTime,
+        endTime: log.offTime,
+        startMileage: log.onMileage,
+        endMileage: log.offMileage,
+        totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+        driveType: driveType,
+        driver: log.driver ? { id: '1', name: log.driver } : null,
+        note: log.description,
+        createdAt: log.onTime,
+        updatedAt: log.offTime
+      };
+      
+      return mappedLog;
+    });
   }, [carLogs]);
 
-  // 필터링된 로그 데이터
+  // 검색어와 필터를 적용한 로그 목록
   const filteredLogs = useMemo(() => {
     return mappedLogs.filter(log => {
-      // 검색어 필터링
-      if (searchTerm && !log.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !(log.driver?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) &&
-          !(log.note?.toLowerCase().includes(searchTerm.toLowerCase()) || false)) {
-        return false;
-      }
+      // 차량 번호 검색
+      const matchesSearch = searchTerm 
+        ? log.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (log.driver?.name && log.driver.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (log.note && log.note.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
       
-      // 날짜 범위 필터링
-      if (filter.startDate && new Date(log.startTime) < new Date(filter.startDate)) {
-        return false;
-      }
+      // 드라이브 타입 필터
+      const matchesDriveType = !filter.driveType || filter.driveType === log.driveType;
       
-      if (filter.endDate && new Date(log.endTime) > new Date(filter.endDate)) {
-        return false;
-      }
+      // 날짜 범위 필터 (시작일)
+      const startDateMatch = filter.startDate
+        ? new Date(log.startTime) >= new Date(filter.startDate)
+        : true;
       
-      return true;
+      // 날짜 범위 필터 (종료일)
+      const endDateMatch = filter.endDate
+        ? new Date(log.startTime) <= new Date(filter.endDate)
+        : true;
+        
+      return matchesSearch && matchesDriveType && startDateMatch && endDateMatch;
     });
-  }, [filter, searchTerm, mappedLogs]);
+  }, [mappedLogs, filter, searchTerm]);
 
-  // 페이지 변경 핸들러
-  const handlePageChange = (page: number) => {
-    setPage(page);
+  // 페이지 변경 처리 함수
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchCarLogs({ page: newPage, size: pageSize });
   };
 
   const handleLogClick = (log: VehicleLog) => {
@@ -393,9 +119,9 @@ export function VehicleLogList({
   // 드라이브 타입에 따른 배경색 클래스
   const getDriveTypeClass = (type: DriveType) => {
     switch (type) {
-      case 'PERSONAL':
+      case 'COMMUTE':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-50 dark:text-blue-700';
-      case 'CORPORATE':
+      case 'WORK':
         return 'bg-teal-50 text-teal-700 dark:bg-teal-50 dark:text-teal-700';
       case 'UNREGISTERED':
         return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
@@ -406,8 +132,8 @@ export function VehicleLogList({
 
   const getDriveTypeLabel = (type: DriveType) => {
     const types = {
-      PERSONAL: '개인',
-      CORPORATE: '법인',
+      COMMUTE: '출퇴근',
+      WORK: '업무',
       UNREGISTERED: '미등록',
     } as const;
     return types[type];
@@ -553,8 +279,8 @@ export function VehicleLogList({
           isOpen={isLocalSlideOpen}
           onClose={handleCloseLocalSlide}
           log={localSelectedLog}
-          onDelete={(id) => console.log(`삭제할 운행 기록 ID: ${id}`)}
-          onUpdate={(log) => console.log('운행 기록 업데이트:', log)}
+          onDelete={(id) => {}}
+          onUpdate={(log) => {}}
         />
       )}
     </>
