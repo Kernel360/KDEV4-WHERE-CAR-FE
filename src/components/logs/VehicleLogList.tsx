@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
-import { VehicleLog, VehicleLogFilter, DriveType } from '@/types/logs';
+import { useState, useMemo, useEffect } from 'react';
+import { VehicleLog, VehicleLogFilter, DriveType, CarLogResponse } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import VehicleLogDetailSlidePanel from './VehicleLogDetailSlidePanel';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { useCarLogsStore } from '@/lib/carLogsStore';
 
 interface VehicleLogListProps {
   filter: VehicleLogFilter;
@@ -308,17 +309,49 @@ export function VehicleLogList({
   isSlideOpen = false,
   onCloseSlide,
   selectedLog,
-  isLoading = false
+  isLoading: parentIsLoading = false
 }: VehicleLogListProps) {
   const { currentTheme } = useTheme();
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
   const [localSelectedLog, setLocalSelectedLog] = useState<VehicleLog | null>(null);
   const [isLocalSlideOpen, setIsLocalSlideOpen] = useState(false);
+  
+  // Zustand 스토어에서 상태 가져오기
+  const { 
+    carLogs, 
+    isLoading, 
+    error, 
+    currentPage, 
+    pageSize,
+    fetchCarLogs, 
+    setPage 
+  } = useCarLogsStore();
+
+  // 컴포넌트 마운트 시 데이터 가져오기
+  useEffect(() => {
+    fetchCarLogs({ page: 0, size: 10 });
+  }, [fetchCarLogs]);
+
+  // API 응답 데이터를 VehicleLog 형식으로 변환
+  const mappedLogs = useMemo(() => {
+    return carLogs.map(log => ({
+      id: log.logId.toString(),
+      vehicleNumber: log.mdn,
+      startTime: log.onTime,
+      endTime: log.offTime,
+      startMileage: log.onMileage,
+      endMileage: log.offMileage,
+      totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+      driveType: (log.driveType === 'WORK' ? 'CORPORATE' : 'PERSONAL') as DriveType,
+      driver: log.driver ? { id: '1', name: log.driver } : null,
+      note: log.description,
+      createdAt: log.onTime,
+      updatedAt: log.offTime
+    }));
+  }, [carLogs]);
 
   // 필터링된 로그 데이터
   const filteredLogs = useMemo(() => {
-    return mockData.filter(log => {
+    return mappedLogs.filter(log => {
       // 검색어 필터링
       if (searchTerm && !log.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !(log.driver?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) &&
@@ -337,17 +370,11 @@ export function VehicleLogList({
       
       return true;
     });
-  }, [filter, searchTerm, mockData]);
-
-  // 페이지네이션 계산
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentLogs = filteredLogs.slice(startIndex, endIndex);
+  }, [filter, searchTerm, mappedLogs]);
 
   // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setPage(page);
   };
 
   const handleLogClick = (log: VehicleLog) => {
@@ -423,7 +450,7 @@ export function VehicleLogList({
               </tr>
             </thead>
             <tbody className={`${currentTheme.cardBg} divide-y divide-gray-200 dark:divide-gray-200 dark:bg-white`}>
-              {isLoading ? (
+              {isLoading || parentIsLoading ? (
                 <tr>
                   <td colSpan={9} className="px-5 py-8 text-center">
                     <div className="flex justify-center items-center">
@@ -435,8 +462,14 @@ export function VehicleLogList({
                     </div>
                   </td>
                 </tr>
-              ) : currentLogs.length > 0 ? (
-                currentLogs.map((log) => (
+              ) : error ? (
+                <tr>
+                  <td colSpan={9} className={`px-5 py-8 text-center text-sm text-red-500`}>
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredLogs.length > 0 ? (
+                filteredLogs.map((log) => (
                   <tr 
                     key={log.id} 
                     className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
@@ -484,67 +517,26 @@ export function VehicleLogList({
           </table>
         </div>
         
-        {/* 페이지네이션 */}
-        {!isLoading && totalPages > 1 && (
+        {!isLoading && !error && (
           <div className={`px-5 py-3 flex items-center justify-between border-t ${currentTheme.border}`}>
             <div>
               <p className={`text-sm ${currentTheme.subtext}`}>
-                <span className="font-medium">{filteredLogs.length}</span> 개의 결과 중{' '}
-                <span className="font-medium">{startIndex + 1}</span> -{' '}
-                <span className="font-medium">{Math.min(endIndex, filteredLogs.length)}</span> 보기
+                <span className="font-medium">{carLogs.length}</span> 개의 결과 보기
               </p>
             </div>
             <div>
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                 <button
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage === 1 ? 'text-gray-300' : currentTheme.text} ${currentPage !== 1 ? 'hover:bg-gray-50' : ''}`}
+                  onClick={() => handlePageChange(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage === 0 ? 'text-gray-300 cursor-not-allowed' : `${currentTheme.text} hover:bg-gray-50`}`}
                 >
                   <span className="sr-only">이전</span>
                   <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
-                
-                {/* 페이지 버튼 생성 */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  // 현재 페이지, 첫 페이지, 마지막 페이지, 현재 페이지 근처의 페이지만 표시
-                  const shouldShow = page === 1 || page === totalPages || 
-                                     (page >= currentPage - 1 && page <= currentPage + 1);
-                  
-                  // 생략 표시 (...)
-                  if (!shouldShow) {
-                    if (page === 2 || page === totalPages - 1) {
-                      return (
-                        <span
-                          key={`ellipsis-${page}`}
-                          className={`relative inline-flex items-center px-4 py-2 border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentTheme.text}`}
-                        >
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  }
-                  
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border ${currentTheme.border} text-sm font-medium ${
-                        page === currentPage
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : `${currentTheme.cardBg} ${currentTheme.text} hover:bg-gray-50`
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                }).filter(Boolean)}
-                
                 <button
-                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage === totalPages ? 'text-gray-300' : currentTheme.text} ${currentPage !== totalPages ? 'hover:bg-gray-50' : ''}`}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentTheme.text} hover:bg-gray-50`}
                 >
                   <span className="sr-only">다음</span>
                   <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
@@ -555,11 +547,14 @@ export function VehicleLogList({
         )}
       </div>
 
+      {/* 자체 슬라이드 패널 (상위 컴포넌트에서 처리하지 않을 경우) */}
       {!onLogSelect && (
         <VehicleLogDetailSlidePanel
           isOpen={isLocalSlideOpen}
           onClose={handleCloseLocalSlide}
           log={localSelectedLog}
+          onDelete={(id) => console.log(`삭제할 운행 기록 ID: ${id}`)}
+          onUpdate={(log) => console.log('운행 기록 업데이트:', log)}
         />
       )}
     </>
