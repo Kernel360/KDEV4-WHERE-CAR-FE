@@ -44,4 +44,10 @@ export interface CarLogResponse {
 export interface CarLogsParams {
   page: number;
   size: number;
+  startDate?: string;
+  endDate?: string;
+  driveType?: DriveType;
+  vehicleNumber?: string;
+  driverId?: string;
+  searchTerm?: string;
 } 

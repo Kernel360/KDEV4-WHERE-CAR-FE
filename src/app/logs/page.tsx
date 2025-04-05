@@ -18,7 +18,7 @@ export default function LogsPage() {
   const [selectedLog, setSelectedLog] = useState<VehicleLog | null>(null);
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   
-  const { fetchCarLogs, isLoading, carLogs, deleteCarLog } = useCarLogsStore();
+  const { fetchCarLogs, isLoading, carLogs, deleteCarLog, currentFilter } = useCarLogsStore();
   
   useEffect(() => {
     fetchCarLogs();
@@ -33,7 +33,14 @@ export default function LogsPage() {
   };
 
   const handleSearch = async () => {
-    await fetchCarLogs();
+    console.log('검색 시작, 현재 필터:', filter);
+    // filter에 있는 데이터로 검색을 수행함
+    await fetchCarLogs({
+      vehicleNumber: filter.vehicleNumber,
+      startDate: filter.startDate,
+      endDate: filter.endDate
+    });
+    console.log('검색 완료, 필터 적용됨');
   };
 
   const handleLogSelect = (log: VehicleLog) => {
@@ -112,18 +119,20 @@ export default function LogsPage() {
 
       <div className="mt-4">
         <VehicleLogFilter 
-          filter={filter} 
-          onFilterChange={handleFilterChange} 
-          searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
-          onSearch={handleSearch}
+          initialFilter={currentFilter as FilterType}
+          onApplyFilter={() => {
+            // 필터 적용 시 첫 페이지부터 데이터 가져오기
+            fetchCarLogs({ page: 0 });
+          }}
         />
         <div className="mt-4">
           <VehicleLogList 
-            filter={filter} 
-            searchTerm={searchTerm} 
+            filter={currentFilter as FilterType}
             onExport={handleExportExcel}
             onLogSelect={handleLogSelect}
+            isSlideOpen={isSlidePanelOpen}
+            onCloseSlide={handleCloseSidePanel}
+            selectedLog={selectedLog}
             isLoading={isLoading}
           />
         </div>

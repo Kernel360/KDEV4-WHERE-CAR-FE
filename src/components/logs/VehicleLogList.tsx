@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { VehicleLog, VehicleLogFilter, DriveType, CarLogResponse } from '@/types/logs';
+import { VehicleLog, VehicleLogFilter, DriveType, CarLogResponse, CarLogsParams } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import VehicleLogDetailSlidePanel from './VehicleLogDetailSlidePanel';
@@ -38,6 +38,7 @@ export function VehicleLogList({
     error, 
     currentPage, 
     pageSize,
+    totalPages,
     fetchCarLogs, 
     setPage 
   } = useCarLogsStore();
@@ -70,37 +71,13 @@ export function VehicleLogList({
     });
   }, [carLogs]);
 
-  // 검색어와 필터를 적용한 로그 목록
-  const filteredLogs = useMemo(() => {
-    return mappedLogs.filter(log => {
-      // 차량 번호 검색
-      const matchesSearch = searchTerm 
-        ? log.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (log.driver?.name && log.driver.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (log.note && log.note.toLowerCase().includes(searchTerm.toLowerCase()))
-        : true;
-      
-      // 드라이브 타입 필터
-      const matchesDriveType = !filter.driveType || filter.driveType === log.driveType;
-      
-      // 날짜 범위 필터 (시작일)
-      const startDateMatch = filter.startDate
-        ? new Date(log.startTime) >= new Date(filter.startDate)
-        : true;
-      
-      // 날짜 범위 필터 (종료일)
-      const endDateMatch = filter.endDate
-        ? new Date(log.startTime) <= new Date(filter.endDate)
-        : true;
-        
-      return matchesSearch && matchesDriveType && startDateMatch && endDateMatch;
-    });
-  }, [mappedLogs, filter, searchTerm]);
+  // 검색어와 필터를 적용한 로그 목록 - API에서 필터링된 결과를 사용하므로 클라이언트 측 필터링은 제거
+  const filteredLogs = mappedLogs;
 
   // 페이지 변경 처리 함수
   const handlePageChange = (newPage: number) => {
+    // 현재 필터 상태를 유지하면서 페이지만 변경
     setPage(newPage);
-    fetchCarLogs({ page: newPage, size: pageSize });
   };
 
   const handleLogClick = (log: VehicleLog) => {
@@ -247,7 +224,7 @@ export function VehicleLogList({
           <div className={`px-5 py-3 flex items-center justify-between border-t ${currentTheme.border}`}>
             <div>
               <p className={`text-sm ${currentTheme.subtext}`}>
-                <span className="font-medium">{carLogs.length}</span> 개의 결과 보기
+                총 {carLogs.length}개 항목 중 {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, carLogs.length)}개 표시 (페이지 {currentPage + 1} / {totalPages})
               </p>
             </div>
             <div>
@@ -262,7 +239,7 @@ export function VehicleLogList({
                 </button>
                 
                 {(() => {
-                  const totalPages = Math.ceil(carLogs.length / pageSize);
+                  // API 응답의 totalPages를 사용하여 페이지네이션 생성
                   let startPage = Math.max(0, currentPage - 2);
                   let endPage = Math.min(totalPages - 1, startPage + 4);
         
@@ -270,7 +247,7 @@ export function VehicleLogList({
                     startPage = Math.max(0, endPage - 4);
                   }
                   
-                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+                  return Array.from({ length: Math.min(5, endPage - startPage + 1) }, (_, i) => startPage + i).map((page) => (
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
@@ -287,8 +264,8 @@ export function VehicleLogList({
                 
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= Math.ceil(carLogs.length / pageSize) - 1}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage >= Math.ceil(carLogs.length / pageSize) - 1 ? 'text-gray-300 cursor-not-allowed' : `${currentTheme.text} hover:bg-gray-50`}`}
+                  disabled={currentPage >= totalPages - 1}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage >= totalPages - 1 ? 'text-gray-300 cursor-not-allowed' : `${currentTheme.text} hover:bg-gray-50`}`}
                 >
                   <span className="sr-only">다음</span>
                   <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
