@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { VehicleLogList } from "@/components/logs/VehicleLogList";
 import { VehicleLogFilter } from "@/components/logs/VehicleLogFilter";
-import { VehicleLogFilter as FilterType, VehicleLog } from "@/types/logs";
+import { VehicleLogFilter as FilterType, VehicleLog, DriveType } from "@/types/logs";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { downloadExcel } from "@/lib/utils";
@@ -18,7 +18,7 @@ export default function LogsPage() {
   const [selectedLog, setSelectedLog] = useState<VehicleLog | null>(null);
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   
-  const { fetchCarLogs, isLoading, carLogs } = useCarLogsStore();
+  const { fetchCarLogs, isLoading, carLogs, deleteCarLog, currentFilter } = useCarLogsStore();
   
   useEffect(() => {
     fetchCarLogs();
@@ -33,7 +33,14 @@ export default function LogsPage() {
   };
 
   const handleSearch = async () => {
-    await fetchCarLogs();
+    console.log('검색 시작, 현재 필터:', filter);
+    // filter에 있는 데이터로 검색을 수행함
+    await fetchCarLogs({
+      vehicleNumber: filter.vehicleNumber,
+      startDate: filter.startDate,
+      endDate: filter.endDate
+    });
+    console.log('검색 완료, 필터 적용됨');
   };
 
   const handleLogSelect = (log: VehicleLog) => {
@@ -51,10 +58,21 @@ export default function LogsPage() {
 
   const handleDeleteLog = (id: string) => {
     console.log(`삭제할 운행 기록 ID: ${id}`);
+    
+    setSelectedLog(null);
+    
+    setIsSlidePanelOpen(false);
+    
+    setTimeout(() => {
+      fetchCarLogs().catch(err => {
+        console.error('목록 새로고침 오류:', err);
+      });
+    }, 1000);
   };
   
   const handleUpdateLog = (log: VehicleLog) => {
     console.log('운행 기록 업데이트:', log);
+    fetchCarLogs();
   };
   
   return (
@@ -65,7 +83,33 @@ export default function LogsPage() {
           description="차량 운행 기록을 관리하고 조회할 수 있습니다." 
         />
         <button
-          onClick={() => handleExportExcel([])} 
+          onClick={() => {
+            // VehicleLogList 컴포넌트에서 filteredLogs를 가져올 수 없으므로 
+            // carLogs를 VehicleLog 형식으로 변환해서 전달
+            const mappedLogs = carLogs.map(log => {
+              // API 응답의 driveType을 변환
+              let driveType: DriveType = 'UNREGISTERED';
+              if (log.driveType === 'COMMUTE' || log.driveType === 'WORK') {
+                driveType = log.driveType as DriveType;
+              }
+              
+              return {
+                id: log.logId.toString(),
+                vehicleNumber: log.mdn,
+                startTime: log.onTime,
+                endTime: log.offTime,
+                startMileage: log.onMileage,
+                endMileage: log.offMileage,
+                totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+                driveType: driveType,
+                driver: log.driver ? { id: '1', name: log.driver } : null,
+                note: log.description,
+                createdAt: log.onTime,
+                updatedAt: log.offTime
+              };
+            });
+            handleExportExcel(mappedLogs);
+          }} 
           className={`flex items-center px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm`}
         >
           <ArrowDownTrayIcon className="h-4 w-4 mr-1.5" />
@@ -75,18 +119,20 @@ export default function LogsPage() {
 
       <div className="mt-4">
         <VehicleLogFilter 
-          filter={filter} 
-          onFilterChange={handleFilterChange} 
-          searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
-          onSearch={handleSearch}
+          initialFilter={currentFilter as FilterType}
+          onApplyFilter={() => {
+            // 필터 적용 시 첫 페이지부터 데이터 가져오기
+            fetchCarLogs({ page: 0 });
+          }}
         />
         <div className="mt-4">
           <VehicleLogList 
-            filter={filter} 
-            searchTerm={searchTerm} 
+            filter={currentFilter as FilterType}
             onExport={handleExportExcel}
             onLogSelect={handleLogSelect}
+            isSlideOpen={isSlidePanelOpen}
+            onCloseSlide={handleCloseSidePanel}
+            selectedLog={selectedLog}
             isLoading={isLoading}
           />
         </div>

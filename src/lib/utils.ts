@@ -31,8 +31,8 @@ export function downloadExcel(data: any[], filename: string) {
     '시작 주행거리': `${formatNumber(item.startMileage)} km`,
     '종료 주행거리': `${formatNumber(item.endMileage)} km`,
     '총 주행거리': `${formatNumber(item.totalDistance)} km`,
-    '드라이브 타입': item.driveType === 'PERSONAL' ? '개인' : 
-                    item.driveType === 'CORPORATE' ? '법인' : '미등록',
+    '드라이브 타입': item.driveType === 'COMMUTE' ? '출퇴근' : 
+                  item.driveType === 'WORK' ? '업무' : '미등록',
     '드라이버': item.driver?.name || '미등록',
     '비고': item.note || '-'
   })));
