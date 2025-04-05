@@ -27,6 +27,7 @@ import {
 import { Line, Doughnut } from "react-chartjs-2";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/common/PageHeader";
+import Link from "next/link";
 
 ChartJS.register(
   CategoryScale,
@@ -149,53 +150,6 @@ export default function DashboardPage() {
           title="대시보드"
         />
 
-        {/* 헤더 섹션 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className={`flex items-center ${currentTheme.cardBg} rounded-lg shadow-sm ${currentTheme.border} overflow-hidden`}>
-              <button 
-                className={`px-3 py-2 text-sm font-medium ${
-                  timeRange === "day" 
-                    ? `${currentTheme.activeBg} ${currentTheme.activeText}` 
-                    : `${currentTheme.textColor} ${currentTheme.hoverBg}`
-                }`}
-                onClick={() => setTimeRange("day")}
-              >
-                일간
-              </button>
-              <button 
-                className={`px-3 py-2 text-sm font-medium ${
-                  timeRange === "week" 
-                    ? `${currentTheme.activeBg} ${currentTheme.activeText}` 
-                    : `${currentTheme.textColor} ${currentTheme.hoverBg}`
-                }`}
-                onClick={() => setTimeRange("week")}
-              >
-                주간
-              </button>
-              <button 
-                className={`px-3 py-2 text-sm font-medium ${
-                  timeRange === "month" 
-                    ? `${currentTheme.activeBg} ${currentTheme.activeText}` 
-                    : `${currentTheme.textColor} ${currentTheme.hoverBg}`
-                }`}
-                onClick={() => setTimeRange("month")}
-              >
-                월간
-              </button>
-            </div>
-            <button className={`px-4 py-2 text-sm font-medium ${currentTheme.textColor} ${currentTheme.cardBg} ${currentTheme.border} rounded-lg ${currentTheme.hoverBg} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm flex items-center`}>
-              <ChartBarIcon className={`h-5 w-5 mr-2 ${currentTheme.activeText}`} />
-              리포트 다운로드
-            </button>
-            <button className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm flex items-center">
-              <MapIcon className="h-5 w-5 mr-2" />
-              실시간 위치 보기
-            </button>
-          </div>
-        </div>
-        */}
-
         {/* 환영 메시지와 공지사항, 점검 차량 */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           {/* 환영 메시지와 공지사항 */}
@@ -282,19 +236,19 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* 운행 차량 현황 */}
+          {/* 차량 현황 */}
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-base font-medium ${currentTheme.text}`}>운행 차량 현황</h3>
-              <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
+              <h3 className={`text-base font-medium ${currentTheme.text}`}>차량 현황</h3>
+              <Link href="/vehicles" className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
                 자세히
-              </button>
+              </Link>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
                   <TruckIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
-                  운행 중
+                  운행
                 </span>
                 <span className={`text-sm font-medium ${currentTheme.text}`}>380대</span>
               </div>
@@ -319,9 +273,9 @@ export default function DashboardPage() {
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-base font-medium ${currentTheme.text}`}>차량 정보</h3>
-              <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
+              <Link href="/vehicles" className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
                 자세히
-              </button>
+              </Link>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -338,13 +292,6 @@ export default function DashboardPage() {
                 </span>
                 <span className={`text-sm font-medium ${currentTheme.text}`}>136대</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
-                  <WrenchScrewdriverIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
-                  점검 예정
-                </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>3대</span>
-              </div>
             </div>
           </div>
 
@@ -352,16 +299,14 @@ export default function DashboardPage() {
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-base font-medium ${currentTheme.text}`}>운행 통계</h3>
-              <span className={`text-xs ${currentTheme.subtext}`}>최근 30일</span>
+              <Link href="/logs" className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
+                자세히
+              </Link>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${currentTheme.subtext}`}>총 운행 거리</span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>45,678 km</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className={`text-sm ${currentTheme.subtext}`}>평균 운행 시간</span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>4.5시간</span>
+                <span className={`text-sm ${currentTheme.subtext}`}>이번 달</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>1,342,000 km</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext}`}>운행 건수</span>
