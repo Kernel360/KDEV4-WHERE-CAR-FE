@@ -501,8 +501,8 @@ export function VehicleLogList({
                     <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
                       {log.driver?.name || '미등록'}
                     </td>
-                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                      {log.note || '-'}
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`} title={log.note || '-'}>
+                      {log.note ? (log.note.length > 10 ? `${log.note.substring(0, 10)}...` : log.note) : '-'}
                     </td>
                   </tr>
                 ))
