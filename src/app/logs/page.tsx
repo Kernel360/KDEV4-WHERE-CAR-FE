@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { VehicleLogList } from "@/components/logs/VehicleLogList";
 import { VehicleLogFilter } from "@/components/logs/VehicleLogFilter";
-import { VehicleLogFilter as FilterType, VehicleLog } from "@/types/logs";
+import { VehicleLogFilter as FilterType, VehicleLog, DriveType } from "@/types/logs";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { downloadExcel } from "@/lib/utils";
@@ -65,7 +65,25 @@ export default function LogsPage() {
           description="차량 운행 기록을 관리하고 조회할 수 있습니다." 
         />
         <button
-          onClick={() => handleExportExcel([])} 
+          onClick={() => {
+            // VehicleLogList 컴포넌트에서 filteredLogs를 가져올 수 없으므로 
+            // carLogs를 VehicleLog 형식으로 변환해서 전달
+            const mappedLogs = carLogs.map(log => ({
+              id: log.logId.toString(),
+              vehicleNumber: log.mdn,
+              startTime: log.onTime,
+              endTime: log.offTime,
+              startMileage: log.onMileage,
+              endMileage: log.offMileage,
+              totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+              driveType: (log.driveType === 'WORK' ? 'CORPORATE' : 'PERSONAL') as DriveType,
+              driver: log.driver ? { id: '1', name: log.driver } : null,
+              note: log.description,
+              createdAt: log.onTime,
+              updatedAt: log.offTime
+            }));
+            handleExportExcel(mappedLogs);
+          }} 
           className={`flex items-center px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm`}
         >
           <ArrowDownTrayIcon className="h-4 w-4 mr-1.5" />
