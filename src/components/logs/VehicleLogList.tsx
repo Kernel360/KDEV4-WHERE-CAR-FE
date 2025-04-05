@@ -260,9 +260,35 @@ export function VehicleLogList({
                   <span className="sr-only">이전</span>
                   <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
+                
+                {(() => {
+                  const totalPages = Math.ceil(carLogs.length / pageSize);
+                  let startPage = Math.max(0, currentPage - 2);
+                  let endPage = Math.min(totalPages - 1, startPage + 4);
+        
+                  if (endPage - startPage < 4) {
+                    startPage = Math.max(0, endPage - 4);
+                  }
+                  
+                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`relative inline-flex items-center px-3 py-1.5 border ${
+                        currentPage === page
+                          ? `z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-100 dark:border-indigo-500 dark:text-indigo-800`
+                          : `${currentTheme.border} ${currentTheme.cardBg} ${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
+                      } text-sm font-medium`}
+                    >
+                      {page + 1}
+                    </button>
+                  ));
+                })()}
+                
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
-                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentTheme.text} hover:bg-gray-50`}
+                  disabled={currentPage >= Math.ceil(carLogs.length / pageSize) - 1}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentPage >= Math.ceil(carLogs.length / pageSize) - 1 ? 'text-gray-300 cursor-not-allowed' : `${currentTheme.text} hover:bg-gray-50`}`}
                 >
                   <span className="sr-only">다음</span>
                   <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
