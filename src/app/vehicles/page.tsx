@@ -242,7 +242,7 @@ export default function VehiclesPage() {
   };
 
   return (
-    <div className="p-6 flex flex-col h-full">
+    <div className="p-8 flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         <PageHeader 
           title="차량 관리" 
