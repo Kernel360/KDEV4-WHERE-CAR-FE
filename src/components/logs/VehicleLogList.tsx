@@ -13,6 +13,7 @@ interface VehicleLogListProps {
   isSlideOpen?: boolean;
   onCloseSlide?: () => void;
   selectedLog?: VehicleLog | null;
+  isLoading?: boolean;
 }
 
 // 임시 데이터 - 실제로는 API에서 가져와야 함
@@ -306,7 +307,8 @@ export function VehicleLogList({
   onLogSelect,
   isSlideOpen = false,
   onCloseSlide,
-  selectedLog
+  selectedLog,
+  isLoading = false
 }: VehicleLogListProps) {
   const { currentTheme } = useTheme();
   const [currentPage, setCurrentPage] = useState(1);
@@ -324,22 +326,12 @@ export function VehicleLogList({
         return false;
       }
       
-      // 차량 번호 필터링
-      if (filter.vehicleNumber && !log.vehicleNumber.includes(filter.vehicleNumber)) {
-        return false;
-      }
-      
       // 날짜 범위 필터링
       if (filter.startDate && new Date(log.startTime) < new Date(filter.startDate)) {
         return false;
       }
       
       if (filter.endDate && new Date(log.endTime) > new Date(filter.endDate)) {
-        return false;
-      }
-      
-      // 드라이브 타입 필터링
-      if (filter.driveType && log.driveType !== filter.driveType) {
         return false;
       }
       
@@ -431,49 +423,69 @@ export function VehicleLogList({
               </tr>
             </thead>
             <tbody className={`${currentTheme.cardBg} divide-y divide-gray-200 dark:divide-gray-200 dark:bg-white`}>
-              {currentLogs.map((log) => (
-                <tr 
-                  key={log.id} 
-                  className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
-                  onClick={() => handleLogClick(log)}
-                >
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm font-medium ${currentTheme.text} dark:text-gray-800`}>
-                    {log.vehicleNumber}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {formatDate(log.startTime)}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {formatDate(log.endTime)}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {formatNumber(log.startMileage)} km
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {formatNumber(log.endMileage)} km
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {formatNumber(log.totalDistance)} km
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
-                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getDriveTypeClass(log.driveType)}`}>
-                      {getDriveTypeLabel(log.driveType)}
-                    </span>
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {log.driver?.name || '미등록'}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {log.note || '-'}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-5 py-8 text-center">
+                    <div className="flex justify-center items-center">
+                      <svg className="animate-spin h-5 w-5 mr-3 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className={`${currentTheme.text}`}>데이터를 불러오는 중...</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : currentLogs.length > 0 ? (
+                currentLogs.map((log) => (
+                  <tr 
+                    key={log.id} 
+                    className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
+                    onClick={() => handleLogClick(log)}
+                  >
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm font-medium ${currentTheme.text} dark:text-gray-800`}>
+                      {log.vehicleNumber}
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {formatDate(log.startTime)}
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {formatDate(log.endTime)}
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {formatNumber(log.startMileage)} km
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {formatNumber(log.endMileage)} km
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {formatNumber(log.totalDistance)} km
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
+                      <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getDriveTypeClass(log.driveType)}`}>
+                        {getDriveTypeLabel(log.driveType)}
+                      </span>
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {log.driver?.name || '미등록'}
+                    </td>
+                    <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                      {log.note || '-'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className={`px-5 py-8 text-center text-sm ${currentTheme.text}`}>
+                    검색 결과가 없습니다.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
         
         {/* 페이지네이션 */}
-        {totalPages > 1 && (
+        {!isLoading && totalPages > 1 && (
           <div className={`px-5 py-3 flex items-center justify-between border-t ${currentTheme.border}`}>
             <div>
               <p className={`text-sm ${currentTheme.subtext}`}>
@@ -493,47 +505,41 @@ export function VehicleLogList({
                   <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
                 
-                {Array.from({ length: totalPages }).map((_, i) => {
-                  const page = i + 1;
-                  const isCurrent = page === currentPage;
+                {/* 페이지 버튼 생성 */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // 현재 페이지, 첫 페이지, 마지막 페이지, 현재 페이지 근처의 페이지만 표시
+                  const shouldShow = page === 1 || page === totalPages || 
+                                     (page >= currentPage - 1 && page <= currentPage + 1);
                   
-                  // 너무 많은 페이지일 경우 처리 (현재 페이지 주변 및 처음/끝만 표시)
-                  if (
-                    totalPages <= 7 ||
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                  ) {
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        className={`relative inline-flex items-center px-4 py-2 border ${
-                          currentTheme.border
-                        } text-sm font-medium ${
-                          isCurrent
-                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                            : `${currentTheme.cardBg} ${currentTheme.text} hover:bg-gray-50`
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  } else if (
-                    (page === 2 && currentPage > 3) ||
-                    (page === totalPages - 1 && currentPage < totalPages - 2)
-                  ) {
-                    return (
-                      <span
-                        key={page}
-                        className={`relative inline-flex items-center px-4 py-2 border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentTheme.text}`}
-                      >
-                        ...
-                      </span>
-                    );
+                  // 생략 표시 (...)
+                  if (!shouldShow) {
+                    if (page === 2 || page === totalPages - 1) {
+                      return (
+                        <span
+                          key={`ellipsis-${page}`}
+                          className={`relative inline-flex items-center px-4 py-2 border ${currentTheme.border} ${currentTheme.cardBg} text-sm font-medium ${currentTheme.text}`}
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
                   }
-                  return null;
-                })}
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`relative inline-flex items-center px-4 py-2 border ${currentTheme.border} text-sm font-medium ${
+                        page === currentPage
+                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                          : `${currentTheme.cardBg} ${currentTheme.text} hover:bg-gray-50`
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                }).filter(Boolean)}
                 
                 <button
                   onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
@@ -549,7 +555,6 @@ export function VehicleLogList({
         )}
       </div>
 
-      {/* 슬라이드 패널 */}
       {!onLogSelect && (
         <VehicleLogDetailSlidePanel
           isOpen={isLocalSlideOpen}

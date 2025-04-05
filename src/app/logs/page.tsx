@@ -16,6 +16,7 @@ export default function LogsPage() {
   const [filter, setFilter] = useState<FilterType>({});
   const [selectedLog, setSelectedLog] = useState<VehicleLog | null>(null);
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleFilterChange = (newFilter: FilterType) => {
     setFilter(newFilter);
@@ -23,6 +24,24 @@ export default function LogsPage() {
   
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
+  };
+
+  const handleSearch = async () => {
+    setIsLoading(true);
+    
+    try {
+      console.log('검색 요청:', { 
+        term: searchTerm,
+        startDate: filter.startDate, 
+        endDate: filter.endDate
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error('검색 중 오류 발생:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogSelect = (log: VehicleLog) => {
@@ -39,12 +58,10 @@ export default function LogsPage() {
   };
 
   const handleDeleteLog = (id: string) => {
-    // API 연동 시 구현
     console.log(`삭제할 운행 기록 ID: ${id}`);
   };
   
   const handleUpdateLog = (log: VehicleLog) => {
-    // API 연동 시 구현
     console.log('운행 기록 업데이트:', log);
   };
   
@@ -70,6 +87,7 @@ export default function LogsPage() {
           onFilterChange={handleFilterChange} 
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}
+          onSearch={handleSearch}
         />
         <div className="mt-4">
           <VehicleLogList 
@@ -77,6 +95,7 @@ export default function LogsPage() {
             searchTerm={searchTerm} 
             onExport={handleExportExcel}
             onLogSelect={handleLogSelect}
+            isLoading={isLoading}
           />
         </div>
       </div>
