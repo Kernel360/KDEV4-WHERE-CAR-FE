@@ -1,5 +1,5 @@
 // API 엔드포인트 기본 URL
-export const API_BASE_URL = 'http://localhost:8080/api';
+export const API_BASE_URL = 'http://211.188.58.97:8080/api';
 
 // API 요청 함수
 export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string, any>, options?: RequestInit): Promise<T> => {
