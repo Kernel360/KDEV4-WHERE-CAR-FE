@@ -139,7 +139,7 @@ export function VehicleLogFilter({ onChange, onApplyFilter, initialFilter }: Veh
             type="text"
             name="vehicleNumber"
             className={`block w-full pl-9 pr-10 py-2 border ${currentTheme.border} rounded-lg leading-5 ${currentTheme.cardBg} ${currentTheme.text} placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200`}
-            placeholder="차량 번호, 드라이버, 비고로 검색"
+            placeholder="차량 번호 검색"
             value={localFilter.vehicleNumber || ''}
             onChange={handleFilterChange}
           />
