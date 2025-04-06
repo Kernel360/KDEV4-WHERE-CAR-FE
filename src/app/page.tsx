@@ -29,6 +29,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/common/PageHeader";
 import Link from "next/link";
 import { useCarOverviewStore } from "@/lib/carOverviewStore";
+import { useUserStore } from "@/lib/userStore";
 
 ChartJS.register(
   CategoryScale,
@@ -123,10 +124,14 @@ export default function DashboardPage() {
   // Get car overview data from store
   const { data: carOverview, isLoading, error, fetchOverview } = useCarOverviewStore();
   
-  // Fetch car overview data on component mount
+  // Get employee data from user store
+  const { users, isLoading: isEmployeeLoading, fetchUsersOfCompany } = useUserStore();
+  
+  // Fetch data on component mount
   useEffect(() => {
     fetchOverview();
-  }, [fetchOverview]);
+    fetchUsersOfCompany();
+  }, [fetchOverview, fetchUsersOfCompany]);
   
   // Prepare car status data for chart - moved inside component
   const vehicleStatusData = {
@@ -223,7 +228,7 @@ export default function DashboardPage() {
           {/* 사용자 현황 카드 */}
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-base font-medium ${currentTheme.text}`}>사용자 (총 6명)</h3>
+              <h3 className={`text-base font-medium ${currentTheme.text}`}>사용자</h3>
               <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
                 + 등록
               </button>
@@ -234,7 +239,9 @@ export default function DashboardPage() {
                   <UserIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   신규 사용자
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>5명</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isEmployeeLoading ? "로딩 중..." : `${users.length}명`}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
