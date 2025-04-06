@@ -75,9 +75,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           ? authHeader.substring(7) 
           : authHeader;
         
-        // 토큰을 로컬 스토리지에 저장
+        // 토큰을 로컬 스토리지와 쿠키에 저장
         localStorage.setItem('Authorization', token);
-        console.log('로컬 스토리지에 토큰 저장:', token);
+        
+        // 쿠키에 토큰 저장 (HttpOnly 옵션 없이 JavaScript에서 접근 가능하도록)
+        document.cookie = `Authorization=${token}; path=/; max-age=2592000; SameSite=Strict`;
+        
+        console.log('토큰 저장 완료:', token);
       } else {
         console.warn('Authorization 헤더가 응답에 없습니다.');
       }
@@ -102,7 +106,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // 헤더에서 토큰을 가져오지 못한 경우 응답 본문의 토큰 사용 (fallback)
       if (!token && data.token) {
         token = data.token;
+        
+        // 토큰을 로컬 스토리지와 쿠키에 저장
         localStorage.setItem('Authorization', token);
+        
+        // 쿠키에 토큰 저장 (HttpOnly 옵션 없이 JavaScript에서 접근 가능하도록)
+        document.cookie = `Authorization=${token}; path=/; max-age=2592000; SameSite=Strict`;
+        
         console.log('응답 본문에서 토큰 저장:', token);
       }
       
@@ -145,8 +155,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
   // 로그아웃 메서드
   logout: () => {
-    // 로컬 스토리지에서 토큰 제거
+    // 로컬 스토리지와 쿠키에서 토큰 제거
     localStorage.removeItem('Authorization');
+    document.cookie = 'Authorization=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
     
     // 상태 초기화
     set({
