@@ -45,7 +45,7 @@ export const useCompanyStore = create<CompanyState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<CompanyResponse>('/companies/my');
+      const data = await fetchApi<CompanyResponse>('/api/companies/my');
       
       set({ 
         company: data,
@@ -66,28 +66,13 @@ export const useCompanyStore = create<CompanyState>((set) => ({
     try {
       set({ updating: true, updateError: null, updateSuccess: false });
       
-      const response = await fetch(`${API_BASE_URL}/companies/my`, {
+      await fetchApi<void>('/api/companies/my', undefined, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(companyRequest)
       });
       
-      if (!response.ok) {
-        throw new Error(`회사 정보 업데이트 실패: ${response.status}`);
-      }
-      
       // 업데이트가 성공하면 회사 정보를 다시 가져옴
-      const updatedCompany = await fetch(`${API_BASE_URL}/companies/my`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-        }
-      }).then(res => {
-        if (!res.ok) throw new Error('회사 정보를 가져오는데 실패했습니다.');
-        return res.json();
-      });
+      const updatedCompany = await fetchApi<CompanyResponse>('/api/companies/my');
       
       set({ 
         company: updatedCompany,

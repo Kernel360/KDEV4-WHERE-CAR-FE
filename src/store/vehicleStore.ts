@@ -36,7 +36,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
   fetchVehicles: async () => {
     try {
       set({ isLoading: true, error: null });
-      const data = await fetchApi<Vehicle[]>('/cars');
+      const data = await fetchApi<Vehicle[]>('/api/cars');
       console.log('Fetched vehicles:', data);
       set({ vehicles: data, isLoading: false });
     } catch (err) {
@@ -52,7 +52,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>('/cars', undefined, {
+      const response = await fetchApi<string>('/api/cars', undefined, {
         method: 'POST',
         body: JSON.stringify(vehicle),
       });
@@ -84,7 +84,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>(`/cars/${vehicle.id}`, undefined, {
+      const response = await fetchApi<string>(`/api/cars/${vehicle.id}`, undefined, {
         method: 'PUT',
         body: JSON.stringify(vehicle),
       });
@@ -115,7 +115,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      await fetchApi<void>(`/cars/${id}`, undefined, {
+      await fetchApi<void>(`/api/cars/${id}`, undefined, {
         method: 'DELETE',
       });
       

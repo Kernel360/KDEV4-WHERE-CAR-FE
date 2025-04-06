@@ -82,8 +82,6 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       const page = params?.page !== undefined ? params.page : currentPage;
       const size = params?.size !== undefined ? params.size : pageSize;
       
-      const url = `${API_BASE_URL}/carLogs?page=${page}&size=${size}`;
-      
       const vehicleNumber = params?.vehicleNumber !== undefined ? params.vehicleNumber : currentFilter.vehicleNumber;
       const startDate = params?.startDate !== undefined ? params.startDate : currentFilter.startDate;
       const endDate = params?.endDate !== undefined ? params.endDate : currentFilter.endDate;
@@ -117,20 +115,10 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         requestBody.driveType = driveType;
       }
       
-      const response = await fetch(url, {
+      const data = await fetchApi<any>(`/api/carLogs?page=${page}&size=${size}`, undefined, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody)
       });
-      
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const data = await response.json();
       
       const content = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
       const totalPages = data.totalPages || 1;
@@ -175,20 +163,10 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
+      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data)
       });
-      
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
       
       await get().fetchCarLogs();
       
@@ -230,19 +208,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        }
+      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
+        method: 'DELETE'
       });
-      
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
       
       set({ isLoading: false });
       
