@@ -9,8 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { downloadExcel } from "@/lib/utils";
 import VehicleLogDetailSlidePanel from "@/components/logs/VehicleLogDetailSlidePanel";
-import { useCarLogsStore, addCarLogEventListener, CarLogEvent } from "@/lib/carLogsStore";
-import { useToast } from "@/contexts/ToastContext";
+import { useCarLogsStore } from "@/lib/carLogsStore";
 
 export default function LogsPage() {
   const { currentTheme } = useTheme();
@@ -20,29 +19,10 @@ export default function LogsPage() {
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   
   const { fetchCarLogs, isLoading, carLogs, deleteCarLog, currentFilter } = useCarLogsStore();
-  const { showToast } = useToast();
   
   useEffect(() => {
     fetchCarLogs();
   }, [fetchCarLogs]);
-  
-  // 이벤트 리스너 등록
-  useEffect(() => {
-    // 운행일지 이벤트를 감지하여 토스트 표시
-    const handleCarLogEvent = (event: CarLogEvent) => {
-      if (event.success) {
-        showToast(event.message, 'success');
-      } else {
-        showToast(event.message, 'error');
-      }
-    };
-    
-    // 이벤트 리스너 등록 및 정리 함수 반환
-    const unsubscribe = addCarLogEventListener(handleCarLogEvent);
-    return () => {
-      unsubscribe();
-    };
-  }, [showToast]);
   
   const handleFilterChange = (newFilter: FilterType) => {
     setFilter(newFilter);
@@ -114,17 +94,19 @@ export default function LogsPage() {
               
               return {
                 id: log.logId.toString(),
-                vehicleNumber: log.mdn,
-                startTime: log.onTime,
-                endTime: log.offTime,
-                startMileage: log.onMileage,
-                endMileage: log.offMileage,
-                totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+                vehicleNumber: log.mdn || '',
+                startTime: log.onTime || '',
+                endTime: log.offTime || '',
+                startMileage: log.onMileage || 0,
+                endMileage: log.offMileage || 0,
+                totalDistance: log.totalMileage !== null && log.totalMileage !== undefined 
+                  ? log.totalMileage 
+                  : (log.offMileage || 0) - (log.onMileage || 0),
                 driveType: driveType,
                 driver: log.driver ? { id: '1', name: log.driver } : null,
-                note: log.description,
-                createdAt: log.onTime,
-                updatedAt: log.offTime
+                note: log.description || null,
+                createdAt: log.onTime || '',
+                updatedAt: log.offTime || ''
               };
             });
             handleExportExcel(mappedLogs);

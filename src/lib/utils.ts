@@ -6,19 +6,37 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+export function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) {
+    return '-'; // 날짜가 없는 경우 대시 반환
+  }
+  
+  try {
+    const date = new Date(dateString);
+    
+    // 유효하지 않은 날짜인 경우 체크
+    if (isNaN(date.getTime())) {
+      return '-';
+    }
+    
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch (error) {
+    console.error('날짜 형식 변환 오류:', error);
+    return '-';
+  }
 }
 
-export function formatNumber(num: number): string {
+export function formatNumber(num: number | null | undefined): string {
+  if (num === null || num === undefined) {
+    return '0';
+  }
   return num.toLocaleString('ko-KR');
 }
 

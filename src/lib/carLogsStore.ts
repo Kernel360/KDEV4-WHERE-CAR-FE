@@ -170,17 +170,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       
       await get().fetchCarLogs();
       
-      // 이벤트 발생
-      const message = responseText || '운행일지가 성공적으로 수정되었습니다.';
-      dispatchCarLogEvent({
-        type: 'update',
-        message,
-        success: true
-      });
-      
       return {
         success: true,
-        message
+        message: responseText || '운행일지가 성공적으로 수정되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 수정 실패:', error);
@@ -189,17 +181,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         isLoading: false
       });
       
-      // 이벤트 발생 - 실패
-      const errorMessage = error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다';
-      dispatchCarLogEvent({
-        type: 'update',
-        message: errorMessage,
-        success: false
-      });
-      
       return {
         success: false,
-        message: errorMessage
+        message: error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다'
       };
     }
   },
@@ -212,19 +196,11 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         method: 'DELETE'
       });
       
-      set({ isLoading: false });
-      
-      // 이벤트 발생
-      const message = responseText || '운행일지가 성공적으로 삭제되었습니다.';
-      dispatchCarLogEvent({
-        type: 'delete',
-        message,
-        success: true
-      });
+      await get().fetchCarLogs();
       
       return {
         success: true,
-        message
+        message: responseText || '운행일지가 성공적으로 삭제되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 삭제 실패:', error);
@@ -233,17 +209,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         isLoading: false
       });
       
-      // 이벤트 발생 - 실패
-      const errorMessage = error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다';
-      dispatchCarLogEvent({
-        type: 'delete',
-        message: errorMessage,
-        success: false
-      });
-      
       return {
         success: false,
-        message: errorMessage
+        message: error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다'
       };
     }
   },
@@ -305,7 +273,21 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
 }));
 
 // 한국 시간으로 변환하는 함수 추가
-const formatToKoreaTime = (date: Date, isStartDate: boolean): string => {
+const formatToKoreaTime = (date: Date | null | undefined, isStartDate: boolean): string => {
+  if (!date || isNaN(date.getTime())) {
+    // 기본 날짜 포맷 반환
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = isStartDate ? '00' : '23';
+    const minutes = isStartDate ? '00' : '59';
+    const seconds = isStartDate ? '00' : '59';
+    const milliseconds = isStartDate ? '482' : '496';
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
