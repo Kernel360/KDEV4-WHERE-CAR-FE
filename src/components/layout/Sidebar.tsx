@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   HomeIcon,
   TruckIcon,
@@ -23,11 +23,39 @@ const navigation = [
   { name: "회사", href: "/companies", icon: BuildingOfficeIcon },
 ];
 
+// 이벤트 버스 역할을 할 사용자 정의 이벤트
+export const sidebarEvents = {
+  subscribe: (eventName: string, listener: EventListener) => {
+    document.addEventListener(eventName, listener);
+    return () => document.removeEventListener(eventName, listener);
+  },
+  publish: (eventName: string, data?: any) => {
+    const event = new CustomEvent(eventName, { detail: data });
+    document.dispatchEvent(event);
+  }
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { currentTheme, setTheme } = useTheme();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [userToggled, setUserToggled] = useState(false);
+
+  // 초기 로드 시 localStorage에서 사이드바 상태 가져오기
+  useEffect(() => {
+    const storedSidebarState = localStorage.getItem('sidebarOpen');
+    // localStorage에 값이 저장되어 있으면 그 값을 사용, 없으면 기본값 false
+    if (storedSidebarState) {
+      setIsOpen(storedSidebarState === 'true');
+      setUserToggled(true);
+    }
+  }, []);
+
+  // isOpen 상태가 변경될 때 이벤트 발행
+  useEffect(() => {
+    sidebarEvents.publish('sidebar-toggle', { isOpen });
+  }, [isOpen]);
 
   // 화면 크기가 변경될 때 사이드바 상태 관리
   useEffect(() => {
@@ -46,10 +74,18 @@ export default function Sidebar() {
 
   // 호버 상태에 따라 사이드바 열기/닫기
   useEffect(() => {
-    if (window.innerWidth >= 768) {
+    if (window.innerWidth >= 768 && !userToggled) {
       setIsOpen(isHovered);
     }
-  }, [isHovered]);
+  }, [isHovered, userToggled]);
+
+  // 사용자가 토글 버튼을 클릭했을 때 상태 저장
+  const handleToggleSidebar = useCallback(() => {
+    const newState = !isOpen;
+    setIsOpen(newState);
+    setUserToggled(true);
+    localStorage.setItem('sidebarOpen', newState.toString());
+  }, [isOpen]);
 
   const toggleThemeMode = () => {
     const currentMode = currentTheme.mode;
@@ -60,35 +96,11 @@ export default function Sidebar() {
     if (newTheme) setTheme(newTheme);
   };
 
-  // 메인 컨텐츠의 마진을 조절하는 함수
-  useEffect(() => {
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      // 트랜지션 효과 추가
-      mainContent.style.transition = 'margin-left 300ms ease-in-out';
-      
-      if (isOpen) {
-        mainContent.classList.add('md:ml-64');
-        mainContent.classList.remove('md:ml-20');
-      } else {
-        mainContent.classList.remove('md:ml-64');
-        mainContent.classList.add('md:ml-20');
-      }
-    }
-    
-    // 컴포넌트 언마운트 시 트랜지션 제거
-    return () => {
-      if (mainContent) {
-        mainContent.style.transition = '';
-      }
-    };
-  }, [isOpen]);
-
   return (
     <>
       {/* 모바일 토글 버튼 */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleSidebar}
         className={`md:hidden fixed top-4 left-4 z-20 p-2 rounded-lg ${currentTheme.cardBg} ${currentTheme.border} shadow-sm`}
       >
         {isOpen ? (
@@ -102,7 +114,7 @@ export default function Sidebar() {
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-30"
-          onClick={() => setIsOpen(false)}
+          onClick={handleToggleSidebar}
         />
       )}
 
@@ -113,7 +125,10 @@ export default function Sidebar() {
         } border-r z-40 transition-all duration-300 ease-in-out overflow-hidden ${
           isOpen ? "w-64" : "w-20"
         }`}
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          if (userToggled) setUserToggled(false);
+        }}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* 로고 영역 */}
@@ -125,7 +140,7 @@ export default function Sidebar() {
             <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap">WC</h1>
           </div>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={handleToggleSidebar}
             className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -140,7 +155,11 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={() => window.innerWidth < 768 && setIsOpen(false)}
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    handleToggleSidebar();
+                  }
+                }}
                 className={`group flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-2.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
