@@ -54,17 +54,19 @@ export function VehicleLogList({
       
       const mappedLog = {
         id: log.logId.toString(),
-        vehicleNumber: log.mdn,
-        startTime: log.onTime,
-        endTime: log.offTime,
-        startMileage: log.onMileage,
-        endMileage: log.offMileage,
-        totalDistance: log.totalMileage || log.offMileage - log.onMileage,
+        vehicleNumber: log.mdn || '',
+        startTime: log.onTime || '',
+        endTime: log.offTime || '',
+        startMileage: log.onMileage || 0,
+        endMileage: log.offMileage || 0,
+        totalDistance: log.totalMileage !== null && log.totalMileage !== undefined 
+          ? log.totalMileage 
+          : (log.offMileage || 0) - (log.onMileage || 0),
         driveType: driveType,
         driver: log.driver ? { id: '1', name: log.driver } : null,
-        note: log.description,
-        createdAt: log.onTime,
-        updatedAt: log.offTime
+        note: log.description || null,
+        createdAt: log.onTime || '',
+        updatedAt: log.offTime || ''
       };
       
       return mappedLog;

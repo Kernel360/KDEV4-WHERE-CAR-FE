@@ -30,6 +30,8 @@ import PageHeader from "@/components/common/PageHeader";
 import Link from "next/link";
 import { useCarOverviewStore } from "@/lib/carOverviewStore";
 import { useUserStore } from "@/lib/userStore";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/authStore";
 
 ChartJS.register(
   CategoryScale,
@@ -165,6 +167,27 @@ export default function DashboardPage() {
       },
     ],
   };
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
+  // 로그인 상태 확인 후 리다이렉트
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  // 로그인되지 않았거나 로딩 중인 경우 로딩 화면 표시
+  if (!isAuthenticated) {
+    return (
+      <div className={`min-h-screen ${currentTheme.background} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className={`text-lg ${currentTheme.text}`}>로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
       <div className="p-8">

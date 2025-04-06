@@ -52,7 +52,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<UserResponse[]>('/users/companies/my');
+      const data = await fetchApi<UserResponse[]>('/api/users/companies/my');
       
       set({ 
         users: data,
@@ -76,7 +76,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       console.log(`권한 정보 요청 시작: 사용자 ID ${userId}`);
       
       // API에서 권한 정보 가져오기
-      const response = await fetchApi<any>(`/users/permissions/${userId}`);
+      const response = await fetchApi<any>(`/api/users/permissions/${userId}`);
       console.log('API에서 받은 원본 권한 응답:', response);
       
       // 응답에서 권한 타입 배열 추출 (다양한 응답 형식 처리)
@@ -145,35 +145,28 @@ export const useUserStore = create<UserState>((set, get) => ({
       };
       
       // API 요청
-      const response = await fetch(`${API_BASE_URL}/users/permissions/${userId}`, {
+      await fetchApi<void>(`/api/users/permissions/${userId}`, undefined, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(permissionRequest)
       });
       
       // 요청 성공 시 상태 업데이트
-      if (response.ok) {
-        const { userPermissions } = get();
-        set({ 
-          userPermissions: {
-            ...userPermissions,
-            [userId]: permissions.filter(p => p.isGranted)
-          },
-          savingPermissions: false,
-          savePermissionsSuccess: true
-        });
-        
-        // 3초 후 성공 메시지 숨기기
-        setTimeout(() => {
-          set({ savePermissionsSuccess: false });
-        }, 3000);
-        
-        return true;
-      } else {
-        throw new Error(`권한 업데이트 실패: ${response.status}`);
-      }
+      const { userPermissions } = get();
+      set({ 
+        userPermissions: {
+          ...userPermissions,
+          [userId]: permissions.filter(p => p.isGranted)
+        },
+        savingPermissions: false,
+        savePermissionsSuccess: true
+      });
+      
+      // 3초 후 성공 메시지 숨기기
+      setTimeout(() => {
+        set({ savePermissionsSuccess: false });
+      }, 3000);
+      
+      return true;
     } catch (error) {
       console.error('권한 업데이트 중 오류 발생:', error);
       set({ 
@@ -194,22 +187,14 @@ export const useUserStore = create<UserState>((set, get) => ({
         delete requestData.password;
       }
       
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      await fetchApi<void>(`/api/users/${userId}`, undefined, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(requestData)
       });
       
-      if (!response.ok) {
-        throw new Error(`사용자 업데이트 실패: ${response.status}`);
-      }
-      
       // API에서 업데이트된 사용자 정보 다시 조회
       try {
-        const updatedUser = await fetchApi<UserResponse>(`/users/${userId}`);
+        const updatedUser = await fetchApi<UserResponse>(`/api/users/${userId}`);
         console.log(`업데이트된 사용자 정보 조회 (ID: ${userId}):`, updatedUser);
         
         // 스토어의 사용자 데이터 업데이트 (API에서 받은 최신 정보 사용)
@@ -242,7 +227,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   fetchUser: async (userId: string) => {
     try {
-      const response = await fetchApi<UserResponse>(`/users/${userId}`);
+      const response = await fetchApi<UserResponse>(`/api/users/${userId}`);
       console.log(`API에서 사용자 정보 가져옴 (ID: ${userId}):`, response);
       
       // 캐시된 사용자 목록에 없는 경우 추가
@@ -265,16 +250,9 @@ export const useUserStore = create<UserState>((set, get) => ({
   
   deleteUser: async (userId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-        },
+      const response = await fetchApi<void>(`/api/users/${userId}`, undefined, {
+        method: 'DELETE'
       });
-      
-      if (!response.ok) {
-        throw new Error(`사용자 삭제 실패: ${response.status}`);
-      }
       
       // 스토어에서 해당 사용자 제거
       set((state) => ({

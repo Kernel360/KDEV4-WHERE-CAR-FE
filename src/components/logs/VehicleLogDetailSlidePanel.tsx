@@ -317,7 +317,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                                 </div>
                                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-gray-200">
                                   <span className={`text-sm ${currentTheme.subtext}`}>총 주행:</span>
-                                  <span className={`text-sm font-bold ${currentTheme.text}`}>{formatNumber(displayLog.totalDistance)} km</span>
+                                  <span className={`text-sm font-bold ${currentTheme.text}`}>
+                                    {formatNumber(displayLog.totalDistance ?? (displayLog.endMileage - displayLog.startMileage))} km
+                                  </span>
                                 </div>
                               </div>
                             </div>

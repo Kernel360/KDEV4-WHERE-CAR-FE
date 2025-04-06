@@ -82,8 +82,6 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       const page = params?.page !== undefined ? params.page : currentPage;
       const size = params?.size !== undefined ? params.size : pageSize;
       
-      const url = `${API_BASE_URL}/carLogs?page=${page}&size=${size}`;
-      
       const vehicleNumber = params?.vehicleNumber !== undefined ? params.vehicleNumber : currentFilter.vehicleNumber;
       const startDate = params?.startDate !== undefined ? params.startDate : currentFilter.startDate;
       const endDate = params?.endDate !== undefined ? params.endDate : currentFilter.endDate;
@@ -117,20 +115,10 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         requestBody.driveType = driveType;
       }
       
-      const response = await fetch(url, {
+      const data = await fetchApi<any>(`/api/carLogs?page=${page}&size=${size}`, undefined, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody)
       });
-      
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const data = await response.json();
       
       const content = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
       const totalPages = data.totalPages || 1;
@@ -175,34 +163,16 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
+      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data)
       });
       
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      
       await get().fetchCarLogs();
-      
-      // 이벤트 발생
-      const message = responseText || '운행일지가 성공적으로 수정되었습니다.';
-      dispatchCarLogEvent({
-        type: 'update',
-        message,
-        success: true
-      });
       
       return {
         success: true,
-        message
+        message: responseText || '운행일지가 성공적으로 수정되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 수정 실패:', error);
@@ -211,17 +181,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         isLoading: false
       });
       
-      // 이벤트 발생 - 실패
-      const errorMessage = error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다';
-      dispatchCarLogEvent({
-        type: 'update',
-        message: errorMessage,
-        success: false
-      });
-      
       return {
         success: false,
-        message: errorMessage
+        message: error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다'
       };
     }
   },
@@ -230,33 +192,15 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetch(`${API_BASE_URL}/carLogs/${logId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        }
+      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
+        method: 'DELETE'
       });
       
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      
-      set({ isLoading: false });
-      
-      // 이벤트 발생
-      const message = responseText || '운행일지가 성공적으로 삭제되었습니다.';
-      dispatchCarLogEvent({
-        type: 'delete',
-        message,
-        success: true
-      });
+      await get().fetchCarLogs();
       
       return {
         success: true,
-        message
+        message: responseText || '운행일지가 성공적으로 삭제되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 삭제 실패:', error);
@@ -265,17 +209,9 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         isLoading: false
       });
       
-      // 이벤트 발생 - 실패
-      const errorMessage = error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다';
-      dispatchCarLogEvent({
-        type: 'delete',
-        message: errorMessage,
-        success: false
-      });
-      
       return {
         success: false,
-        message: errorMessage
+        message: error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다'
       };
     }
   },
@@ -337,7 +273,21 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
 }));
 
 // 한국 시간으로 변환하는 함수 추가
-const formatToKoreaTime = (date: Date, isStartDate: boolean): string => {
+const formatToKoreaTime = (date: Date | null | undefined, isStartDate: boolean): string => {
+  if (!date || isNaN(date.getTime())) {
+    // 기본 날짜 포맷 반환
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = isStartDate ? '00' : '23';
+    const minutes = isStartDate ? '00' : '59';
+    const seconds = isStartDate ? '00' : '59';
+    const milliseconds = isStartDate ? '482' : '496';
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

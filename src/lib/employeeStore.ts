@@ -41,26 +41,16 @@ export const useEmployeeStore = create<EmployeeState>((set) => ({
       
       console.log('직원 등록 요청 데이터:', requestData);
       
-      // fetchApi 함수를 사용하여 API 호출
       try {
-        // fetchApi 대신 fetch를 직접 사용하여 응답 처리를 더 세밀하게 제어
-        const response = await fetch(`${API_BASE_URL}/users/sub`, {
+        // fetchApi 함수를 사용하여 API 호출 (빈 응답도 성공 처리)
+        const response = await fetchApi<any>('/api/users/sub', undefined, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
+          body: JSON.stringify(requestData)
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || `API 요청 실패: ${response.status}`);
-        }
+        console.log('직원 등록 API 응답:', response);
         
-        // 응답이 비어있거나 JSON이 아닌 경우에도 성공으로 처리
-        // 204 No Content나 빈 응답 본문도 정상 처리
-        
+        // 응답이 비어있거나 객체가 아니더라도 성공으로 처리
         set({ 
           isRegistering: false,
           registerSuccess: true
