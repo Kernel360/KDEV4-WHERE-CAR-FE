@@ -22,6 +22,7 @@ export type Theme = {
   profileGradient: string;
   chartColors: string[];
   inputBg: string;
+  chartGrid: string;
 };
 
 export const themes: Theme[] = [
@@ -43,6 +44,7 @@ export const themes: Theme[] = [
     profileGradient: "from-blue-600 to-indigo-600",
     chartColors: ["#3b82f6", "#6366f1", "#a5b4fc"],
     inputBg: "bg-white",
+    chartGrid: "rgba(0, 0, 0, 0.1)",
   },
   {
     name: "Modern-Dark",
@@ -62,6 +64,7 @@ export const themes: Theme[] = [
     profileGradient: "from-blue-500 to-indigo-500",
     chartColors: ["#60a5fa", "#818cf8", "#c7d2fe"],
     inputBg: "bg-gray-700",
+    chartGrid: "rgba(255, 255, 255, 0.1)",
   },
   {
     name: "Ocean-Light",
@@ -81,6 +84,7 @@ export const themes: Theme[] = [
     profileGradient: "from-cyan-600 to-teal-600",
     chartColors: ["#0d9488", "#14b8a6", "#5eead4"],
     inputBg: "bg-white",
+    chartGrid: "rgba(0, 0, 0, 0.1)",
   },
   {
     name: "Ocean-Dark",
@@ -100,6 +104,7 @@ export const themes: Theme[] = [
     profileGradient: "from-cyan-500 to-teal-500",
     chartColors: ["#14b8a6", "#2dd4bf", "#99f6e4"],
     inputBg: "bg-slate-700",
+    chartGrid: "rgba(255, 255, 255, 0.1)",
   },
   {
     name: "Sunset-Light",
@@ -119,6 +124,7 @@ export const themes: Theme[] = [
     profileGradient: "from-orange-600 to-pink-600",
     chartColors: ["#ea580c", "#f97316", "#fdba74"],
     inputBg: "bg-white",
+    chartGrid: "rgba(0, 0, 0, 0.1)",
   },
   {
     name: "Sunset-Dark",
@@ -138,6 +144,7 @@ export const themes: Theme[] = [
     profileGradient: "from-orange-500 to-pink-500",
     chartColors: ["#f97316", "#fb923c", "#fed7aa"],
     inputBg: "bg-gray-700",
+    chartGrid: "rgba(255, 255, 255, 0.1)",
   },
 ];
 

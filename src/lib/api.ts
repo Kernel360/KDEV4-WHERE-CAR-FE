@@ -1,5 +1,5 @@
 // API 엔드포인트 기본 URL
-export const API_BASE_URL = 'http://211.188.58.97:8080';
+export const API_BASE_URL = 'http://localhost:8080';
 
 // API 요청 함수
 export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string, any>, options?: RequestInit): Promise<T> => {
@@ -16,20 +16,34 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
     url = `${url}?${queryString}`;
   }
   
+  // 기본 헤더 설정
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+  
+  // 옵션에 헤더가 있으면 병합
+  if (options?.headers) {
+    const optionHeaders = options.headers as Record<string, string>;
+    Object.keys(optionHeaders).forEach(key => {
+      headers[key] = optionHeaders[key];
+    });
+  }
+  
+  // 토큰이 있을 경우에만 Authorization 헤더 추가
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*', // CORS 설정
-      ...options?.headers,
-    },
-    credentials: 'include', // 필요한 경우 쿠키 전송을 위해
+    headers,
+    credentials: 'omit', // CORS 관련 문제 방지를 위해 credentials 제외
     mode: 'cors', // CORS 요청 모드 설정
   });
   
   if (!response.ok) {
-    throw new Error(`API 요청 실패: ${response.status}`);
+    throw new Error(`API 요청 실패: ${response.status} - ${response.statusText}`);
   }
   
   // 응답 크기가 0인 경우 (204 No Content 등)
