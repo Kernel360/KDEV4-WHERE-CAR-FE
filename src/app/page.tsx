@@ -28,6 +28,8 @@ import { Line, Doughnut } from "react-chartjs-2";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/common/PageHeader";
 import Link from "next/link";
+import { useCarOverviewStore } from "@/lib/carOverviewStore";
+import { useUserStore } from "@/lib/userStore";
 
 ChartJS.register(
   CategoryScale,
@@ -73,6 +75,7 @@ const notices = [
   },
 ];
 
+// 월간 데이터를 상수로 유지
 const monthlyData = {
   labels: ["1월", "2월", "3월", "4월", "5월", "6월"],
   datasets: [
@@ -87,33 +90,7 @@ const monthlyData = {
   ],
 };
 
-const vehicleStatusData = {
-  labels: ["운행", "미운행", "미관제"],
-  datasets: [
-    {
-      data: [380, 46, 30],
-      backgroundColor: [
-        "rgba(79, 70, 229, 0.8)",
-        "rgba(234, 179, 8, 0.8)",
-        "rgba(239, 68, 68, 0.8)",
-      ],
-    },
-  ],
-};
-
-const ownershipData = {
-  labels: ["법인", "개인"],
-  datasets: [
-    {
-      data: [320, 136],
-      backgroundColor: [
-        "rgba(79, 70, 229, 0.8)",
-        "rgba(249, 115, 22, 0.8)",
-      ],
-    },
-  ],
-};
-
+// 사용자 활동 및 일간 운행 데이터를 상수로 유지
 const userActivityData = {
   labels: ["활성", "비활성"],
   datasets: [
@@ -143,6 +120,51 @@ const dailyTripsData = {
 export default function DashboardPage() {
   const { currentTheme } = useTheme();
   const [timeRange, setTimeRange] = useState("week");
+  
+  // Get car overview data from store
+  const { data: carOverview, isLoading, error, fetchOverview } = useCarOverviewStore();
+  
+  // Get employee data from user store
+  const { users, isLoading: isEmployeeLoading, fetchUsersOfCompany } = useUserStore();
+  
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchOverview();
+    fetchUsersOfCompany();
+  }, [fetchOverview, fetchUsersOfCompany]);
+  
+  // Prepare car status data for chart - moved inside component
+  const vehicleStatusData = {
+    labels: ["운행", "미운행", "미관제"],
+    datasets: [
+      {
+        data: carOverview 
+          ? [carOverview.activeCars, carOverview.inactiveCars, carOverview.untrackedCars] 
+          : [0, 0, 0],
+        backgroundColor: [
+          "rgba(79, 70, 229, 0.8)",
+          "rgba(234, 179, 8, 0.8)",
+          "rgba(239, 68, 68, 0.8)",
+        ],
+      },
+    ],
+  };
+  
+  // Prepare ownership data for chart - moved inside component
+  const ownershipData = {
+    labels: ["법인", "개인"],
+    datasets: [
+      {
+        data: carOverview 
+          ? [carOverview.totalCorporateCars, carOverview.totalPrivateCars] 
+          : [0, 0],
+        backgroundColor: [
+          "rgba(79, 70, 229, 0.8)",
+          "rgba(249, 115, 22, 0.8)",
+        ],
+      },
+    ],
+  };
 
   return (
       <div className="p-8">
@@ -206,7 +228,7 @@ export default function DashboardPage() {
           {/* 사용자 현황 카드 */}
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-base font-medium ${currentTheme.text}`}>사용자 (총 6명)</h3>
+              <h3 className={`text-base font-medium ${currentTheme.text}`}>사용자</h3>
               <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
                 + 등록
               </button>
@@ -217,7 +239,9 @@ export default function DashboardPage() {
                   <UserIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   신규 사용자
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>5명</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isEmployeeLoading ? "로딩 중..." : `${users.length}명`}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
@@ -250,21 +274,27 @@ export default function DashboardPage() {
                   <TruckIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   운행
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>380대</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.activeCars || 0}대`}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
                   <TruckIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   미운행
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>46대</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.inactiveCars || 0}대`}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
                   <TruckIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   미관제
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>30대</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.untrackedCars || 0}대`}
+                </span>
               </div>
             </div>
           </div>
@@ -283,14 +313,26 @@ export default function DashboardPage() {
                   <BuildingOfficeIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   법인
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>320대</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.totalCorporateCars || 0}대`}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext} flex items-center`}>
                   <UserIcon className={`h-4 w-4 mr-2 ${currentTheme.activeText}`} />
                   개인
                 </span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>136대</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.totalPrivateCars || 0}대`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className={`text-sm ${currentTheme.subtext} flex items-center font-medium`}>
+                  전체 차량
+                </span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {isLoading ? "로딩 중..." : `${carOverview?.totalCars || 0}대`}
+                </span>
               </div>
             </div>
           </div>

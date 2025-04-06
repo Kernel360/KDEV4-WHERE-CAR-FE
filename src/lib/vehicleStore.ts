@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { StateCreator } from 'zustand';
 import { API_BASE_URL, fetchApi } from '@/lib/api';
 
-type Vehicle = {
+export type Vehicle = {
   id: string;
   mdn: string;
   make: string;
@@ -36,9 +36,23 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
   fetchVehicles: async () => {
     try {
       set({ isLoading: true, error: null });
-      const data = await fetchApi<Vehicle[]>('/cars');
-      console.log('Fetched vehicles:', data);
-      set({ vehicles: data, isLoading: false });
+      
+      const overviewData = await fetchApi<{totalCars: number}>('/cars/overview');
+      const totalCars = overviewData.totalCars || 100; 
+      
+      const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/cars?page=0&size=${totalCars}`);
+ 
+      let vehicles: Vehicle[];
+      if (Array.isArray(response)) {
+        vehicles = response;
+      } else if (response && typeof response === 'object' && 'content' in response) {
+        vehicles = response.content;
+      } else {
+        vehicles = [];
+      }
+      
+      console.log('Fetched vehicles:', vehicles);
+      set({ vehicles, isLoading: false });
     } catch (err) {
       set({ 
         error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
@@ -57,13 +71,11 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
         body: JSON.stringify(vehicle),
       });
       
-      // 차량 목록 갱신
       const { fetchVehicles } = get();
       await fetchVehicles();
       
       set({ isLoading: false });
       
-      // 응답이 문자열이라면 그대로 반환, 아니라면 기본 성공 메시지 반환
       if (typeof response === 'string') {
         return response;
       } else {
