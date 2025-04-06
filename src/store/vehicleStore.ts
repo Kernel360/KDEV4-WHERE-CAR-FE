@@ -36,9 +36,26 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
   fetchVehicles: async () => {
     try {
       set({ isLoading: true, error: null });
-      const data = await fetchApi<Vehicle[]>('/cars');
-      console.log('Fetched vehicles:', data);
-      set({ vehicles: data, isLoading: false });
+      
+      // 먼저 차량 개요 데이터에서 전체 차량 수를 가져옵니다
+      const overviewData = await fetchApi<{totalCars: number}>('/cars/overview');
+      const totalCars = overviewData.totalCars || 100; // 기본값으로 100 설정
+      
+      // 페이지 번호 0, 페이지 크기를 전체 차량 수로 설정하여 모든 차량을 한 번에 가져옵니다
+      const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/cars?page=0&size=${totalCars}`);
+      
+      // 응답이 페이지네이션 구조인지 확인
+      let vehicles: Vehicle[];
+      if (Array.isArray(response)) {
+        vehicles = response;
+      } else if (response && typeof response === 'object' && 'content' in response) {
+        vehicles = response.content;
+      } else {
+        vehicles = [];
+      }
+      
+      console.log('Fetched vehicles:', vehicles);
+      set({ vehicles, isLoading: false });
     } catch (err) {
       set({ 
         error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',

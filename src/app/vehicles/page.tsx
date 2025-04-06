@@ -29,6 +29,7 @@ export default function VehiclesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(8); // 페이지당 항목 수를 상태로 관리
   
   const { 
     vehicles, 
@@ -49,12 +50,10 @@ export default function VehiclesPage() {
     fetchOverview 
   } = useCarOverviewStore();
   
-  const itemsPerPage = 8;
-  
   // 차량 데이터 가져오기
   useEffect(() => {
-    fetchVehicles();
-    fetchOverview(); // 차량 개요 데이터도 함께 가져오기
+    fetchVehicles(); // 모든 차량 데이터를 한 번에 가져옴
+    fetchOverview();
   }, [fetchVehicles, fetchOverview]);
   
   // 검색 필터링
@@ -66,17 +65,7 @@ export default function VehiclesPage() {
     );
   }, [searchTerm, vehicles]);
   
-  // 차량 상태별 카운트
-  const vehicleCounts = useMemo(() => {
-    return {
-      total: filteredVehicles.length,
-      operating: filteredVehicles.filter(v => v.carState === "RUNNING").length,
-      nonOperating: filteredVehicles.filter(v => v.carState === "STOPPED").length,
-      unmonitored: filteredVehicles.filter(v => v.carState === "NOT_REGISTERED").length
-    };
-  }, [filteredVehicles]);
-  
-  // 페이지네이션 계산
+  // 페이지네이션 계산 - 클라이언트 측에서 처리
   const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
