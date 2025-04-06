@@ -104,6 +104,8 @@ export default function VehiclesPage() {
   const handleAddVehicleComplete = async (newVehicle: Omit<Vehicle, 'id'>) => {
     try {
       const message = await addVehicle(newVehicle);
+      // 차량 추가 후 차량 개요 데이터 갱신
+      fetchOverview();
       setIsAddModalOpen(false);
     } catch (err) {
       console.error('차량 추가 오류:', err);
@@ -128,6 +130,8 @@ export default function VehiclesPage() {
   const handleDeleteVehicle = async (id: string) => {
     try {
       await deleteVehicle(id);
+      // 차량 삭제 후 차량 개요 데이터 갱신
+      fetchOverview();
       setIsSlidePanelOpen(false);
       setSelectedVehicle(null);
     } catch (err) {
@@ -140,6 +144,8 @@ export default function VehiclesPage() {
   const handleUpdateVehicle = async (updatedVehicle: Vehicle) => {
     try {
       await updateVehicle(updatedVehicle);
+      // 차량 수정 후 차량 개요 데이터 갱신
+      fetchOverview();
     } catch (err) {
       console.error('차량 수정 오류:', err);
       alert('차량 수정에 실패했습니다.');

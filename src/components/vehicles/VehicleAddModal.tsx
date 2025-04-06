@@ -3,6 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
+import { useCarOverviewStore } from '@/lib/carOverviewStore';
 
 // vehicleStore.ts의 타입 사용
 
@@ -15,6 +16,7 @@ type VehicleAddModalProps = {
 export default function VehicleAddModal({ isOpen, onClose, onComplete }: VehicleAddModalProps) {
   const { currentTheme } = useTheme();
   const { addVehicle, isLoading: storeLoading, error: storeError } = useVehicleStore();
+  const { fetchOverview } = useCarOverviewStore();
   const [newVehicle, setNewVehicle] = useState<Omit<Vehicle, 'id'>>({
     mdn: '',
     make: '',
@@ -72,6 +74,8 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
       // 사용자 정의 콜백이 있으면 해당 함수 호출
       if (onComplete) {
         await onComplete(newVehicle);
+        // 차량 추가 후 차량 개요 데이터 갱신
+        fetchOverview();
         // onComplete 함수가 성공적으로 완료되면 입력 필드를 초기화합니다
         setNewVehicle({
           mdn: '',
@@ -87,6 +91,8 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
       } else {
         // 기본 로직: 스토어를 통해 차량 추가
         const message = await addVehicle(newVehicle);
+        // 차량 추가 후 차량 개요 데이터 갱신
+        fetchOverview();
         setSuccessMessage(message);
         
         // 성공 시 입력 필드 초기화
