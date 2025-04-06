@@ -2,21 +2,10 @@ import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon, UserIcon, PencilIcon, TrashIcon, CheckIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useVehicleStore } from '@/store/vehicleStore';
+import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
+import { useCarOverviewStore } from '@/lib/carOverviewStore';
 
-// vehicleStore.ts에서 정의된 타입과 일치
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
+// vehicleStore.ts에서 가져온 Vehicle 타입 사용
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;
@@ -27,6 +16,7 @@ interface VehicleDetailSlidePanelProps {
 export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: VehicleDetailSlidePanelProps) {
   const { currentTheme } = useTheme();
   const { updateVehicle, deleteVehicle, isLoading: storeLoading, error: storeError } = useVehicleStore();
+  const { fetchOverview } = useCarOverviewStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedVehicle, setEditedVehicle] = useState<Vehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +67,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     
     try {
       await updateVehicle(editedVehicle);
+      fetchOverview();
       // 수정 완료 후 바로 패널 닫기 (성공 메시지 표시 없음)
       onClose();
     } catch (err) {
@@ -85,7 +76,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     }
   };
 
-  // 수정 취소 시 원래 상태로 되돌리기
+
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedVehicle(vehicle);
@@ -98,6 +89,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     if (window.confirm('정말로 이 차량을 삭제하시겠습니까?')) {
       try {
         await deleteVehicle(vehicle.id);
+        fetchOverview();
         setSuccessMessage("삭제되었습니다.");
         onClose();
       } catch (err) {

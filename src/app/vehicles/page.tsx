@@ -6,21 +6,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { MagnifyingGlassIcon, TruckIcon, CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon, PlusIcon } from "@heroicons/react/24/outline";
 import VehicleDetailSlidePanel from "@/components/vehicles/VehicleDetailSlidePanel";
 import VehicleAddModal from "@/components/vehicles/VehicleAddModal";
-import { useVehicleStore } from "@/store/vehicleStore";
-
-// vehicleStore.ts에서 정의된 타입과 일치시킴
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
+import { useVehicleStore, Vehicle } from "@/lib/vehicleStore";
+import { useCarOverviewStore } from "@/lib/carOverviewStore";
 
 export default function VehiclesPage() {
   const { currentTheme } = useTheme();
@@ -28,6 +15,7 @@ export default function VehiclesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(8); // 페이지당 항목 수를 상태로 관리
   
   const { 
     vehicles, 
@@ -41,12 +29,18 @@ export default function VehiclesPage() {
     setSelectedVehicle 
   } = useVehicleStore();
   
-  const itemsPerPage = 8;
+  // 차량 개요 데이터 가져오기
+  const { 
+    data: carOverview, 
+    isLoading: isOverviewLoading, 
+    fetchOverview 
+  } = useCarOverviewStore();
   
   // 차량 데이터 가져오기
   useEffect(() => {
-    fetchVehicles();
-  }, [fetchVehicles]);
+    fetchVehicles(); // 모든 차량 데이터를 한 번에 가져옴
+    fetchOverview();
+  }, [fetchVehicles, fetchOverview]);
   
   // 검색 필터링
   const filteredVehicles = useMemo(() => {
@@ -57,17 +51,7 @@ export default function VehiclesPage() {
     );
   }, [searchTerm, vehicles]);
   
-  // 차량 상태별 카운트
-  const vehicleCounts = useMemo(() => {
-    return {
-      total: filteredVehicles.length,
-      operating: filteredVehicles.filter(v => v.carState === "RUNNING").length,
-      nonOperating: filteredVehicles.filter(v => v.carState === "STOPPED").length,
-      unmonitored: filteredVehicles.filter(v => v.carState === "NOT_REGISTERED").length
-    };
-  }, [filteredVehicles]);
-  
-  // 페이지네이션 계산
+  // 페이지네이션 계산 - 클라이언트 측에서 처리
   const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -120,6 +104,8 @@ export default function VehiclesPage() {
   const handleAddVehicleComplete = async (newVehicle: Omit<Vehicle, 'id'>) => {
     try {
       const message = await addVehicle(newVehicle);
+      // 차량 추가 후 차량 개요 데이터 갱신
+      fetchOverview();
       setIsAddModalOpen(false);
     } catch (err) {
       console.error('차량 추가 오류:', err);
@@ -144,6 +130,8 @@ export default function VehiclesPage() {
   const handleDeleteVehicle = async (id: string) => {
     try {
       await deleteVehicle(id);
+      // 차량 삭제 후 차량 개요 데이터 갱신
+      fetchOverview();
       setIsSlidePanelOpen(false);
       setSelectedVehicle(null);
     } catch (err) {
@@ -156,6 +144,8 @@ export default function VehiclesPage() {
   const handleUpdateVehicle = async (updatedVehicle: Vehicle) => {
     try {
       await updateVehicle(updatedVehicle);
+      // 차량 수정 후 차량 개요 데이터 갱신
+      fetchOverview();
     } catch (err) {
       console.error('차량 수정 오류:', err);
       alert('차량 수정에 실패했습니다.');
@@ -184,7 +174,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>전체 차량</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.total}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.totalCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <TruckIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -196,7 +188,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>운행 중</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.operating}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.activeCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <CheckCircleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -208,7 +202,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>미운행</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.nonOperating}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.inactiveCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <ExclamationTriangleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -220,7 +216,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>미관제</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.unmonitored}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.untrackedCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <XCircleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />

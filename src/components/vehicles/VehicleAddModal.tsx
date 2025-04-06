@@ -2,21 +2,10 @@ import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useVehicleStore } from '@/store/vehicleStore';
+import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
+import { useCarOverviewStore } from '@/lib/carOverviewStore';
 
-// vehicleStore.ts의 타입과 일치시킴
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
+// vehicleStore.ts의 타입 사용
 
 type VehicleAddModalProps = {
   isOpen: boolean;
@@ -27,6 +16,7 @@ type VehicleAddModalProps = {
 export default function VehicleAddModal({ isOpen, onClose, onComplete }: VehicleAddModalProps) {
   const { currentTheme } = useTheme();
   const { addVehicle, isLoading: storeLoading, error: storeError } = useVehicleStore();
+  const { fetchOverview } = useCarOverviewStore();
   const [newVehicle, setNewVehicle] = useState<Omit<Vehicle, 'id'>>({
     mdn: '',
     make: '',
@@ -44,7 +34,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
   const handleInputChange = (field: keyof Omit<Vehicle, 'id'>, value: string | number) => {
     let processedValue: string | number = value;
     
-    // 숫자 필드 처리
     if (field === 'year' || field === 'mileage' || field === 'batteryVoltage') {
       const numValue = field === 'batteryVoltage' ? parseFloat(value as string) : parseInt(value as string);
       processedValue = isNaN(numValue) ? 0 : numValue;
@@ -60,8 +49,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
-    
-    // 필수 필드 검증
     const requiredFields = {
       '차량번호': newVehicle.mdn,
       '제조사': newVehicle.make,
@@ -81,10 +68,9 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     }
 
     try {
-      // 사용자 정의 콜백이 있으면 해당 함수 호출
       if (onComplete) {
         await onComplete(newVehicle);
-        // onComplete 함수가 성공적으로 완료되면 입력 필드를 초기화합니다
+        fetchOverview();
         setNewVehicle({
           mdn: '',
           make: '',
@@ -97,11 +83,10 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
           carState: 'NOT_REGISTERED'
         });
       } else {
-        // 기본 로직: 스토어를 통해 차량 추가
         const message = await addVehicle(newVehicle);
+        fetchOverview();
         setSuccessMessage(message);
         
-        // 성공 시 입력 필드 초기화
         setNewVehicle({
           mdn: '',
           make: '',
