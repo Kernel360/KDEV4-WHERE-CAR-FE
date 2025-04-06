@@ -1,172 +1,58 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { useTheme } from "@/contexts/ThemeContext";
 import { MagnifyingGlassIcon, TruckIcon, CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon, PlusIcon } from "@heroicons/react/24/outline";
 import VehicleDetailSlidePanel from "@/components/vehicles/VehicleDetailSlidePanel";
+import VehicleAddModal from "@/components/vehicles/VehicleAddModal";
+import { useVehicleStore } from "@/store/vehicleStore";
 
 type Vehicle = {
-  id: string;
-  vehicleNumber: string;
-  manufacturer: string;
+  id: number;
+  mdn: string;
+  make: string;
   model: string;
-  year: number;
-  ownershipType: "법인" | "개인";
-  purchaseType: "구매" | "대여" | "리스" | "할부";
-  managementCompany: string;
-  batteryCapacity: number;
-  status: "운행" | "미운행" | "미관제";
-  totalDistance: number;
+  year: number | null;
+  mileage: number;
+  ownerType: "CORPORATE" | "PERSONAL";
+  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
+  companyName: string;
+  batteryVoltage: number;
+  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
 };
-
-const dummyVehicles: Vehicle[] = [
-  {
-    id: "1",
-    vehicleNumber: "서울 12가 3456",
-    manufacturer: "현대",
-    model: "쏘나타",
-    year: 2023,
-    ownershipType: "법인",
-    purchaseType: "구매",
-    managementCompany: "현대자동차",
-    batteryCapacity: 77.4,
-    status: "운행",
-    totalDistance: 12500,
-  },
-  {
-    id: "2",
-    vehicleNumber: "경기 34나 5678",
-    manufacturer: "기아",
-    model: "K5",
-    year: 2022,
-    ownershipType: "개인",
-    purchaseType: "리스",
-    managementCompany: "기아자동차",
-    batteryCapacity: 64.8,
-    status: "미운행",
-    totalDistance: 8300,
-  },
-  {
-    id: "3",
-    vehicleNumber: "인천 56다 9012",
-    manufacturer: "제네시스",
-    model: "G80",
-    year: 2023,
-    ownershipType: "법인",
-    purchaseType: "할부",
-    managementCompany: "제네시스",
-    batteryCapacity: 87.6,
-    status: "운행",
-    totalDistance: 15700,
-  },
-  {
-    id: "4",
-    vehicleNumber: "부산 78라 3456",
-    manufacturer: "현대",
-    model: "그랜저",
-    year: 2022,
-    ownershipType: "개인",
-    purchaseType: "대여",
-    managementCompany: "현대자동차",
-    batteryCapacity: 72.6,
-    status: "미관제",
-    totalDistance: 9200,
-  },
-  {
-    id: "5",
-    vehicleNumber: "대구 90마 7890",
-    manufacturer: "기아",
-    model: "스포티지",
-    year: 2023,
-    ownershipType: "법인",
-    purchaseType: "구매",
-    managementCompany: "기아자동차",
-    batteryCapacity: 58.0,
-    status: "운행",
-    totalDistance: 11200,
-  },
-  {
-    id: "6",
-    vehicleNumber: "광주 12바 1234",
-    manufacturer: "제네시스",
-    model: "G70",
-    year: 2022,
-    ownershipType: "개인",
-    purchaseType: "리스",
-    managementCompany: "제네시스",
-    batteryCapacity: 75.6,
-    status: "미운행",
-    totalDistance: 7800,
-  },
-  {
-    id: "7",
-    vehicleNumber: "대전 34사 5678",
-    manufacturer: "현대",
-    model: "투싼",
-    year: 2023,
-    ownershipType: "법인",
-    purchaseType: "할부",
-    managementCompany: "현대자동차",
-    batteryCapacity: 65.4,
-    status: "운행",
-    totalDistance: 13400,
-  },
-  {
-    id: "8",
-    vehicleNumber: "울산 56아 9012",
-    manufacturer: "기아",
-    model: "모닝",
-    year: 2022,
-    ownershipType: "개인",
-    purchaseType: "대여",
-    managementCompany: "기아자동차",
-    batteryCapacity: 35.8,
-    status: "미관제",
-    totalDistance: 6500,
-  },
-  {
-    id: "9",
-    vehicleNumber: "세종 78자 3456",
-    manufacturer: "제네시스",
-    model: "GV80",
-    year: 2023,
-    ownershipType: "법인",
-    purchaseType: "구매",
-    managementCompany: "제네시스",
-    batteryCapacity: 90.2,
-    status: "운행",
-    totalDistance: 18900,
-  },
-  {
-    id: "10",
-    vehicleNumber: "제주 90하 7890",
-    manufacturer: "현대",
-    model: "아반떼",
-    year: 2022,
-    ownershipType: "개인",
-    purchaseType: "리스",
-    managementCompany: "현대자동차",
-    batteryCapacity: 58.0,
-    status: "미운행",
-    totalDistance: 7100,
-  },
-];
 
 export default function VehiclesPage() {
   const { currentTheme } = useTheme();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(dummyVehicles);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const { 
+    vehicles, 
+    isLoading, 
+    error, 
+    selectedVehicle,
+    fetchVehicles, 
+    addVehicle, 
+    updateVehicle, 
+    deleteVehicle,
+    setSelectedVehicle 
+  } = useVehicleStore();
+  
   const itemsPerPage = 8;
+  
+  // 차량 데이터 가져오기
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
   
   // 검색 필터링
   const filteredVehicles = useMemo(() => {
-    return vehicles.filter(vehicle => 
-      vehicle.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return vehicles.filter((vehicle: Vehicle) => 
+      vehicle.mdn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, vehicles]);
@@ -175,9 +61,9 @@ export default function VehiclesPage() {
   const vehicleCounts = useMemo(() => {
     return {
       total: filteredVehicles.length,
-      operating: filteredVehicles.filter(v => v.status === "운행").length,
-      nonOperating: filteredVehicles.filter(v => v.status === "미운행").length,
-      unmonitored: filteredVehicles.filter(v => v.status === "미관제").length
+      operating: filteredVehicles.filter((v: Vehicle) => v.carState === "RUNNING").length,
+      nonOperating: filteredVehicles.filter((v: Vehicle) => v.carState === "STOPPED").length,
+      unmonitored: filteredVehicles.filter((v: Vehicle) => v.carState === "NOT_REGISTERED").length
     };
   }, [filteredVehicles]);
   
@@ -195,14 +81,28 @@ export default function VehiclesPage() {
   // 상태에 따른 배경색 클래스
   const getStatusClass = (status: string) => {
     switch (status) {
-      case "운행":
+      case "RUNNING":
         return "bg-teal-50 text-teal-700 dark:bg-teal-50 dark:text-teal-700";
-      case "미운행":
+      case "STOPPED":
         return "bg-amber-50 text-amber-700 dark:bg-amber-50 dark:text-amber-700";
-      case "미관제":
+      case "NOT_REGISTERED":
         return "bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700";
       default:
         return "";
+    }
+  };
+  
+  // 상태 텍스트 변환 함수
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "RUNNING":
+        return "운행";
+      case "STOPPED":
+        return "미운행";
+      case "NOT_REGISTERED":
+        return "미관제";
+      default:
+        return status;
     }
   };
   
@@ -213,9 +113,18 @@ export default function VehiclesPage() {
 
   // 차량 추가 핸들러
   const handleAddVehicle = () => {
-    // 차량 추가 모달 또는 페이지로 이동하는 로직
-    console.log("차량 추가 버튼 클릭됨");
-    // 실제 구현에서는 모달을 열거나 새 페이지로 이동하는 코드가 들어갈 것입니다
+    setIsAddModalOpen(true);
+  };
+
+  // 차량 추가 완료 핸들러
+  const handleAddVehicleComplete = async (newVehicle: Omit<Vehicle, 'id'>) => {
+    try {
+      await addVehicle(newVehicle);
+      setIsAddModalOpen(false);
+    } catch (err) {
+      console.error('차량 추가 오류:', err);
+      alert('차량 추가에 실패했습니다.');
+    }
   };
 
   // 차량 선택 핸들러
@@ -227,18 +136,29 @@ export default function VehiclesPage() {
   // 슬라이드 패널 닫기 핸들러
   const handleCloseSlidePanel = () => {
     setIsSlidePanelOpen(false);
+    setSelectedVehicle(null);
   };
 
   // 차량 삭제 핸들러
-  const handleDeleteVehicle = (id: string) => {
-    setVehicles(vehicles.filter(vehicle => vehicle.id !== id));
+  const handleDeleteVehicle = async (id: string) => {
+    try {
+      await deleteVehicle(id);
+      setIsSlidePanelOpen(false);
+      setSelectedVehicle(null);
+    } catch (err) {
+      console.error('차량 삭제 오류:', err);
+      alert('차량 삭제에 실패했습니다.');
+    }
   };
 
   // 차량 수정 핸들러
-  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
-    setVehicles(vehicles.map(vehicle => 
-      vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle
-    ));
+  const handleUpdateVehicle = async (updatedVehicle: Vehicle) => {
+    try {
+      await updateVehicle(updatedVehicle);
+    } catch (err) {
+      console.error('차량 수정 오류:', err);
+      alert('차량 수정에 실패했습니다.');
+    }
   };
 
   return (
@@ -329,148 +249,164 @@ export default function VehiclesPage() {
       
       {/* 차량 목록 테이블 */}
       <div className={`flex-grow ${currentTheme.cardBg} rounded-xl shadow-sm ${currentTheme.border} overflow-hidden flex flex-col`}>
-        <div className="overflow-x-auto flex-grow">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-200">
-            <thead className={`${currentTheme.cardBg} dark:bg-gray-500`}>
-              <tr>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  차량 번호
-                </th>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  제조사
-                </th>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  모델
-                </th>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  소유구분
-                </th>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  상태
-                </th>
-                <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
-                  총 주행 거리
-                </th>
-              </tr>
-            </thead>
-            <tbody className={`${currentTheme.cardBg} divide-y divide-gray-200 dark:divide-gray-200 dark:bg-white`}>
-              {currentVehicles.map((vehicle) => (
-                <tr 
-                  key={vehicle.id} 
-                  className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
-                  onClick={() => handleVehicleClick(vehicle)}
-                >
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm font-medium ${currentTheme.text} dark:text-gray-800`}>
-                    {vehicle.vehicleNumber}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {vehicle.manufacturer}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {vehicle.model}
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
-                    <span className={`${getOwnershipClass(vehicle.ownershipType)} ${currentTheme.text} dark:text-gray-800`}>
-                      {vehicle.ownershipType}
-                    </span>
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
-                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusClass(vehicle.status)}`}>
-                      {vehicle.status}
-                    </span>
-                  </td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
-                    {vehicle.totalDistance.toLocaleString()} km
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* 페이지네이션 */}
-        <div className={`px-4 py-3 flex items-center justify-between border-t ${currentTheme.border} dark:bg-gray-100`}>
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`relative inline-flex items-center px-3 py-1.5 border ${currentTheme.border} text-sm font-medium rounded-md ${
-                currentPage === 1 
-                  ? `${currentTheme.subtext} cursor-not-allowed` 
-                  : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
-              }`}
-            >
-              이전
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`ml-3 relative inline-flex items-center px-3 py-1.5 border ${currentTheme.border} text-sm font-medium rounded-md ${
-                currentPage === totalPages 
-                  ? `${currentTheme.subtext} cursor-not-allowed` 
-                  : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
-              }`}
-            >
-              다음
-            </button>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className={`text-xs ${currentTheme.text} dark:text-gray-800`}>
-                총 <span className="font-medium">{filteredVehicles.length}</span>개 중{' '}
-                <span className="font-medium">{startIndex + 1}</span>부터{' '}
-                <span className="font-medium">{Math.min(endIndex, filteredVehicles.length)}</span>까지 표시
-              </p>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-red-500">{error}</div>
+          </div>
+        ) : currentVehicles.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-gray-500">등록된 차량이 없습니다.</div>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto flex-grow">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-200">
+                <thead className={`${currentTheme.cardBg} dark:bg-gray-500`}>
+                  <tr>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      차량 번호
+                    </th>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      제조사
+                    </th>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      모델
+                    </th>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      소유구분
+                    </th>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      상태
+                    </th>
+                    <th scope="col" className={`px-5 py-3.5 text-left text-xs font-medium ${currentTheme.subtext} dark:text-gray-100 uppercase tracking-wider`}>
+                      총 주행 거리
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className={`${currentTheme.cardBg} divide-y divide-gray-200 dark:divide-gray-200 dark:bg-white`}>
+                  {currentVehicles.map((vehicle: Vehicle) => (
+                    <tr 
+                      key={vehicle.id} 
+                      className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
+                      onClick={() => handleVehicleClick(vehicle)}
+                    >
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm font-medium ${currentTheme.text} dark:text-gray-800`}>
+                        {vehicle.mdn}
+                      </td>
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                        {vehicle.make}
+                      </td>
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                        {vehicle.model}
+                      </td>
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
+                        <span className={`${getOwnershipClass(vehicle.ownerType)} ${currentTheme.text} dark:text-gray-800`}>
+                          {vehicle.ownerType === "CORPORATE" ? "법인" : "개인"}
+                        </span>
+                      </td>
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm`}>
+                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusClass(vehicle.carState)}`}>
+                          {getStatusText(vehicle.carState)}
+                        </span>
+                      </td>
+                      <td className={`px-5 py-3.5 whitespace-nowrap text-sm ${currentTheme.text} dark:text-gray-800`}>
+                        {vehicle.mileage.toLocaleString()} km
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            
+            {/* 페이지네이션 */}
+            <div className={`px-4 py-3 flex items-center justify-between border-t ${currentTheme.border} dark:bg-gray-100`}>
+              <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className={`relative inline-flex items-center px-3 py-1.5 rounded-l-md border ${currentTheme.border} bg-white dark:bg-gray-100 text-sm font-medium ${
+                  className={`relative inline-flex items-center px-3 py-1.5 border ${currentTheme.border} text-sm font-medium rounded-md ${
                     currentPage === 1 
                       ? `${currentTheme.subtext} cursor-not-allowed` 
                       : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
                   }`}
                 >
-                  <span className="sr-only">이전</span>
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                  이전
                 </button>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`relative inline-flex items-center px-3 py-1.5 border ${
-                      currentPage === page
-                        ? `z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-100 dark:border-indigo-500 dark:text-indigo-800`
-                        : `${currentTheme.border} ${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
-                    } text-sm font-medium`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className={`relative inline-flex items-center px-3 py-1.5 rounded-r-md border ${currentTheme.border} bg-white dark:bg-gray-100 text-sm font-medium ${
+                  className={`ml-3 relative inline-flex items-center px-3 py-1.5 border ${currentTheme.border} text-sm font-medium rounded-md ${
                     currentPage === totalPages 
                       ? `${currentTheme.subtext} cursor-not-allowed` 
                       : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
                   }`}
                 >
-                  <span className="sr-only">다음</span>
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
+                  다음
                 </button>
-              </nav>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className={`text-xs ${currentTheme.text} dark:text-gray-800`}>
+                    총 <span className="font-medium">{filteredVehicles.length}</span>개 중{' '}
+                    <span className="font-medium">{startIndex + 1}</span>부터{' '}
+                    <span className="font-medium">{Math.min(endIndex, filteredVehicles.length)}</span>까지 표시
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`relative inline-flex items-center px-3 py-1.5 rounded-l-md border ${currentTheme.border} bg-white dark:bg-gray-100 text-sm font-medium ${
+                        currentPage === 1 
+                          ? `${currentTheme.subtext} cursor-not-allowed` 
+                          : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
+                      }`}
+                    >
+                      <span className="sr-only">이전</span>
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`relative inline-flex items-center px-3 py-1.5 border ${
+                          currentPage === page
+                            ? `z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-100 dark:border-indigo-500 dark:text-indigo-800`
+                            : `${currentTheme.border} ${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
+                        } text-sm font-medium`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`relative inline-flex items-center px-3 py-1.5 rounded-r-md border ${currentTheme.border} bg-white dark:bg-gray-100 text-sm font-medium ${
+                        currentPage === totalPages 
+                          ? `${currentTheme.subtext} cursor-not-allowed` 
+                          : `${currentTheme.text} hover:bg-gray-50 dark:hover:bg-gray-200 dark:text-gray-800`
+                      }`}
+                    >
+                      <span className="sr-only">다음</span>
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
       
       {/* 차량 상세 슬라이드 패널 */}
@@ -478,8 +414,12 @@ export default function VehiclesPage() {
         isOpen={isSlidePanelOpen}
         onClose={handleCloseSlidePanel}
         vehicle={selectedVehicle}
-        onDelete={handleDeleteVehicle}
-        onUpdate={handleUpdateVehicle}
+      />
+
+      {/* 차량 추가 모달 */}
+      <VehicleAddModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
       />
     </div>
   );
