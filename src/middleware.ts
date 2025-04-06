@@ -8,7 +8,8 @@ const PROTECTED_PATHS = [
   '/employees',
   '/companies',
   '/logs',
-  '/permissions'
+  '/permissions',
+  '/profile'
 ];
 
 // 인증된 사용자가 접근하면 대시보드로 리다이렉트되는 경로
