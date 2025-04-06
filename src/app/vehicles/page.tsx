@@ -8,16 +8,16 @@ import VehicleDetailSlidePanel from "@/components/vehicles/VehicleDetailSlidePan
 import VehicleAddModal from "@/components/vehicles/VehicleAddModal";
 import { useVehicleStore } from "@/store/vehicleStore";
 
+// vehicleStore.ts에서 정의된 타입과 일치시킴
 type Vehicle = {
-  id: number;
+  id: string;
   mdn: string;
   make: string;
   model: string;
-  year: number | null;
+  year: number;
   mileage: number;
   ownerType: "CORPORATE" | "PERSONAL";
   acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  companyName: string;
   batteryVoltage: number;
   carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
 };
@@ -50,7 +50,7 @@ export default function VehiclesPage() {
   
   // 검색 필터링
   const filteredVehicles = useMemo(() => {
-    return vehicles.filter((vehicle: Vehicle) => 
+    return vehicles.filter((vehicle) => 
       vehicle.mdn.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,9 +61,9 @@ export default function VehiclesPage() {
   const vehicleCounts = useMemo(() => {
     return {
       total: filteredVehicles.length,
-      operating: filteredVehicles.filter((v: Vehicle) => v.carState === "RUNNING").length,
-      nonOperating: filteredVehicles.filter((v: Vehicle) => v.carState === "STOPPED").length,
-      unmonitored: filteredVehicles.filter((v: Vehicle) => v.carState === "NOT_REGISTERED").length
+      operating: filteredVehicles.filter(v => v.carState === "RUNNING").length,
+      nonOperating: filteredVehicles.filter(v => v.carState === "STOPPED").length,
+      unmonitored: filteredVehicles.filter(v => v.carState === "NOT_REGISTERED").length
     };
   }, [filteredVehicles]);
   
@@ -119,16 +119,16 @@ export default function VehiclesPage() {
   // 차량 추가 완료 핸들러
   const handleAddVehicleComplete = async (newVehicle: Omit<Vehicle, 'id'>) => {
     try {
-      await addVehicle(newVehicle);
+      const message = await addVehicle(newVehicle);
       setIsAddModalOpen(false);
     } catch (err) {
       console.error('차량 추가 오류:', err);
-      alert('차량 추가에 실패했습니다.');
     }
   };
 
-  // 차량 선택 핸들러
+  // 차량 선택 핸들러 - 슬라이드 패널에 표시할 차량 선택
   const handleVehicleClick = (vehicle: Vehicle) => {
+    // 스토어의 selectedVehicle 상태에 저장
     setSelectedVehicle(vehicle);
     setIsSlidePanelOpen(true);
   };
@@ -136,6 +136,7 @@ export default function VehiclesPage() {
   // 슬라이드 패널 닫기 핸들러
   const handleCloseSlidePanel = () => {
     setIsSlidePanelOpen(false);
+    // 패널이 닫힐 때 선택된 차량 정보 초기화
     setSelectedVehicle(null);
   };
 
@@ -288,7 +289,7 @@ export default function VehiclesPage() {
                   </tr>
                 </thead>
                 <tbody className={`${currentTheme.cardBg} divide-y divide-gray-200 dark:divide-gray-200 dark:bg-white`}>
-                  {currentVehicles.map((vehicle: Vehicle) => (
+                  {currentVehicles.map((vehicle) => (
                     <tr 
                       key={vehicle.id} 
                       className={`${currentTheme.cardBg} hover:bg-gray-200 transition-colors duration-150 dark:bg-white dark:hover:bg-gray-200 cursor-pointer`}
@@ -420,6 +421,7 @@ export default function VehiclesPage() {
       <VehicleAddModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
+        onComplete={handleAddVehicleComplete}
       />
     </div>
   );

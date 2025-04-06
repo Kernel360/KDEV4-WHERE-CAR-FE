@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeftIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { ALL_PERMISSIONS, PERMISSION_GROUPS, Permission } from '@/lib/permissions';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, API_BASE_URL } from '@/lib/api';
+import { useEmployeeStore } from '@/lib/employeeStore';
 
 interface UserRequest {
   name: string;
@@ -27,9 +28,6 @@ interface SubUserRequest {
 export default function AddEmployeePage() {
   const { currentTheme } = useTheme();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // 'info' 또는 'permissions'
   const [permissions, setPermissions] = useState<Permission[]>(
     ALL_PERMISSIONS.map(p => ({ ...p, isGranted: false }))
@@ -41,6 +39,15 @@ export default function AddEmployeePage() {
     phone: '',
     jobTitle: '',
   });
+  
+  // 직원 스토어에서 상태와 메서드 가져오기
+  const { 
+    isRegistering, 
+    registerError, 
+    registerSuccess, 
+    registerEmployee,
+    resetRegisterSuccess
+  } = useEmployeeStore();
 
   // 입력 필드 변경 처리
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,11 +84,21 @@ export default function AddEmployeePage() {
     ));
   };
 
+  // useEffect를 사용하여 등록 성공 시 리다이렉션 처리
+  useEffect(() => {
+    if (registerSuccess) {
+      // 직원 추가 성공 정보를 로컬 스토리지에 저장 (회사 페이지에서 표시하기 위함)
+      localStorage.setItem('employeeAddSuccess', 'true');
+      localStorage.setItem('employeeAddName', formData.name);
+      
+      // 바로 회사 페이지로 이동
+      router.push('/companies');
+    }
+  }, [registerSuccess, formData.name, router]);
+
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
     
     // 권한 ID 목록 생성
     const permissionTypes = permissions
@@ -89,40 +106,15 @@ export default function AddEmployeePage() {
       .map(p => p.id);
     
     // 요청 데이터를 SubUserRequest 형식에 맞게 구성
-    const requestData: SubUserRequest = {
+    const requestData = {
       user: formData,
       permission: {
         permissionTypes
       }
     };
     
-    try {
-      const response = await fetch(`/api/users/sub`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
-      }
-
-      // 직원 추가 성공 정보를 로컬 스토리지에 저장 (메인 페이지에서 표시하기 위함)
-      localStorage.setItem('employeeAddSuccess', 'true');
-      localStorage.setItem('employeeAddName', formData.name);
-      
-      // 직원 추가 성공 후 즉시 메인 페이지로 이동
-      router.push('/');
-
-    } catch (err) {
-      // fetchApi 함수에서 이미 오류 처리를 했으므로 여기서는 단순한 오류 메시지만 표시
-      setError('직원 등록 중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // 스토어의 registerEmployee 메서드 호출
+    await registerEmployee(requestData);
   };
 
   return (
@@ -139,17 +131,10 @@ export default function AddEmployeePage() {
           <h1 className={`text-2xl font-bold ${currentTheme.text}`}>새 직원 추가</h1>
         </div>
 
-        {/* 성공 메시지 */}
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-300 text-green-700 rounded-lg">
-            <p className="font-medium">직원이 성공적으로 추가되었습니다. 잠시 후 메인 페이지로 이동합니다.</p>
-          </div>
-        )}
-
         {/* 오류 메시지 */}
-        {error && (
+        {registerError && (
           <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
-            <p className="font-medium">{error}</p>
+            <p className="font-medium">{registerError}</p>
           </div>
         )}
 
@@ -196,7 +181,7 @@ export default function AddEmployeePage() {
                     required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 이름을 입력하세요"
-                    disabled={isSubmitting}
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -214,7 +199,7 @@ export default function AddEmployeePage() {
                     required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 이메일 주소를 입력하세요"
-                    disabled={isSubmitting}
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -232,7 +217,7 @@ export default function AddEmployeePage() {
                     required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="임시 비밀번호를 설정하세요"
-                    disabled={isSubmitting}
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -249,7 +234,7 @@ export default function AddEmployeePage() {
                     onChange={handleInputChange}
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 연락처를 입력하세요"
-                    disabled={isSubmitting}
+                    disabled={isRegistering}
                   />
                 </div>
 
@@ -266,7 +251,7 @@ export default function AddEmployeePage() {
                     onChange={handleInputChange}
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 직책을 입력하세요"
-                    disabled={isSubmitting}
+                    disabled={isRegistering}
                   />
                 </div>
               </div>
@@ -297,7 +282,7 @@ export default function AddEmployeePage() {
                               permissions.find(perm => perm.id === p.id)?.isGranted
                             )}
                             onChange={(e) => handleGroupPermissionChange(group.id, e.target.checked)}
-                            disabled={isSubmitting}
+                            disabled={isRegistering}
                           />
                           <div className={`relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 
                             peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 
@@ -305,7 +290,7 @@ export default function AddEmployeePage() {
                             peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
                             after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
                             after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600
-                            ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                            ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                         </label>
                       </div>
                     </div>
@@ -338,7 +323,7 @@ export default function AddEmployeePage() {
                                     className="sr-only peer"
                                     checked={perm.isGranted}
                                     onChange={(e) => handlePermissionChange(permission.id, e.target.checked)}
-                                    disabled={isSubmitting}
+                                    disabled={isRegistering}
                                   />
                                   <div className={`relative w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 
                                     peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 
@@ -346,7 +331,7 @@ export default function AddEmployeePage() {
                                     peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
                                     after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
                                     after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600
-                                    ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                                    ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                                 </label>
                               </div>
                             </div>
@@ -383,10 +368,10 @@ export default function AddEmployeePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className={`py-3 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  disabled={isRegistering}
+                  className={`py-3 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isRegistering ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {isSubmitting ? (
+                  {isRegistering ? (
                     <span className="flex items-center justify-center">
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

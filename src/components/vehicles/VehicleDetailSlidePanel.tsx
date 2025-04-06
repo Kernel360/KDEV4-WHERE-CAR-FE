@@ -4,12 +4,13 @@ import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon,
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore } from '@/store/vehicleStore';
 
+// vehicleStore.ts에서 정의된 타입과 일치
 type Vehicle = {
-  id: number;
+  id: string;
   mdn: string;
   make: string;
   model: string;
-  year: string;
+  year: number;
   mileage: number;
   ownerType: "CORPORATE" | "PERSONAL";
   acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
@@ -75,12 +76,9 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     if (!editedVehicle) return;
     
     try {
-      const message = await updateVehicle(editedVehicle);
-      setSuccessMessage(message);
-      // 수정 완료 후 읽기 모드로 전환
-      setIsEditing(false);
-      // 수정된 데이터로 상태 업데이트
-      setEditedVehicle(editedVehicle);
+      await updateVehicle(editedVehicle);
+      // 수정 완료 후 바로 패널 닫기 (성공 메시지 표시 없음)
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       console.error('차량 수정 오류:', err);
@@ -405,7 +403,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                               </div>
 
                               <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white col-span-2`}>
-                                <p className={`text-sm text-gray-500 mb-1`}>관리 회사명</p>
+                                <p className={`text-sm text-gray-500 mb-1`}>관리 회사</p>
                                 <div className="flex items-center">
                                   <div className="p-2 bg-blue-50 rounded-lg">
                                     <BuildingOfficeIcon className="h-5 w-5 text-blue-500" />
@@ -414,11 +412,11 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                     {isEditing ? (
                                       <input
                                         type="text"
-                                        value={editedVehicle?.companyName || ''}
-                                        onChange={(e) => handleInputChange('companyName', e.target.value)}
+                                        value={editedVehicle?.make || ''}
+                                        onChange={(e) => handleInputChange('make', e.target.value)}
                                         className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                       />
-                                    ) : displayVehicle.companyName}
+                                    ) : displayVehicle.make}
                                   </p>
                                 </div>
                               </div>

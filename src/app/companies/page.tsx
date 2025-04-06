@@ -7,16 +7,32 @@ import EmployeeList from "@/components/common/EmployeeList";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCompanyStore } from "@/lib/companyStore";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function CompaniesPage() {
   const { currentTheme } = useTheme();
   const { company, isLoading, error, fetchMyCompany } = useCompanyStore();
   const router = useRouter();
+  const { showToast } = useToast();
   
   useEffect(() => {
     // API를 통해 회사 정보 가져오기
     fetchMyCompany();
   }, [fetchMyCompany]);
+  
+  useEffect(() => {
+    // 직원 추가 성공 시 토스트 메시지 표시
+    const employeeAddSuccess = localStorage.getItem('employeeAddSuccess');
+    const employeeName = localStorage.getItem('employeeAddName');
+    
+    if (employeeAddSuccess === 'true' && employeeName) {
+      showToast(`${employeeName} 직원이 성공적으로 추가되었습니다.`, 'success');
+      
+      // 로컬 스토리지 정보 삭제
+      localStorage.removeItem('employeeAddSuccess');
+      localStorage.removeItem('employeeAddName');
+    }
+  }, [showToast]);
   
   const handleAddEmployee = () => {
     router.push('/employees/add');

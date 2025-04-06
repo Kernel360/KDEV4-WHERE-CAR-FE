@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeftIcon, ShieldCheckIcon, CheckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
@@ -134,22 +134,34 @@ export default function EmployeePermissionsPage() {
   }, [employeeId, fetchUserPermissions, employee]);
 
   useEffect(() => {
+    // 현재 userPermissions 데이터를 확인하기 위한 디버깅
+    console.log('현재 userPermissions:', userPermissions);
+    console.log('employeeId:', employeeId);
+    console.log('현재 권한 데이터:', userPermissions[employeeId]);
+    console.log('권한 데이터 배열 여부:', userPermissions[employeeId] && Array.isArray(userPermissions[employeeId]));
+    
     // 기본적으로 모든 권한을 isGranted가 false인 상태로 초기화
     const allPermissionsCopy = ALL_PERMISSIONS.map(p => ({...p, isGranted: false}));
     
     // API에서 가져온 권한 정보가 있으면 해당 권한들을 부여된 상태(isGranted: true)로 표시
-    if (userPermissions[employeeId]) {
-      const grantedPermissionIds = new Set(userPermissions[employeeId].map(p => p.id));
+    if (userPermissions && userPermissions[employeeId]) {
+      const permissions = userPermissions[employeeId];
       
-      // 부여된 권한은 isGranted를 true로 설정
-      allPermissionsCopy.forEach(p => {
-        if (grantedPermissionIds.has(p.id)) {
-          p.isGranted = true;
-        }
-      });
+      if (Array.isArray(permissions) && permissions.length > 0) {
+        console.log('권한 ID 목록:', permissions.map(p => p.id));
+        const grantedPermissionIds = new Set(permissions.map(p => p.id));
+        
+        // 부여된 권한은 isGranted를 true로 설정
+        allPermissionsCopy.forEach(p => {
+          if (grantedPermissionIds.has(p.id)) {
+            p.isGranted = true;
+          }
+        });
+      }
     } 
     // API에서 권한 정보를 가져오지 못했고, 샘플 직원 데이터가 있으면 샘플 권한 사용
-    else if (employee && employee.permissions.length > 0) {
+    else if (employee && employee.permissions && Array.isArray(employee.permissions) && employee.permissions.length > 0) {
+      console.log('샘플 직원 권한 사용:', employee.permissions);
       const grantedPermissionIds = new Set(employee.permissions.map(p => p.id));
       
       // 부여된 권한은 isGranted를 true로 설정
@@ -161,6 +173,7 @@ export default function EmployeePermissionsPage() {
     }
     
     setPermissions(allPermissionsCopy);
+    console.log('설정된 권한 배열:', allPermissionsCopy);
   }, [employeeId, userPermissions, employee]);
 
   // 권한 변경 처리
@@ -189,28 +202,42 @@ export default function EmployeePermissionsPage() {
   const getGroupedPermissions = () => {
     if (permissions.length === 0) {
       // 권한 정보가 없을 경우 모든 기본 권한을 표시 (isGranted: false)
+      console.log('권한 정보가 없어 기본 권한 그룹 사용');
       return PERMISSION_GROUPS;
     }
     
-    return PERMISSION_GROUPS.map(group => ({
+    const groups = PERMISSION_GROUPS.map(group => ({
       ...group,
       permissions: permissions.filter(p => {
         if (group.id === 'admin') return p.id === 'PERM_ADMIN';
         return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
       })
     }));
+    
+    console.log('그룹화된 권한:', groups);
+    return groups;
   };
 
   // 검색어에 따라 권한 필터링
-  const filteredGroups = searchTerm ? 
-    getGroupedPermissions().map(group => ({
+  const filteredGroups = useMemo(() => {
+    const groupedPermissions = getGroupedPermissions();
+    console.log('필터링 전 그룹:', groupedPermissions);
+    
+    if (!searchTerm) {
+      return groupedPermissions;
+    }
+    
+    const filtered = groupedPermissions.map(group => ({
       ...group,
       permissions: group.permissions.filter(p => 
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         p.description.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    })).filter(group => group.permissions.length > 0) : 
-    getGroupedPermissions();
+    })).filter(group => group.permissions.length > 0);
+    
+    console.log('필터링 후 그룹:', filtered);
+    return filtered;
+  }, [searchTerm, permissions]);
 
   // 뒤로가기 함수
   const handleGoBack = () => {
@@ -365,24 +392,21 @@ export default function EmployeePermissionsPage() {
           </div>
         )}
         
-        {/* 권한 정보 로딩 또는 오류 메시지 */}
-        {loadingPermissions && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg">
-            <div className="flex items-center justify-center">
-              <svg className="animate-spin h-5 w-5 mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>권한 정보를 불러오는 중...</span>
-            </div>
-          </div>
-        )}
-        
         {/* 권한 그룹 */}
-        {!loadingPermissions && (
-          <div className="space-y-6">
-            {filteredGroups.length > 0 ? (
-              filteredGroups.map((group) => (
+        <div className="space-y-6">
+          {loadingPermissions ? (
+            <div className="mb-4 p-6 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg">
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin h-5 w-5 mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>권한 정보를 불러오는 중...</span>
+              </div>
+            </div>
+          ) : filteredGroups.length > 0 ? (
+            <>
+              {filteredGroups.map((group) => (
                 <div key={group.id} className={`p-6 rounded-xl ${currentTheme.cardBg} shadow border ${currentTheme.border}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className={`text-lg font-medium ${currentTheme.text}`}>{group.name}</h2>
@@ -445,22 +469,35 @@ export default function EmployeePermissionsPage() {
                     ))}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className={`p-6 rounded-xl ${currentTheme.cardBg} shadow border ${currentTheme.border} text-center`}>
-                <p className={`${currentTheme.text}`}>검색 결과가 없습니다.</p>
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    검색어 지우기
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+              
+              {/* 현재 사용자 권한 상태 디버깅 표시 */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-8 p-4 border border-gray-300 rounded-lg bg-white text-xs font-mono overflow-auto max-h-60">
+                  <h3 className="font-bold mb-2">디버깅 정보:</h3>
+                  <pre>userPermissions: {JSON.stringify(userPermissions[employeeId] || [], null, 2)}</pre>
+                  <pre>권한 부여된 항목: {permissions.filter(p => p.isGranted).length}</pre>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className={`p-6 rounded-xl ${currentTheme.cardBg} shadow border ${currentTheme.border} text-center`}>
+              <p className={`${currentTheme.text}`}>
+                {searchTerm 
+                  ? '검색 결과가 없습니다.' 
+                  : '표시할 권한 그룹이 없습니다. 권한 조회 후 다시 시도해주세요.'}
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  검색어 지우기
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
