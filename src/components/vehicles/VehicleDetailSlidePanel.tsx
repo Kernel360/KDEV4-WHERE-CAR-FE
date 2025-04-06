@@ -2,21 +2,9 @@ import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon, UserIcon, PencilIcon, TrashIcon, CheckIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useVehicleStore } from '@/store/vehicleStore';
+import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 
-// vehicleStore.ts에서 정의된 타입과 일치
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
+// vehicleStore.ts에서 가져온 Vehicle 타입 사용
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;

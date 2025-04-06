@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { StateCreator } from 'zustand';
 import { API_BASE_URL, fetchApi } from '@/lib/api';
 
-type Vehicle = {
+export type Vehicle = {
   id: string;
   mdn: string;
   make: string;

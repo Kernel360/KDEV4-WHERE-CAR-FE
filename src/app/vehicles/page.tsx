@@ -6,22 +6,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { MagnifyingGlassIcon, TruckIcon, CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon, PlusIcon } from "@heroicons/react/24/outline";
 import VehicleDetailSlidePanel from "@/components/vehicles/VehicleDetailSlidePanel";
 import VehicleAddModal from "@/components/vehicles/VehicleAddModal";
-import { useVehicleStore } from "@/store/vehicleStore";
+import { useVehicleStore, Vehicle } from "@/lib/vehicleStore";
 import { useCarOverviewStore } from "@/lib/carOverviewStore";
-
-// vehicleStore.ts에서 정의된 타입과 일치시킴
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
 
 export default function VehiclesPage() {
   const { currentTheme } = useTheme();

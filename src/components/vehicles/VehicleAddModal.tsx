@@ -2,21 +2,9 @@ import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useVehicleStore } from '@/store/vehicleStore';
+import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 
-// vehicleStore.ts의 타입과 일치시킴
-type Vehicle = {
-  id: string;
-  mdn: string;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  ownerType: "CORPORATE" | "PERSONAL";
-  acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  batteryVoltage: number;
-  carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
-};
+// vehicleStore.ts의 타입 사용
 
 type VehicleAddModalProps = {
   isOpen: boolean;
