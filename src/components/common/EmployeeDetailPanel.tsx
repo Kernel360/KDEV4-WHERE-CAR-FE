@@ -75,7 +75,7 @@ export default function EmployeeDetailPanel({
         // 사용자 정보 업데이트 요청
         const userRequest = {
           name: editedEmployee.name,
-          email: editedEmployee.email,
+          email: employee!.email, // non-null assertion 사용 (함수 시작에서 null 체크 완료)
           phone: editedEmployee.phone || '',
           jobTitle: editedEmployee.position || '',
           password: '' // 빈 문자열로 전송하면 updateUser 함수에서 제거됨
@@ -169,20 +169,25 @@ export default function EmployeeDetailPanel({
     const allPermissionsCopy = ALL_PERMISSIONS.map(p => ({...p, isGranted: false}));
     
     // API에서 가져온 권한 정보가 있으면 해당 권한들을 부여된 상태(isGranted: true)로 표시
-    if (userPermissions[employee.id]) {
-      const grantedPermissionIds = new Set(userPermissions[employee.id].map(p => p.id));
+    if (userPermissions && userPermissions[employee.id]) {
+      // 배열인지 확인하여 안전하게 처리
+      const permissions = userPermissions[employee.id];
       
-      // 부여된 권한은 isGranted를 true로 설정
-      allPermissionsCopy.forEach(p => {
-        if (grantedPermissionIds.has(p.id)) {
-          p.isGranted = true;
-        }
-      });
+      if (Array.isArray(permissions) && permissions.length > 0) {
+        const grantedPermissionIds = new Set(permissions.map(p => p.id));
+        
+        // 부여된 권한은 isGranted를 true로 설정
+        allPermissionsCopy.forEach(p => {
+          if (grantedPermissionIds.has(p.id)) {
+            p.isGranted = true;
+          }
+        });
+      }
       
       return allPermissionsCopy;
     } 
     // API에서 권한 정보를 가져오지 못했고, employee.permissions가 있으면 해당 권한 사용
-    else if (employee.permissions && employee.permissions.length > 0) {
+    else if (employee.permissions && Array.isArray(employee.permissions) && employee.permissions.length > 0) {
       const grantedPermissionIds = new Set(employee.permissions.map(p => p.id));
       
       // 부여된 권한은 isGranted를 true로 설정
@@ -362,12 +367,17 @@ export default function EmployeeDetailPanel({
                               <div className="ml-3 flex-1">
                                 <p className={`text-sm font-medium ${currentTheme.subtext}`}>이메일</p>
                                 {isEditing ? (
-                                  <input
-                                    type="email"
-                                    value={editedEmployee?.email || ''}
-                                    onChange={(e) => handleInputChange('email', e.target.value)}
-                                    className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                                  />
+                                  <div>
+                                    <input
+                                      type="email"
+                                      value={editedEmployee?.email || ''}
+                                      disabled={true}
+                                      className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none bg-gray-100 dark:bg-gray-700 opacity-70`}
+                                    />
+                                    <span className="text-xs text-gray-500 italic mt-1 block">
+                                      (수정 불가)
+                                    </span>
+                                  </div>
                                 ) : (
                                   <a 
                                     href={`mailto:${displayEmployee.email}`} 

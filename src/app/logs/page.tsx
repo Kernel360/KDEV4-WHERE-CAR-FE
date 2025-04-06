@@ -9,7 +9,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { downloadExcel } from "@/lib/utils";
 import VehicleLogDetailSlidePanel from "@/components/logs/VehicleLogDetailSlidePanel";
-import { useCarLogsStore } from "@/lib/carLogsStore";
+import { useCarLogsStore, addCarLogEventListener, CarLogEvent } from "@/lib/carLogsStore";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function LogsPage() {
   const { currentTheme } = useTheme();
@@ -19,10 +20,29 @@ export default function LogsPage() {
   const [isSlidePanelOpen, setIsSlidePanelOpen] = useState(false);
   
   const { fetchCarLogs, isLoading, carLogs, deleteCarLog, currentFilter } = useCarLogsStore();
+  const { showToast } = useToast();
   
   useEffect(() => {
     fetchCarLogs();
   }, [fetchCarLogs]);
+  
+  // 이벤트 리스너 등록
+  useEffect(() => {
+    // 운행일지 이벤트를 감지하여 토스트 표시
+    const handleCarLogEvent = (event: CarLogEvent) => {
+      if (event.success) {
+        showToast(event.message, 'success');
+      } else {
+        showToast(event.message, 'error');
+      }
+    };
+    
+    // 이벤트 리스너 등록 및 정리 함수 반환
+    const unsubscribe = addCarLogEventListener(handleCarLogEvent);
+    return () => {
+      unsubscribe();
+    };
+  }, [showToast]);
   
   const handleFilterChange = (newFilter: FilterType) => {
     setFilter(newFilter);
@@ -60,7 +80,6 @@ export default function LogsPage() {
     console.log(`삭제할 운행 기록 ID: ${id}`);
     
     setSelectedLog(null);
-    
     setIsSlidePanelOpen(false);
     
     setTimeout(() => {

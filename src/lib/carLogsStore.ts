@@ -2,6 +2,35 @@ import { create } from 'zustand';
 import { CarLogResponse, CarLogsParams, DriveType } from '@/types/logs';
 import { API_BASE_URL, fetchApi } from '@/lib/api';
 
+// 이벤트 타입 정의
+export type CarLogEvent = {
+  type: 'update' | 'delete';
+  message: string;
+  success: boolean;
+};
+
+// 이벤트 리스너 타입 정의
+type CarLogEventListener = (event: CarLogEvent) => void;
+
+// 이벤트 리스너 관리
+const eventListeners: CarLogEventListener[] = [];
+
+// 이벤트 발생 함수
+export const dispatchCarLogEvent = (event: CarLogEvent) => {
+  eventListeners.forEach(listener => listener(event));
+};
+
+// 이벤트 리스너 등록
+export const addCarLogEventListener = (listener: CarLogEventListener) => {
+  eventListeners.push(listener);
+  return () => {
+    const index = eventListeners.indexOf(listener);
+    if (index > -1) {
+      eventListeners.splice(index, 1);
+    }
+  };
+};
+
 interface CarLogUpdateData {
   driveType: string | null;
   driver: string;
@@ -163,9 +192,17 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       
       await get().fetchCarLogs();
       
+      // 이벤트 발생
+      const message = responseText || '운행일지가 성공적으로 수정되었습니다.';
+      dispatchCarLogEvent({
+        type: 'update',
+        message,
+        success: true
+      });
+      
       return {
         success: true,
-        message: responseText || '수정되었습니다.'
+        message
       };
     } catch (error) {
       console.error('운행일지 수정 실패:', error);
@@ -173,9 +210,18 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         error: error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다',
         isLoading: false
       });
+      
+      // 이벤트 발생 - 실패
+      const errorMessage = error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다';
+      dispatchCarLogEvent({
+        type: 'update',
+        message: errorMessage,
+        success: false
+      });
+      
       return {
         success: false,
-        message: error instanceof Error ? error.message : '운행일지를 수정하는 중 오류가 발생했습니다'
+        message: errorMessage
       };
     }
   },
@@ -200,9 +246,17 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       
       set({ isLoading: false });
       
+      // 이벤트 발생
+      const message = responseText || '운행일지가 성공적으로 삭제되었습니다.';
+      dispatchCarLogEvent({
+        type: 'delete',
+        message,
+        success: true
+      });
+      
       return {
         success: true,
-        message: responseText || '삭제되었습니다.'
+        message
       };
     } catch (error) {
       console.error('운행일지 삭제 실패:', error);
@@ -210,9 +264,18 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         error: error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다',
         isLoading: false
       });
+      
+      // 이벤트 발생 - 실패
+      const errorMessage = error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다';
+      dispatchCarLogEvent({
+        type: 'delete',
+        message: errorMessage,
+        success: false
+      });
+      
       return {
         success: false,
-        message: error instanceof Error ? error.message : '운행일지를 삭제하는 중 오류가 발생했습니다'
+        message: errorMessage
       };
     }
   },

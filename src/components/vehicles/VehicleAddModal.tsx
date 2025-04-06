@@ -4,16 +4,16 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore } from '@/store/vehicleStore';
 
+// vehicleStore.ts의 타입과 일치시킴
 type Vehicle = {
-  id: number;
+  id: string;
   mdn: string;
   make: string;
   model: string;
-  year: number | null;
+  year: number;
   mileage: number;
   ownerType: "CORPORATE" | "PERSONAL";
   acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
-  companyName: string;
   batteryVoltage: number;
   carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
 };
@@ -21,20 +21,20 @@ type Vehicle = {
 type VehicleAddModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: (vehicle: Omit<Vehicle, 'id'>) => Promise<void>;
 };
 
-export default function VehicleAddModal({ isOpen, onClose }: VehicleAddModalProps) {
+export default function VehicleAddModal({ isOpen, onClose, onComplete }: VehicleAddModalProps) {
   const { currentTheme } = useTheme();
   const { addVehicle, isLoading: storeLoading, error: storeError } = useVehicleStore();
   const [newVehicle, setNewVehicle] = useState<Omit<Vehicle, 'id'>>({
     mdn: '',
     make: '',
     model: '',
-    year: null,
+    year: 0,
     mileage: 0,
     ownerType: 'CORPORATE',
     acquisitionType: 'PURCHASE',
-    companyName: '',
     batteryVoltage: 0,
     carState: 'RUNNING'
   });
@@ -81,23 +81,44 @@ export default function VehicleAddModal({ isOpen, onClose }: VehicleAddModalProp
     }
 
     try {
-      const message = await addVehicle(newVehicle);
-      setSuccessMessage(message);
-      // 성공 시 입력 필드 초기화
-      setNewVehicle({
-        mdn: '',
-        make: '',
-        model: '',
-        year: '',
-        mileage: 0,
-        ownerType: 'CORPORATE',
-        acquisitionType: 'PURCHASE',
-        companyName: '',
-        batteryVoltage: 0,
-        carState: 'NOT_REGISTERED'
-      });
+      // 사용자 정의 콜백이 있으면 해당 함수 호출
+      if (onComplete) {
+        await onComplete(newVehicle);
+        // onComplete 함수가 성공적으로 완료되면 입력 필드를 초기화합니다
+        setNewVehicle({
+          mdn: '',
+          make: '',
+          model: '',
+          year: 0,
+          mileage: 0,
+          ownerType: 'CORPORATE',
+          acquisitionType: 'PURCHASE',
+          batteryVoltage: 0,
+          carState: 'NOT_REGISTERED'
+        });
+      } else {
+        // 기본 로직: 스토어를 통해 차량 추가
+        const message = await addVehicle(newVehicle);
+        setSuccessMessage(message);
+        
+        // 성공 시 입력 필드 초기화
+        setNewVehicle({
+          mdn: '',
+          make: '',
+          model: '',
+          year: 0,
+          mileage: 0,
+          ownerType: 'CORPORATE',
+          acquisitionType: 'PURCHASE',
+          batteryVoltage: 0,
+          carState: 'NOT_REGISTERED'
+        });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      // onComplete가 있는 경우 오류 처리는 onComplete에 위임
+      if (!onComplete) {
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      }
       console.error('차량 등록 오류:', err);
     }
   };
@@ -210,7 +231,7 @@ export default function VehicleAddModal({ isOpen, onClose }: VehicleAddModalProp
                           <input
                             type="number"
                             id="year"
-                            value={newVehicle.year || ''}
+                            value={newVehicle.year}
                             onChange={(e) => handleInputChange('year', parseInt(e.target.value))}
                             className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             required

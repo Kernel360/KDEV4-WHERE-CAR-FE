@@ -62,8 +62,6 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         const result = await updateCarLog(logId, updateData);
         
         if (result.success) {
-          console.log('수정 성공:', result.message);
-          
           if (onUpdate) {
             onUpdate(editedLog);
           }
@@ -98,19 +96,14 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         deleteCarLog(logId)
           .then(result => {
             if (result.success) {
-              console.log('삭제 성공:', result.message);
-              
               onClose();
-
               onDelete(log.id);
             } else {
               console.error('삭제 실패:', result.message);
-              alert('삭제 중 오류가 발생했습니다.');
             }
           })
           .catch(error => {
             console.error('운행 기록 삭제 오류:', error);
-            alert('삭제 중 오류가 발생했습니다.');
           })
           .finally(() => {
             setIsDeleting(false);
