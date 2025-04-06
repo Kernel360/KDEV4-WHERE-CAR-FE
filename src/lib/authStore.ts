@@ -31,7 +31,20 @@ interface AuthState {
   
   // 로그아웃 메서드
   logout: () => void;
+
+  // 인증 상태 초기화 메서드
+  initAuth: () => void;
+
+  // 인증 상태 확인 메서드
+  checkAuth: () => boolean;
 }
+
+// 로컬 스토리지에서 토큰 추출 함수
+const getTokenFromStorage = (): string | null => {
+  if (typeof window === 'undefined') return null; // 서버 사이드에서는 실행하지 않음
+  
+  return localStorage.getItem('Authorization');
+};
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
@@ -39,6 +52,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
   error: null,
+  
+  // 인증 상태 초기화 메서드
+  initAuth: () => {
+    // 로컬 스토리지에서 토큰 확인
+    const token = getTokenFromStorage();
+    
+    if (token && token.length > 10) { // 유효한 JWT 토큰은 일반적으로 길이가 깁니다
+      // 토큰이 있으면 인증 상태로 설정
+      console.log('로컬 스토리지에서 토큰을 찾았습니다. 인증 상태 설정됨');
+      
+      set({
+        isAuthenticated: true,
+        token: token,
+        user: {
+          name: '사용자', // 토큰으로부터 디코딩하여 사용자 정보를 가져올 수도 있습니다
+          email: '',
+        },
+      });
+      
+      return true;
+    }
+    
+    console.log('로컬 스토리지에서 토큰을 찾을 수 없습니다. 미인증 상태 유지');
+    return false;
+  },
+  
+  // 인증 상태 확인 메서드
+  checkAuth: () => {
+    const token = get().token || getTokenFromStorage();
+    const isAuthenticated = !!token && token.length > 10;
+    
+    // 상태 업데이트 (변경이 필요한 경우에만)
+    if (isAuthenticated !== get().isAuthenticated) {
+      set({ isAuthenticated, token });
+    }
+    
+    return isAuthenticated;
+  },
   
   // 로그인 메서드
   login: async (credentials: LoginRequest) => {
@@ -75,11 +126,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           ? authHeader.substring(7) 
           : authHeader;
         
-        // 토큰을 로컬 스토리지와 쿠키에 저장
-        localStorage.setItem('Authorization', token);
-        
-        // 쿠키에 토큰 저장 (HttpOnly 옵션 없이 JavaScript에서 접근 가능하도록)
-        document.cookie = `Authorization=${token}; path=/; max-age=2592000; SameSite=Strict`;
+        // 토큰을 로컬 스토리지에만 저장
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('Authorization', token);
+        }
         
         console.log('토큰 저장 완료:', token);
       } else {
@@ -107,11 +157,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!token && data.token) {
         token = data.token;
         
-        // 토큰을 로컬 스토리지와 쿠키에 저장
-        localStorage.setItem('Authorization', token);
-        
-        // 쿠키에 토큰 저장 (HttpOnly 옵션 없이 JavaScript에서 접근 가능하도록)
-        document.cookie = `Authorization=${token}; path=/; max-age=2592000; SameSite=Strict`;
+        // 토큰을 로컬 스토리지에만 저장
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('Authorization', token);
+        }
         
         console.log('응답 본문에서 토큰 저장:', token);
       }
@@ -155,9 +204,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
   // 로그아웃 메서드
   logout: () => {
-    // 로컬 스토리지와 쿠키에서 토큰 제거
-    localStorage.removeItem('Authorization');
-    document.cookie = 'Authorization=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    // 로컬 스토리지에서 토큰 제거
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('Authorization');
+    }
     
     // 상태 초기화
     set({
@@ -167,4 +217,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       error: null,
     });
   },
-})); 
+}));
+
+// 클라이언트 사이드에서 페이지 로드 시 인증 상태 초기화
+if (typeof window !== 'undefined') {
+  useAuthStore.getState().initAuth();
+}
+
+// Next.js 클라이언트 사이드에서 API 요청 전에 인증 헤더 추가
+export const setupAuthInterceptor = () => {
+  if (typeof window === 'undefined') return; // 서버 사이드에서는 실행하지 않음
+  
+  // 원래의 fetch 함수를 저장
+  const originalFetch = window.fetch;
+  
+  // fetch 함수 재정의
+  window.fetch = async (input, init) => {
+    // 초기 설정이 없으면 빈 객체로 초기화
+    const initOptions = init || {};
+    
+    // 헤더 설정이 없으면 빈 객체로 초기화
+    const headers = new Headers(initOptions.headers || {});
+    
+    // 로컬 스토리지에서 토큰 가져오기
+    const token = localStorage.getItem('Authorization');
+    
+    // 토큰이 있고 x-authorization 헤더가 아직 설정되지 않았다면 추가
+    if (token && !headers.has('x-authorization')) {
+      headers.set('x-authorization', token);
+    }
+    
+    // 설정된 헤더로 초기 설정 업데이트
+    const updatedInit = {
+      ...initOptions,
+      headers,
+    };
+    
+    // 원래의 fetch 함수 호출
+    return originalFetch(input, updatedInit);
+  };
+  
+  console.log('인증 인터셉터가 설정되었습니다.');
+}; 
