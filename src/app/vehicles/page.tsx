@@ -7,6 +7,7 @@ import { MagnifyingGlassIcon, TruckIcon, CheckCircleIcon, ExclamationTriangleIco
 import VehicleDetailSlidePanel from "@/components/vehicles/VehicleDetailSlidePanel";
 import VehicleAddModal from "@/components/vehicles/VehicleAddModal";
 import { useVehicleStore } from "@/store/vehicleStore";
+import { useCarOverviewStore } from "@/lib/carOverviewStore";
 
 // vehicleStore.ts에서 정의된 타입과 일치시킴
 type Vehicle = {
@@ -41,12 +42,20 @@ export default function VehiclesPage() {
     setSelectedVehicle 
   } = useVehicleStore();
   
+  // 차량 개요 데이터 가져오기
+  const { 
+    data: carOverview, 
+    isLoading: isOverviewLoading, 
+    fetchOverview 
+  } = useCarOverviewStore();
+  
   const itemsPerPage = 8;
   
   // 차량 데이터 가져오기
   useEffect(() => {
     fetchVehicles();
-  }, [fetchVehicles]);
+    fetchOverview(); // 차량 개요 데이터도 함께 가져오기
+  }, [fetchVehicles, fetchOverview]);
   
   // 검색 필터링
   const filteredVehicles = useMemo(() => {
@@ -184,7 +193,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>전체 차량</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.total}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.totalCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <TruckIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -196,7 +207,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>운행 중</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.operating}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.activeCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <CheckCircleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -208,7 +221,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>미운행</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.nonOperating}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.inactiveCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <ExclamationTriangleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
@@ -220,7 +235,9 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-medium ${currentTheme.subtext}`}>미관제</p>
-              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>{vehicleCounts.unmonitored}</p>
+              <p className={`text-xl font-bold ${currentTheme.text} mt-0.5`}>
+                {isOverviewLoading ? "로딩 중..." : carOverview?.untrackedCars || 0}
+              </p>
             </div>
             <div className={`p-2 ${currentTheme.activeBg} rounded-lg`}>
               <XCircleIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
