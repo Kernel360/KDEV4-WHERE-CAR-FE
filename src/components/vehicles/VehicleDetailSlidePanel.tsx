@@ -67,7 +67,6 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     
     try {
       await updateVehicle(editedVehicle);
-      // 차량 정보 업데이트 후 차량 개요 데이터 갱신
       fetchOverview();
       // 수정 완료 후 바로 패널 닫기 (성공 메시지 표시 없음)
       onClose();
@@ -77,7 +76,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     }
   };
 
-  // 수정 취소 시 원래 상태로 되돌리기
+
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedVehicle(vehicle);
@@ -90,7 +89,6 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     if (window.confirm('정말로 이 차량을 삭제하시겠습니까?')) {
       try {
         await deleteVehicle(vehicle.id);
-        // 차량 삭제 후 차량 개요 데이터 갱신
         fetchOverview();
         setSuccessMessage("삭제되었습니다.");
         onClose();

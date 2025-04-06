@@ -37,14 +37,11 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      // 먼저 차량 개요 데이터에서 전체 차량 수를 가져옵니다
       const overviewData = await fetchApi<{totalCars: number}>('/cars/overview');
-      const totalCars = overviewData.totalCars || 100; // 기본값으로 100 설정
+      const totalCars = overviewData.totalCars || 100; 
       
-      // 페이지 번호 0, 페이지 크기를 전체 차량 수로 설정하여 모든 차량을 한 번에 가져옵니다
       const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/cars?page=0&size=${totalCars}`);
-      
-      // 응답이 페이지네이션 구조인지 확인
+ 
       let vehicles: Vehicle[];
       if (Array.isArray(response)) {
         vehicles = response;
@@ -74,13 +71,11 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
         body: JSON.stringify(vehicle),
       });
       
-      // 차량 목록 갱신
       const { fetchVehicles } = get();
       await fetchVehicles();
       
       set({ isLoading: false });
       
-      // 응답이 문자열이라면 그대로 반환, 아니라면 기본 성공 메시지 반환
       if (typeof response === 'string') {
         return response;
       } else {
