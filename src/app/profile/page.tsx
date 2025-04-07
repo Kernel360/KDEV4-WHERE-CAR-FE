@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
 import PageHeader from "@/components/common/PageHeader";
-import { useToast } from "@/contexts/ToastContext";
 import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon } from "@heroicons/react/24/outline";
 import { fetchApi } from "@/lib/api";
 
@@ -39,7 +38,6 @@ interface PasswordChange {
 export default function ProfilePage() {
   const { currentTheme } = useTheme();
   const { user, token } = useAuthStore();
-  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState(false);
   
@@ -120,7 +118,7 @@ export default function ProfilePage() {
         setIsLoading(false);
       } catch (error) {
         console.error('사용자 정보를 불러오는 중 오류가 발생했습니다:', error);
-        showToast('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.', 'info');
+        console.log('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.');
         setApiError(true);
         
         // 오류 발생 시에도 기본 데이터로 UI 표시
@@ -142,7 +140,7 @@ export default function ProfilePage() {
     if ((token || !useBackendApi) && !apiError) {
       fetchUserInfo();
     }
-  }, [token, showToast, user, apiError]);
+  }, [token, user, apiError]);
   
   // 사용자 정보 핸들러
   const handleUserInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +226,7 @@ export default function ProfilePage() {
         setTimeout(() => {
           setUserInfo(updatedInfo);
           setIsLoading(false);
-          showToast('프로필이 성공적으로 업데이트되었습니다.', 'success');
+          console.log('프로필이 성공적으로 업데이트되었습니다.');
           setIsEditing(false);
           setChangedFields({});
         }, 800);
@@ -236,13 +234,13 @@ export default function ProfilePage() {
         return; // setTimeout으로 비동기 처리되므로 여기서 종료
       }
       
-      showToast('프로필이 성공적으로 업데이트되었습니다.', 'success');
+      console.log('프로필이 성공적으로 업데이트되었습니다.');
       setIsEditing(false);
       setChangedFields({});
       setIsLoading(false);
     } catch (error) {
       console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
-      showToast('프로필 업데이트에 실패했습니다. 나중에 다시 시도해 주세요.', 'error');
+      console.log('프로필 업데이트에 실패했습니다. 나중에 다시 시도해 주세요.');
       setIsLoading(false);
     }
   };
@@ -253,7 +251,7 @@ export default function ProfilePage() {
     
     // 비밀번호 확인 검증
     if (passwordChange.newPassword !== passwordChange.confirmPassword) {
-      showToast('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.', 'error');
+      console.log('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
       return;
     }
     
@@ -278,7 +276,7 @@ export default function ProfilePage() {
         await new Promise(resolve => setTimeout(resolve, 800));
       }
       
-      showToast('비밀번호가 성공적으로 변경되었습니다.', 'success');
+      console.log('비밀번호가 성공적으로 변경되었습니다.');
       
       // 폼 초기화
       setPasswordChange({
@@ -290,7 +288,7 @@ export default function ProfilePage() {
       setIsLoading(false);
     } catch (error) {
       console.error('비밀번호 변경 중 오류가 발생했습니다:', error);
-      showToast('비밀번호 변경에 실패했습니다. 나중에 다시 시도해 주세요.', 'error');
+      console.log('비밀번호 변경에 실패했습니다. 나중에 다시 시도해 주세요.');
       setIsLoading(false);
     }
   };
@@ -322,7 +320,7 @@ export default function ProfilePage() {
           setUserInfo(userInfo);
         } catch (error) {
           console.error('사용자 정보를 불러오는 중 오류가 발생했습니다:', error);
-          showToast('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.', 'info');
+          console.log('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.');
           setApiError(true);
           // 이미 기본 데이터가 로드되어 있으므로 추가 조치 필요 없음
         }

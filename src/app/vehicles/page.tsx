@@ -121,9 +121,14 @@ export default function VehiclesPage() {
 
   // 슬라이드 패널 닫기 핸들러
   const handleCloseSlidePanel = () => {
-    setIsSlidePanelOpen(false);
-    // 패널이 닫힐 때 선택된 차량 정보 초기화
+    // 패널이 닫힐 때 선택된 차량 정보 완전히 초기화
     setSelectedVehicle(null);
+    setIsSlidePanelOpen(false);
+    
+    // 변경 사항이 있을 수 있으므로 차량 목록을 다시 불러옴
+    fetchVehicles().catch(err => {
+      console.error('차량 목록 새로고침 오류:', err);
+    });
   };
 
   // 차량 삭제 핸들러

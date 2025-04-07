@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { VehicleLog, DriveType } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useCarLogsStore } from '@/lib/carLogsStore';
+import AlertMessage from '../common/AlertMessage';
 
 interface VehicleLogDetailSlidePanelProps {
   isOpen: boolean;
@@ -18,16 +19,28 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const { currentTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedLog, setEditedLog] = useState<VehicleLog | null>(null);
+  const [displayLog, setDisplayLog] = useState<VehicleLog | null>(null);
   const { updateCarLog, deleteCarLog } = useCarLogsStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // log가 변경되면 editedLog도 업데이트
   useEffect(() => {
     if (log) {
       setEditedLog({ ...log });
+      setDisplayLog({ ...log });
     }
   }, [log]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleEdit = () => {
     if (log) {
@@ -38,15 +51,13 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (log) {
-      setEditedLog({ ...log });  // 원래 값으로 되돌림
+    if (displayLog) {
+      setEditedLog({ ...displayLog });
     }
   };
 
   const handleSaveEdit = async () => {
     if (editedLog) {
-      setIsUpdating(true);
-      
       try {
         const updateData = {
           driveType: editedLog.driveType === 'UNREGISTERED' ? null : editedLog.driveType,
@@ -59,23 +70,42 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
           throw new Error('유효하지 않은 로그 ID');
         }
         
+        setIsEditing(false);
+        setSuccessMessage("수정되었습니다.");
+        setDisplayLog(editedLog);
+        
+        setIsUpdating(true);
         const result = await updateCarLog(logId, updateData);
         
         if (result.success) {
           if (onUpdate) {
+            // UI는 이미 업데이트되었지만, 부모 컴포넌트에도 알려줌
             onUpdate(editedLog);
           }
-          setIsEditing(false);
-          onClose(); // 수정 완료 후 패널 닫기
         } else {
           console.error('수정 실패:', result.message);
+          // API 호출이 실패한 경우 오류 메시지만 표시하고 UI는 그대로 유지
+          setSuccessMessage(null);
+          setError(result.message || '수정에 실패했습니다.');
         }
       } catch (error) {
         console.error('운행 기록 업데이트 오류:', error);
+        // 오류 발생 시 오류 메시지 표시
+        setSuccessMessage(null);
+        setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       } finally {
         setIsUpdating(false);
       }
     }
+  };
+
+  // 패널 닫기 시 모든 상태 초기화
+  const handleClosePanel = () => {
+    setIsEditing(false);
+    setEditedLog(displayLog);
+    setSuccessMessage(null);
+    setError(null);
+    onClose();
   };
 
   // 삭제 처리
@@ -96,6 +126,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         deleteCarLog(logId)
           .then(result => {
             if (result.success) {
+              // 삭제 후 바로 패널 닫기
               onClose();
               onDelete(log.id);
             } else {
@@ -121,7 +152,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     }
   };
 
-  if (!log) return null;
+  if (!log || !displayLog) return null;
 
   const getDriveTypeClass = (type: DriveType) => {
     switch (type) {
@@ -145,11 +176,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     return types[type];
   };
 
-  const displayLog = isEditing && editedLog ? editedLog : log;
-
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClosePanel}>
         <Transition.Child
           as={Fragment}
           enter="ease-in-out duration-300"
@@ -210,51 +239,57 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                           </>
                         )}
                         
-                        <button
-                          onClick={onClose}
-                          className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1`}
-                        >
-                          <XMarkIcon className="h-5 w-5" />
-                        </button>
+                        {isEditing && (
+                          <>
+                            <button 
+                              onClick={handleSaveEdit}
+                              disabled={isUpdating}
+                              className={`p-1.5 rounded-lg ${isUpdating ? 'text-gray-400' : 'text-green-600 hover:bg-green-50'} focus:outline-none`}
+                            >
+                              {isUpdating ? (
+                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <CheckIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                            
+                            <button 
+                              onClick={handleCancelEdit}
+                              disabled={isUpdating}
+                              className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {!isEditing && (
+                          <button
+                            onClick={handleClosePanel}
+                            className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1`}
+                          >
+                            <XMarkIcon className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* 수정 모드 액션 바 */}
-                    {isEditing && (
-                      <div className={`px-4 py-3 border-b ${currentTheme.border} flex justify-between`}>
-                        <button
-                          onClick={handleCancelEdit}
-                          className={`px-3 py-1.5 border ${currentTheme.border} rounded-lg text-sm ${currentTheme.text}`}
-                          disabled={isUpdating}
-                        >
-                          취소
-                        </button>
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={isUpdating}
-                          className={`px-3 py-1.5 ${isUpdating ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg text-sm flex items-center`}
-                        >
-                          {isUpdating ? (
-                            <>
-                              <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              저장 중...
-                            </>
-                          ) : (
-                            <>
-                              <CheckIcon className="h-4 w-4 inline mr-1" />
-                              저장
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
 
                     {/* 내용 */}
                     <div className="relative flex-1 px-6 py-6 overflow-y-auto">
                       <div className="space-y-6">
+                        {/* 성공 메시지 */}
+                        {successMessage && (
+                          <AlertMessage type="success" message={successMessage} />
+                        )}
+                        
+                        {/* 오류 메시지 */}
+                        {error && (
+                          <AlertMessage type="error" message={error} />
+                        )}
+                        
                         {/* 차량 정보 */}
                         <div className="flex flex-col">
                           <h3 className={`text-xl font-bold ${currentTheme.text}`}>
@@ -379,4 +414,4 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
       </Dialog>
     </Transition.Root>
   );
-} 
+}

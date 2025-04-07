@@ -84,8 +84,10 @@ export function VehicleLogList({
 
   const handleLogClick = (log: VehicleLog) => {
     if (onLogSelect) {
+      // 부모 컴포넌트로 선택된 로그 전달
       onLogSelect(log);
     } else {
+      // 로컬에서 처리
       setLocalSelectedLog(log);
       setIsLocalSlideOpen(true);
     }
@@ -93,6 +95,12 @@ export function VehicleLogList({
 
   const handleCloseLocalSlide = () => {
     setIsLocalSlideOpen(false);
+    setLocalSelectedLog(null); // 슬라이드가 닫힐 때 선택된 로그 초기화
+    
+    // 로그 목록 데이터 새로고침
+    fetchCarLogs().catch(err => {
+      console.error('로그 목록 새로고침 오류:', err);
+    });
   };
 
   // 드라이브 타입에 따른 배경색 클래스

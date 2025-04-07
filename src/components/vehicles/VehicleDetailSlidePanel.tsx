@@ -4,8 +4,8 @@ import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon,
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { useCarOverviewStore } from '@/lib/carOverviewStore';
+import AlertMessage from '../common/AlertMessage';
 
-// vehicleStore.ts에서 가져온 Vehicle 타입 사용
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;
@@ -19,12 +19,14 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
   const { fetchOverview } = useCarOverviewStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedVehicle, setEditedVehicle] = useState<Vehicle | null>(null);
+  const [displayVehicle, setDisplayVehicle] = useState<Vehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (vehicle) {
       setEditedVehicle(vehicle);
+      setDisplayVehicle(vehicle);
     }
   }, [vehicle]);
 
@@ -39,9 +41,11 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
 
   // 창이 닫힐 때 수정 모드 초기화
   const handleClose = () => {
+    // 모든 상태 초기화
     setIsEditing(false);
     setError(null);
     setSuccessMessage(null);
+    setEditedVehicle(displayVehicle);
     onClose();
   };
 
@@ -66,20 +70,25 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     if (!editedVehicle) return;
     
     try {
+      // 낙관적 업데이트: 먼저 화면에 수정된 데이터를 표시
+      setIsEditing(false);
+      setSuccessMessage("수정되었습니다.");
+      setDisplayVehicle(editedVehicle);
+      
+      // 백그라운드에서 API 호출
       await updateVehicle(editedVehicle);
       fetchOverview();
-      // 수정 완료 후 바로 패널 닫기 (성공 메시지 표시 없음)
-      onClose();
+      
     } catch (err) {
+      // 에러 발생 시 원래 상태로 되돌리지 않고 에러 메시지만 표시
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       console.error('차량 수정 오류:', err);
     }
   };
 
-
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedVehicle(vehicle);
+    setEditedVehicle(displayVehicle);
     setError(null);
   };
 
@@ -90,7 +99,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
       try {
         await deleteVehicle(vehicle.id);
         fetchOverview();
-        setSuccessMessage("삭제되었습니다.");
+        // 삭제 후 즉시 패널 닫기
         onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
@@ -99,7 +108,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     }
   };
 
-  if (!vehicle) return null;
+  if (!vehicle || !displayVehicle) return null;
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -141,8 +150,6 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
         return type;
     }
   };
-
-  const displayVehicle = isEditing && editedVehicle ? editedVehicle : vehicle;
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -202,33 +209,40 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                             <>
                               <button
                                 type="button"
-                                className={`rounded-md ${currentTheme.text} hover:text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+                                className={`p-1.5 rounded-lg ${storeLoading ? 'text-gray-400' : 'text-green-600 hover:bg-green-50'} focus:outline-none`}
                                 onClick={handleSaveEdit}
                                 disabled={storeLoading}
                               >
-                                <span className="sr-only">저장</span>
-                                <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                {storeLoading ? (
+                                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                )}
                               </button>
                               <button
                                 type="button"
-                                className={`rounded-md ${currentTheme.text} hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                                className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1 ${storeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={handleCancelEdit}
                                 disabled={storeLoading}
                               >
-                                <span className="sr-only">취소</span>
                                 <XMarkIcon className="h-5 w-5" aria-hidden="true" />
                               </button>
                             </>
                           )}
-                          <button
-                            type="button"
-                            className={`rounded-md ${currentTheme.text} hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
-                            onClick={handleClose}
-                            disabled={storeLoading}
-                          >
-                            <span className="sr-only">닫기</span>
-                            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                          </button>
+                          {!isEditing && (
+                            <button
+                              type="button"
+                              className={`rounded-md ${currentTheme.text} hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                              onClick={handleClose}
+                              disabled={storeLoading}
+                            >
+                              <span className="sr-only">닫기</span>
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -244,29 +258,23 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                       ) : (
                         <div className="space-y-10">
                           {successMessage && (
-                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="flex">
-                                <div className="flex-shrink-0">
-                                  <CheckIcon className="h-5 w-5 text-green-400" aria-hidden="true" />
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-green-800">
-                                    {successMessage}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
+                            <AlertMessage type="success" message={successMessage} />
                           )}
+                          
+                          {error && (
+                            <AlertMessage type="error" message={error} />
+                          )}
+                          
                           {/* 차량 번호 및 상태 */}
                           <div className="flex items-center justify-between mb-4">
                             <div>
-                              <h3 className={`text-3xl font-bold ${currentTheme.text}`}>{displayVehicle.mdn}</h3>
+                              <h3 className={`text-3xl font-bold ${currentTheme.text}`}>{displayVehicle?.mdn}</h3>
                               <p className={`mt-2 text-base ${currentTheme.subtext}`}>
-                                {displayVehicle.make} {displayVehicle.model}
+                                {displayVehicle?.make} {displayVehicle?.model}
                               </p>
                             </div>
-                            <span className={`px-6 py-2 text-base font-medium rounded-full ${getStatusClass(displayVehicle.carState)}`}>
-                              {getStatusText(displayVehicle.carState)}
+                            <span className={`px-6 py-2 text-base font-medium rounded-full ${getStatusClass(displayVehicle?.carState || '')}`}>
+                              {getStatusText(displayVehicle?.carState || '')}
                             </span>
                           </div>
                           

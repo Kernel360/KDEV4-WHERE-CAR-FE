@@ -48,8 +48,15 @@ export default function LogsPage() {
     setIsSlidePanelOpen(true);
   };
 
-  const handleCloseSidePanel = () => {
+  const handleCloseSlidePanel = () => {
+    setSelectedLog(null);
     setIsSlidePanelOpen(false);
+    
+    setTimeout(() => {
+      fetchCarLogs().catch(err => {
+        console.error('로그 목록 새로고침 오류:', err);
+      });
+    }, 300);
   };
 
   const handleExportExcel = (logs: VehicleLog[]) => {
@@ -132,7 +139,7 @@ export default function LogsPage() {
             onExport={handleExportExcel}
             onLogSelect={handleLogSelect}
             isSlideOpen={isSlidePanelOpen}
-            onCloseSlide={handleCloseSidePanel}
+            onCloseSlide={handleCloseSlidePanel}
             selectedLog={selectedLog}
             isLoading={isLoading}
           />
@@ -141,7 +148,7 @@ export default function LogsPage() {
 
       <VehicleLogDetailSlidePanel
         isOpen={isSlidePanelOpen}
-        onClose={handleCloseSidePanel}
+        onClose={handleCloseSlidePanel}
         log={selectedLog}
         onDelete={handleDeleteLog}
         onUpdate={handleUpdateLog}
