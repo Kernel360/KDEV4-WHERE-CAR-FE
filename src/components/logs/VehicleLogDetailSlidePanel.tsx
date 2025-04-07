@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { VehicleLog, DriveType } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useCarLogsStore } from '@/lib/carLogsStore';
+import AlertMessage from '../common/AlertMessage';
 
 interface VehicleLogDetailSlidePanelProps {
   isOpen: boolean;
@@ -281,34 +282,12 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                       <div className="space-y-6">
                         {/* 성공 메시지 */}
                         {successMessage && (
-                          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex">
-                              <div className="flex-shrink-0">
-                                <CheckIcon className="h-5 w-5 text-green-400" aria-hidden="true" />
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm font-medium text-green-800">
-                                  {successMessage}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+                          <AlertMessage type="success" message={successMessage} />
                         )}
                         
                         {/* 오류 메시지 */}
                         {error && (
-                          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <div className="flex">
-                              <div className="flex-shrink-0">
-                                <XMarkIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm font-medium text-red-800">
-                                  {error}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+                          <AlertMessage type="error" message={error} />
                         )}
                         
                         {/* 차량 정보 */}

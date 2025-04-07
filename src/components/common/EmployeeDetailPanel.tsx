@@ -23,6 +23,8 @@ import { Employee } from './EmployeeList';
 import Link from 'next/link';
 import { useUserStore } from '@/lib/userStore';
 import { Permission, ALL_PERMISSIONS, PERMISSION_GROUPS } from '@/lib/permissions';
+import { UserIcon as LucideUserIcon, PencilIcon as LucidePencilIcon, TrashIcon as LucideTrashIcon, CheckCircle, X, AlertCircle } from 'lucide-react';
+import AlertMessage from './AlertMessage';
 
 interface EmployeeDetailPanelProps {
   isOpen: boolean;
@@ -43,27 +45,44 @@ export default function EmployeeDetailPanel({
   const { userPermissions, loadingPermissions, permissionsError, fetchUserPermissions, updateUser, deleteUser } = useUserStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null);
+  const [displayEmployee, setDisplayEmployee] = useState<Employee | null>(null);
   const [showAllPermissions, setShowAllPermissions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && employee) {
       // 권한 정보 로드
       fetchUserPermissions(employee.id);
+      // 표시할 직원 정보 초기화
+      setDisplayEmployee(employee);
+      setEditedEmployee(employee);
     }
   }, [isOpen, employee, fetchUserPermissions]);
 
+  // 성공 메시지 표시 후 자동으로 사라지게 함
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const handleEdit = () => {
-    if (employee) {
-      setEditedEmployee({ ...employee });
+    if (displayEmployee) {
+      setEditedEmployee({ ...displayEmployee });
       setIsEditing(true);
     }
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedEmployee(null);
+    if (displayEmployee) {
+      setEditedEmployee({ ...displayEmployee });
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -72,10 +91,15 @@ export default function EmployeeDetailPanel({
       setSaveError(null);
       
       try {
-        // 사용자 정보 업데이트 요청
+        // 낙관적 업데이트: 먼저 UI 업데이트
+        setIsEditing(false);
+        setDisplayEmployee(editedEmployee);
+        setSuccessMessage("직원 정보가 수정되었습니다.");
+        
+        // 사용자 정보 업데이트 요청 (백그라운드로 실행)
         const userRequest = {
           name: editedEmployee.name,
-          email: employee!.email, // non-null assertion 사용 (함수 시작에서 null 체크 완료)
+          email: editedEmployee.email,
           phone: editedEmployee.phone || '',
           jobTitle: editedEmployee.position || '',
           password: '' // 빈 문자열로 전송하면 updateUser 함수에서 제거됨
@@ -84,45 +108,19 @@ export default function EmployeeDetailPanel({
         const success = await updateUser(editedEmployee.id, userRequest);
         
         if (success) {
-          // 업데이트된 사용자 정보를 직접 가져오기
-          const { users } = useUserStore.getState();
-          const updatedUserData = users.find(u => u.userId.toString() === editedEmployee.id);
-          
-          if (updatedUserData) {
-            // API에서 받은 최신 데이터로 Employee 객체 업데이트
-            const updatedEmployee: Employee = {
-              ...employee!, // 원본 employee 객체의 모든 속성 유지
-              id: editedEmployee.id,
-              name: updatedUserData.name,
-              email: updatedUserData.email,
-              phone: updatedUserData.phone || '',
-              position: updatedUserData.jobTitle || '',
-              // 다른 필드는 그대로 유지
-            };
-            
-            if (onUpdate) {
-              onUpdate(updatedEmployee);
-            }
-            
-            // 현재 표시된 직원 정보를 업데이트된 정보로 설정
-            onClose(); // 패널을 닫았다가
-            setTimeout(() => {
-              if (onUpdate) onUpdate(updatedEmployee); // 부모 컴포넌트에 변경 알림
-            }, 100);
-          } else {
-            // API 데이터를 못 가져온 경우 편집한 데이터로 업데이트
-            if (onUpdate) {
-              onUpdate(editedEmployee);
-            }
+          // API 응답이 성공하면 부모 컴포넌트에도 알려줌
+          if (onUpdate) {
+            onUpdate(editedEmployee);
           }
-          
-          setIsEditing(false);
-          setEditedEmployee(null);
         } else {
+          // API 호출은 실패했지만 UI는 이미 업데이트된 상태
+          // 에러 메시지 표시 추가
+          setSuccessMessage(null);
           setSaveError('사용자 정보를 업데이트하는 중 오류가 발생했습니다.');
         }
       } catch (error) {
         console.error('사용자 업데이트 중 오류 발생:', error);
+        setSuccessMessage(null);
         setSaveError('사용자 정보를 업데이트하는 중 오류가 발생했습니다.');
       } finally {
         setIsSaving(false);
@@ -131,21 +129,23 @@ export default function EmployeeDetailPanel({
   };
 
   const handleDelete = async () => {
-    if (employee && onDelete) {
-      if (window.confirm('정말로 이 직원을 삭제하시겠습니까?')) {
-        try {
-          const success = await deleteUser(employee.id);
-          
-          if (success) {
+    if (employee && window.confirm('이 직원을 정말 삭제하시겠습니까?')) {
+      try {
+        // 사용자 삭제 요청
+        const success = await deleteUser(employee.id);
+        
+        if (success) {
+          // 삭제 성공 메시지 표시 후 바로 패널 닫기
+          if (onDelete) {
             onDelete(employee.id);
-            onClose();
-          } else {
-            alert('직원 삭제 중 오류가 발생했습니다.');
           }
-        } catch (error) {
-          console.error('직원 삭제 중 오류 발생:', error);
-          alert('직원 삭제 중 오류가 발생했습니다.');
+          onClose();
+        } else {
+          alert('사용자 삭제 중 오류가 발생했습니다.');
         }
+      } catch (error) {
+        console.error('사용자 삭제 중 오류 발생:', error);
+        alert('사용자 삭제 중 오류가 발생했습니다.');
       }
     }
   };
@@ -159,10 +159,8 @@ export default function EmployeeDetailPanel({
     }
   };
 
-  if (!employee) return null;
+  if (!employee || !displayEmployee) return null;
 
-  const displayEmployee = isEditing && editedEmployee ? editedEmployee : employee;
-  
   // 권한 정보 처리
   const mergePermissions = () => {
     // 기본적으로 모든 권한을 isGranted가 false인 상태로 초기화
@@ -274,7 +272,7 @@ export default function EmployeeDetailPanel({
                                 onClick={handleEdit}
                               >
                                 <span className="sr-only">수정</span>
-                                <PencilIcon className="h-5 w-5" aria-hidden="true" />
+                                <LucidePencilIcon className="h-5 w-5" aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
@@ -282,7 +280,7 @@ export default function EmployeeDetailPanel({
                                 onClick={handleDelete}
                               >
                                 <span className="sr-only">삭제</span>
-                                <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                                <LucideTrashIcon className="h-5 w-5" aria-hidden="true" />
                               </button>
                             </>
                           ) : (
@@ -326,7 +324,17 @@ export default function EmployeeDetailPanel({
                     </div>
                     <div className="relative flex-1 px-6 py-6">
                       <div className="space-y-8">
-                        {/* 직원 프로필 헤더 */}
+                        {/* 성공 메시지 */}
+                        {successMessage && (
+                          <AlertMessage type="success" message={successMessage} />
+                        )}
+
+                        {/* 에러 메시지 */}
+                        {saveError && (
+                          <AlertMessage type="error" message={saveError} />
+                        )}
+
+                        {/* 직원 기본 정보 */}
                         <div className="flex flex-col items-center">
                           <div className={`h-24 w-24 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-semibold mb-4`}>
                             {displayEmployee.name.charAt(0)}
@@ -349,207 +357,197 @@ export default function EmployeeDetailPanel({
                             </span>
                           </div>
                         </div>
-                        
-                        {/* 직원 상세 정보 */}
-                        <div className="space-y-4">
-                          {/* 저장 오류 메시지 */}
-                          {saveError && (
-                            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                              <p className="text-sm font-medium">{saveError}</p>
-                            </div>
-                          )}
-
-                          <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
-                            <div className="flex items-start">
-                              <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
-                                <EnvelopeIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>이메일</p>
-                                {isEditing ? (
-                                  <div>
-                                    <input
-                                      type="email"
-                                      value={editedEmployee?.email || ''}
-                                      disabled={true}
-                                      className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none bg-gray-100 dark:bg-gray-700 opacity-70`}
-                                    />
-                                    <span className="text-xs text-gray-500 italic mt-1 block">
-                                      (수정 불가)
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <a 
-                                    href={`mailto:${displayEmployee.email}`} 
-                                    className={`text-base font-semibold ${currentTheme.text} hover:underline`}
-                                  >
-                                    {displayEmployee.email}
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </div>
                           
-                          <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
-                            <div className="flex items-start">
-                              <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
-                                <PhoneIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>전화번호</p>
-                                {isEditing ? (
+                        <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
+                          <div className="flex items-start">
+                            <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
+                              <EnvelopeIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className={`text-sm font-medium ${currentTheme.subtext}`}>이메일</p>
+                              {isEditing ? (
+                                <div>
                                   <input
-                                    type="tel"
-                                    value={editedEmployee?.phone || ''}
-                                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                                    className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                    type="email"
+                                    value={editedEmployee?.email || ''}
+                                    disabled={true}
+                                    className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none bg-gray-100 dark:bg-gray-700 opacity-70`}
                                   />
-                                ) : (
-                                  <p className={`text-base font-semibold ${currentTheme.text}`}>{displayEmployee.phone}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
-                            <div className="flex items-start">
-                              <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
-                                <CalendarIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>가입일</p>
-                                <div className="flex items-center">
-                                  <p className={`text-base font-semibold ${currentTheme.text}`}>
-                                    {displayEmployee.joinDate || '-'}
-                                  </p>
-                                  {isEditing && (
-                                    <span className="ml-2 text-xs text-gray-500 italic">
-                                      (수정 불가)
-                                    </span>
-                                  )}
+                                  <span className="text-xs text-gray-500 italic mt-1 block">
+                                    (수정 불가)
+                                  </span>
                                 </div>
-                              </div>
+                              ) : (
+                                <a 
+                                  href={`mailto:${displayEmployee.email}`} 
+                                  className={`text-base font-semibold ${currentTheme.text} hover:underline`}
+                                >
+                                  {displayEmployee.email}
+                                </a>
+                              )}
                             </div>
                           </div>
+                        </div>
                           
-                          <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
-                            <div className="flex items-start">
-                              <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
-                                <UserIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <p className={`text-sm font-medium ${currentTheme.subtext}`}>직급</p>
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    value={editedEmployee?.position || ''}
-                                    onChange={(e) => handleInputChange('position', e.target.value)}
-                                    className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                                  />
-                                ) : (
-                                  <p className={`text-base font-semibold ${currentTheme.text}`}>{displayEmployee.position}</p>
-                                )}
-                              </div>
+                        <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
+                          <div className="flex items-start">
+                            <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
+                              <PhoneIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className={`text-sm font-medium ${currentTheme.subtext}`}>전화번호</p>
+                              {isEditing ? (
+                                <input
+                                  type="tel"
+                                  value={editedEmployee?.phone || ''}
+                                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                                  className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                />
+                              ) : (
+                                <p className={`text-base font-semibold ${currentTheme.text}`}>{displayEmployee.phone}</p>
+                              )}
                             </div>
                           </div>
+                        </div>
                           
-                          {/* 권한 정보 */}
-                          <div className="mt-6">
-                            <div className="flex items-center justify-between">
+                        <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
+                          <div className="flex items-start">
+                            <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
+                              <CalendarIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className={`text-sm font-medium ${currentTheme.subtext}`}>가입일</p>
                               <div className="flex items-center">
-                                <ShieldCheckIcon className="h-5 w-5 text-blue-600 mr-2" />
-                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">권한</h3>
+                                <p className={`text-base font-semibold ${currentTheme.text}`}>
+                                  {displayEmployee.joinDate || '-'}
+                                </p>
+                                {isEditing && (
+                                  <span className="ml-2 text-xs text-gray-500 italic">
+                                    (수정 불가)
+                                  </span>
+                                )}
                               </div>
-                              <Link
-                                href={`/permissions/${employee.id}`}
-                                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                              >
-                                권한 관리
-                                <ArrowRightIcon className="h-4 w-4 ml-1" />
-                              </Link>
                             </div>
-                            
-                            {loadingPermissions ? (
-                              <div className="mt-4 flex justify-center items-center">
-                                <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">권한 정보를 불러오는 중...</span>
+                          </div>
+                        </div>
+                          
+                        <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
+                          <div className="flex items-start">
+                            <div className={`p-2 rounded-lg ${currentTheme.activeBg} flex-shrink-0`}>
+                              <LucideUserIcon className={`h-5 w-5 ${currentTheme.activeText}`} />
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className={`text-sm font-medium ${currentTheme.subtext}`}>직급</p>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={editedEmployee?.position || ''}
+                                  onChange={(e) => handleInputChange('position', e.target.value)}
+                                  className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                />
+                              ) : (
+                                <p className={`text-base font-semibold ${currentTheme.text}`}>{displayEmployee.position}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                          
+                        {/* 권한 정보 */}
+                        <div className="mt-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <ShieldCheckIcon className="h-5 w-5 text-blue-600 mr-2" />
+                              <h3 className="text-sm font-medium text-gray-900 dark:text-white">권한</h3>
+                            </div>
+                            <Link
+                              href={`/permissions/${employee.id}`}
+                              className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                            >
+                              권한 관리
+                              <ArrowRightIcon className="h-4 w-4 ml-1" />
+                            </Link>
+                          </div>
+                          
+                          {loadingPermissions ? (
+                            <div className="mt-4 flex justify-center items-center">
+                              <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">권한 정보를 불러오는 중...</span>
+                            </div>
+                          ) : permissionsError ? (
+                            <div className="mt-4">
+                              <p className="text-sm text-red-500">권한 정보를 불러오는 중 오류가 발생했습니다.</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                {`${grantedPermissionsCount}개의 권한 승인됨 (전체 ${totalPermissionsCount}개)`}
                               </div>
-                            ) : permissionsError ? (
-                              <div className="mt-4">
-                                <p className="text-sm text-red-500">권한 정보를 불러오는 중 오류가 발생했습니다.</p>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                  {`${grantedPermissionsCount}개의 권한 승인됨 (전체 ${totalPermissionsCount}개)`}
-                                </div>
-                                
-                                {grantedPermissionsCount > 0 ? (
-                                  <div className="mt-3 space-y-3">
-                                    {permissionsByGroup.length > 0 ? (
-                                      <>
-                                        {/* 권한 그룹별 요약 */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                          {permissionsByGroup.map((group, idx) => (
-                                            <div key={idx} className="py-1 px-2 rounded-md bg-blue-50 dark:bg-blue-900/20 flex items-center">
-                                              <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
-                                              <div className="text-sm text-blue-700 dark:text-blue-400">
-                                                {group.groupName}: <span className="font-medium">{group.granted}</span>/{group.total}
+                              
+                              {grantedPermissionsCount > 0 ? (
+                                <div className="mt-3 space-y-3">
+                                  {permissionsByGroup.length > 0 ? (
+                                    <>
+                                      {/* 권한 그룹별 요약 */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {permissionsByGroup.map((group, idx) => (
+                                          <div key={idx} className="py-1 px-2 rounded-md bg-blue-50 dark:bg-blue-900/20 flex items-center">
+                                            <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
+                                            <div className="text-sm text-blue-700 dark:text-blue-400">
+                                              {group.groupName}: <span className="font-medium">{group.granted}</span>/{group.total}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* 승인된 권한 상세 보기 토글 */}
+                                      <button
+                                        type="button"
+                                        className="w-full mt-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center justify-center"
+                                        onClick={() => setShowAllPermissions(!showAllPermissions)}
+                                      >
+                                        {showAllPermissions ? (
+                                          <>접기 <ChevronUpIcon className="h-4 w-4 ml-1" /></>
+                                        ) : (
+                                          <>상세 권한 보기 <ChevronDownIcon className="h-4 w-4 ml-1" /></>
+                                        )}
+                                      </button>
+                                      
+                                      {/* 승인된 권한 상세 목록 */}
+                                      {showAllPermissions && (
+                                        <div className="mt-3 space-y-2">
+                                          {permissions.filter(p => p.isGranted).map(permission => (
+                                            <div 
+                                              key={permission.id} 
+                                              className="py-1 px-2 rounded-md bg-green-50 dark:bg-green-900/20 flex items-start"
+                                            >
+                                              <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                                              <div>
+                                                <div className="text-sm font-medium text-green-700 dark:text-green-400">
+                                                  {permission.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{permission.description}</div>
                                               </div>
                                             </div>
                                           ))}
                                         </div>
-                                        
-                                        {/* 승인된 권한 상세 보기 토글 */}
-                                        <button
-                                          type="button"
-                                          className="w-full mt-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center justify-center"
-                                          onClick={() => setShowAllPermissions(!showAllPermissions)}
-                                        >
-                                          {showAllPermissions ? (
-                                            <>접기 <ChevronUpIcon className="h-4 w-4 ml-1" /></>
-                                          ) : (
-                                            <>상세 권한 보기 <ChevronDownIcon className="h-4 w-4 ml-1" /></>
-                                          )}
-                                        </button>
-                                        
-                                        {/* 승인된 권한 상세 목록 */}
-                                        {showAllPermissions && (
-                                          <div className="mt-3 space-y-2">
-                                            {permissions.filter(p => p.isGranted).map(permission => (
-                                              <div 
-                                                key={permission.id} 
-                                                className="py-1 px-2 rounded-md bg-green-50 dark:bg-green-900/20 flex items-start"
-                                              >
-                                                <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                                                <div>
-                                                  <div className="text-sm font-medium text-green-700 dark:text-green-400">
-                                                    {permission.name}
-                                                  </div>
-                                                  <div className="text-xs text-gray-500 dark:text-gray-400">{permission.description}</div>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                                        권한 정보가 없습니다.
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                                    부여된 권한이 없습니다.
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                      권한 정보가 없습니다.
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                  부여된 권한이 없습니다.
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

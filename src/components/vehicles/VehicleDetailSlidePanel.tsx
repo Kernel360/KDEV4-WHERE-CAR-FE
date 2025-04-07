@@ -4,6 +4,7 @@ import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon,
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { useCarOverviewStore } from '@/lib/carOverviewStore';
+import AlertMessage from '../common/AlertMessage';
 
 
 interface VehicleDetailSlidePanelProps {
@@ -257,19 +258,13 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                       ) : (
                         <div className="space-y-10">
                           {successMessage && (
-                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="flex">
-                                <div className="flex-shrink-0">
-                                  <CheckIcon className="h-5 w-5 text-green-400" aria-hidden="true" />
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-green-800">
-                                    {successMessage}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
+                            <AlertMessage type="success" message={successMessage} />
                           )}
+                          
+                          {error && (
+                            <AlertMessage type="error" message={error} />
+                          )}
+                          
                           {/* 차량 번호 및 상태 */}
                           <div className="flex items-center justify-between mb-4">
                             <div>
