@@ -15,6 +15,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme, themes } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/lib/authStore";
 
 const navigation = [
   { name: "대시보드", href: "/", icon: HomeIcon },
@@ -38,6 +39,7 @@ export const sidebarEvents = {
 export default function Sidebar() {
   const pathname = usePathname();
   const { currentTheme, setTheme } = useTheme();
+  const { userProfile, fetchUserProfile } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [userToggled, setUserToggled] = useState(false);
@@ -51,6 +53,13 @@ export default function Sidebar() {
       setUserToggled(true);
     }
   }, []);
+
+  // 사용자 프로필 정보가 없을 경우 가져오기
+  useEffect(() => {
+    if (!userProfile) {
+      fetchUserProfile();
+    }
+  }, [userProfile, fetchUserProfile]);
 
   // isOpen 상태가 변경될 때 이벤트 발행
   useEffect(() => {
@@ -94,6 +103,12 @@ export default function Sidebar() {
       (theme) => theme.name === `${currentStyle}-${currentMode === "light" ? "Dark" : "Light"}`
     );
     if (newTheme) setTheme(newTheme);
+  };
+
+  // 사용자 이니셜 가져오기
+  const getUserInitial = () => {
+    if (!userProfile || !userProfile.name) return "관";
+    return userProfile.name.charAt(0);
   };
 
   return (
@@ -240,23 +255,23 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* 하단 영역 */}
+        {/* 하단 영역 - 유저 프로필 */}
         <div className={`p-4 border-t ${currentTheme.border} shrink-0`}>
           <Link
             href="/profile"
-            className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors ${
+            className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg transition-all duration-200 ${
               pathname === '/profile'
                 ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
-                : `${currentTheme.activeBg}`
+                : `${currentTheme.textColor} hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-sm`
             }`}
           >
             <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-r ${currentTheme.profileGradient} flex items-center justify-center`}>
-              <span className="text-sm font-medium text-white">관</span>
+              <span className="text-sm font-medium text-white">{getUserInitial()}</span>
             </div>
             {isOpen && (
               <div className="ml-3">
-                <p className={`text-sm font-medium ${currentTheme.text}`}>관리자</p>
-                <p className={`text-xs ${currentTheme.subtext}`}>admin@wherecar.com</p>
+                <p className={`text-sm font-medium ${currentTheme.text}`}>{userProfile?.name || '사용자'}</p>
+                <p className={`text-xs ${currentTheme.subtext}`}>{userProfile?.email || 'user@wherecar.com'}</p>
               </div>
             )}
           </Link>

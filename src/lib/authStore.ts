@@ -15,6 +15,27 @@ export interface LoginResponse {
   // 필요한 경우 추가 필드
 }
 
+// 사용자 정보 응답 인터페이스
+export interface UserResponse {
+  userId: number;
+  name: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// 사용자 정보 인터페이스
+export interface UserInfo {
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  updatedAt: Date | string | null;
+}
+
 // 인증 상태 인터페이스
 interface AuthState {
   isLoading: boolean;
@@ -25,6 +46,9 @@ interface AuthState {
     email: string;
   } | null;
   error: string | null;
+  userProfile: UserInfo | null;
+  profileLoading: boolean;
+  profileError: string | null;
   
   // 로그인 메서드
   login: (credentials: LoginRequest) => Promise<boolean>;
@@ -37,6 +61,9 @@ interface AuthState {
 
   // 인증 상태 확인 메서드
   checkAuth: () => boolean;
+  
+  // 사용자 프로필 조회 메서드
+  fetchUserProfile: () => Promise<UserInfo | null>;
 }
 
 // 로컬 스토리지에서 토큰 추출 함수
@@ -52,6 +79,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
   error: null,
+  userProfile: null,
+  profileLoading: false,
+  profileError: null,
   
   // 인증 상태 초기화 메서드
   initAuth: () => {
@@ -71,6 +101,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
       });
       
+      // 인증 상태가 설정되면 사용자 프로필 정보도 가져옴
+      const { fetchUserProfile } = get();
+      fetchUserProfile();
+      
       return true;
     }
     
@@ -86,9 +120,66 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // 상태 업데이트 (변경이 필요한 경우에만)
     if (isAuthenticated !== get().isAuthenticated) {
       set({ isAuthenticated, token });
+      
+      // 인증 상태가 변경되고 인증되었다면 프로필 정보 가져오기
+      if (isAuthenticated) {
+        const { fetchUserProfile } = get();
+        fetchUserProfile();
+      }
     }
     
     return isAuthenticated;
+  },
+  
+  // 사용자 프로필 조회 메서드
+  fetchUserProfile: async () => {
+    try {
+      const { token } = get();
+      if (!token) {
+        console.log('토큰이 없어 사용자 프로필을 가져올 수 없습니다.');
+        return null;
+      }
+      
+      set({ profileLoading: true, profileError: null });
+      
+      // 백엔드 API 호출
+      const response = await fetchApi<UserResponse>('/api/users/my');
+      
+      // API 응답을 UserInfo 형태로 변환
+      const userInfo: UserInfo = {
+        userId: response.userId ? response.userId.toString() : '',
+        name: response.name || '',
+        email: response.email || '',
+        phone: response.phone || '',
+        jobTitle: response.jobTitle || '',
+        updatedAt: response.updatedAt ? new Date(response.updatedAt) : null
+      };
+      
+      // 상태 업데이트
+      set({
+        profileLoading: false,
+        userProfile: userInfo,
+        // 기본 사용자 정보도 업데이트
+        user: {
+          name: userInfo.name,
+          email: userInfo.email
+        }
+      });
+      
+      return userInfo;
+    } catch (error) {
+      console.error('사용자 프로필 조회 중 오류가 발생했습니다:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message
+        : '사용자 정보를 불러오는 중 오류가 발생했습니다.';
+      
+      set({
+        profileLoading: false,
+        profileError: errorMessage
+      });
+      
+      return null;
+    }
   },
   
   // 로그인 메서드
@@ -178,6 +269,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           error: null,
         });
         
+        // 로그인 성공 후 사용자 프로필 정보 가져오기
+        const { fetchUserProfile } = get();
+        fetchUserProfile();
+        
         return true;
       } else {
         throw new Error('토큰이 없습니다. 서버 응답에 Authorization 헤더가 없습니다.');
@@ -215,6 +310,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       token: null,
       user: null,
       error: null,
+      userProfile: null,
+      profileError: null
     });
   },
 }));

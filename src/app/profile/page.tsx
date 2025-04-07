@@ -5,28 +5,27 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
 import PageHeader from "@/components/common/PageHeader";
 import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon } from "@heroicons/react/24/outline";
-import { fetchApi } from "@/lib/api";
 
 // 백엔드 API 응답 인터페이스
-interface UserResponse {
-  userId: number;
-  name: string;
-  email: string;
-  phone: string;
-  jobTitle: string;
-  createdAt: string;
-  updatedAt?: string;
-}
+// interface UserResponse {
+//   userId: number;
+//   name: string;
+//   email: string;
+//   phone: string;
+//   jobTitle: string;
+//   createdAt: string;
+//   updatedAt?: string;
+// }
 
 // 프론트엔드 유저 정보 인터페이스
-interface UserInfo {
-  userId: string;
-  name: string;
-  email: string;
-  phone: string;
-  jobTitle: string;
-  updatedAt: Date | string | null;
-}
+// interface UserInfo {
+//   userId: string;
+//   name: string;
+//   email: string;
+//   phone: string;
+//   jobTitle: string;
+//   updatedAt: Date | string | null;
+// }
 
 // 비밀번호 변경 인터페이스
 interface PasswordChange {
@@ -37,18 +36,18 @@ interface PasswordChange {
 
 export default function ProfilePage() {
   const { currentTheme } = useTheme();
-  const { user, token } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [apiError, setApiError] = useState(false);
+  const { token, userProfile, profileLoading, profileError, fetchUserProfile } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   
-  // 유저 정보 상태
-  const [userInfo, setUserInfo] = useState<UserInfo>({
+  // 로컬 유저 정보 상태 - 편집 시 사용
+  const [userInfo, setUserInfo] = useState({
     userId: '',
     name: '',
     email: '',
     phone: '',
     jobTitle: '',
-    updatedAt: null
+    updatedAt: null as (Date | string | null)
   });
   
   // 비밀번호 변경 상태
@@ -64,83 +63,31 @@ export default function ProfilePage() {
   // 변경된 필드 추적
   const [changedFields, setChangedFields] = useState<Record<string, boolean>>({});
 
-  // 사용자 정보 로드
+  // authStore에서 프로필 정보 가져오기 및 로컬 상태 업데이트
   useEffect(() => {
-    // 이미 API 오류가 발생한 경우 다시 시도하지 않음
-    if (apiError) {
-      return;
+    if (userProfile) {
+      setUserInfo({
+        userId: userProfile.userId || '',
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',
+        jobTitle: userProfile.jobTitle || '',
+        updatedAt: userProfile.updatedAt
+      });
+    } else if (token && !profileLoading) {
+      // 토큰이 있지만 프로필 정보가 없는 경우 프로필 정보 요청
+      fetchUserProfile();
     }
     
-    // 백엔드 API 사용 여부 (서버 준비 안된 경우 false로 설정)
-    const useBackendApi = true;
-
-    const fetchUserInfo = async () => {
-      try {
-        setIsLoading(true);
-        
-        if (useBackendApi) {
-          // 실제 백엔드 API 호출
-          const response = await fetchApi<UserResponse>('/api/users/my');
-          
-          // API 응답을 UserInfo 형태로 변환 - 각 필드에 대한 유효성 검사 추가
-          const userInfo: UserInfo = {
-            userId: response.userId ? response.userId.toString() : '',
-            name: response.name || '',
-            email: response.email || '',
-            phone: response.phone || '',
-            jobTitle: response.jobTitle || '',
-            updatedAt: response.updatedAt ? new Date(response.updatedAt) : null
-          };
-          
-          setUserInfo(userInfo);
-        } else {
-          // 백엔드 API가 준비되지 않은 경우 기본 데이터 사용
-          // 로컬 상태에 있는 기본 데이터 그대로 유지
-          // 또는 더 자세한 목업 데이터로 설정
-          const mockUserData: UserInfo = {
-            userId: '',
-            name: user?.name || "사용자",
-            email: user?.email || "user@example.com",
-            phone: "010-1234-5678",
-            jobTitle: "관리자",
-            updatedAt: null
-          };
-          
-          // 약간의 지연 시간을 추가하여 로딩 상태 시각화
-          setTimeout(() => {
-            setUserInfo(mockUserData);
-            setIsLoading(false);
-          }, 800);
-          
-          return; // setTimeout으로 비동기 처리되므로 여기서 종료
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('사용자 정보를 불러오는 중 오류가 발생했습니다:', error);
-        console.log('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.');
-        setApiError(true);
-        
-        // 오류 발생 시에도 기본 데이터로 UI 표시
-        const fallbackUserData: UserInfo = {
-          userId: '',
-          name: user?.name || "사용자",
-          email: user?.email || "user@example.com",
-          phone: "010-1234-5678",
-          jobTitle: "관리자",
-          updatedAt: null
-        };
-        
-        setUserInfo(fallbackUserData);
-        setIsLoading(false);
-      }
-    };
-
-    // 토큰이 있거나 백엔드 API를 사용하지 않을 경우에만 호출
-    if ((token || !useBackendApi) && !apiError) {
-      fetchUserInfo();
+    if (profileError) {
+      setApiError(profileError);
     }
-  }, [token, user, apiError]);
+  }, [userProfile, token, profileLoading, profileError, fetchUserProfile]);
+
+  // 페이지 로딩 상태 설정
+  useEffect(() => {
+    setIsLoading(profileLoading);
+  }, [profileLoading]);
   
   // 사용자 정보 핸들러
   const handleUserInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,47 +147,37 @@ export default function ProfilePage() {
           jobTitle: userInfo.jobTitle
         };
         
-        // API 호출
-        const response = await fetchApi<UserResponse>('/api/users/my', undefined, {
+        // 프로필 업데이트 API 호출
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/my`, {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(userRequest)
         });
         
-        // API 응답을 UserInfo 형태로 변환 - userId가 없는 경우 기존 값 유지
-        const updatedUserInfo: UserInfo = {
-          userId: response.userId ? response.userId.toString() : userInfo.userId,
-          name: response.name || userInfo.name,
-          email: response.email || userInfo.email,
-          phone: response.phone || userInfo.phone,
-          jobTitle: response.jobTitle || userInfo.jobTitle,
-          updatedAt: response.updatedAt ? new Date(response.updatedAt) : new Date()
-        };
+        // 업데이트된 프로필 정보 다시 가져오기
+        await fetchUserProfile();
         
-        setUserInfo(updatedUserInfo);
+        // 편집 모드 종료
+        setIsEditing(false);
+        setChangedFields({});
       } else {
-        // 백엔드 API가 준비되지 않은 경우 로컬에서 처리
-        // 변경된 필드를 현재 상태에 적용
-        const updatedInfo = { ...userInfo, updatedAt: new Date() };
-        
-        // 약간의 지연 시간 추가로 프로세스 시각화
+        // 모의 응답 (백엔드 API가 아직 준비되지 않은 경우)
         setTimeout(() => {
-          setUserInfo(updatedInfo);
-          setIsLoading(false);
-          console.log('프로필이 성공적으로 업데이트되었습니다.');
+          // 로컬 상태 업데이트만 수행
           setIsEditing(false);
           setChangedFields({});
+          setIsLoading(false);
         }, 800);
-        
-        return; // setTimeout으로 비동기 처리되므로 여기서 종료
+        return;
       }
       
-      console.log('프로필이 성공적으로 업데이트되었습니다.');
-      setIsEditing(false);
-      setChangedFields({});
       setIsLoading(false);
     } catch (error) {
       console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
-      console.log('프로필 업데이트에 실패했습니다. 나중에 다시 시도해 주세요.');
+      setApiError('프로필 업데이트에 실패했습니다.');
       setIsLoading(false);
     }
   };
@@ -249,9 +186,9 @@ export default function ProfilePage() {
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 비밀번호 확인 검증
+    // 새 비밀번호와 확인 비밀번호가 일치하는지 확인
     if (passwordChange.newPassword !== passwordChange.confirmPassword) {
-      console.log('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      setApiError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
       return;
     }
     
@@ -262,74 +199,64 @@ export default function ProfilePage() {
       const useBackendApi = true;
       
       if (useBackendApi) {
-        // API 호출
-        await fetchApi('/api/users/my/password', undefined, {
+        // 비밀번호 변경 API 호출
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/my/password`, {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             currentPassword: passwordChange.currentPassword,
             newPassword: passwordChange.newPassword
           })
         });
+        
+        // 비밀번호 변경 입력 필드 초기화
+        setPasswordChange({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
       } else {
-        // 백엔드 API가 준비되지 않은 경우 성공 시뮬레이션
-        // 약간의 지연 시간 추가로 프로세스 시각화
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // 모의 응답 (백엔드 API가 아직 준비되지 않은 경우)
+        setTimeout(() => {
+          // 비밀번호 변경 입력 필드 초기화
+          setPasswordChange({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: ""
+          });
+          setIsLoading(false);
+        }, 800);
+        return;
       }
-      
-      console.log('비밀번호가 성공적으로 변경되었습니다.');
-      
-      // 폼 초기화
-      setPasswordChange({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
       
       setIsLoading(false);
     } catch (error) {
       console.error('비밀번호 변경 중 오류가 발생했습니다:', error);
-      console.log('비밀번호 변경에 실패했습니다. 나중에 다시 시도해 주세요.');
+      setApiError('비밀번호 변경에 실패했습니다.');
       setIsLoading(false);
     }
   };
   
-  // 취소 버튼 처리
+  // 편집 취소 핸들러
   const handleCancelEdit = () => {
-    setIsEditing(false);
-    // API에서 가져온 원래 데이터로 초기화
-    setChangedFields({});
-    
-    // 백엔드 API 사용 여부와 이전 오류 발생 여부 확인
-    const useBackendApi = true;
-    
-    if (useBackendApi && !apiError) {
-      // 이전에 API 오류가 없는 경우에만 API 재호출
-      const fetchUserInfo = async () => {
-        try {
-          const response = await fetchApi<UserResponse>('/api/users/my');
-          // API 응답을 UserInfo 형태로 변환 - 각 필드에 대한 유효성 검사 추가
-          const userInfo: UserInfo = {
-            userId: response.userId ? response.userId.toString() : '',
-            name: response.name || '',
-            email: response.email || '',
-            phone: response.phone || '',
-            jobTitle: response.jobTitle || '',
-            updatedAt: response.updatedAt ? new Date(response.updatedAt) : null
-          };
-          
-          setUserInfo(userInfo);
-        } catch (error) {
-          console.error('사용자 정보를 불러오는 중 오류가 발생했습니다:', error);
-          console.log('서버와 통신 중 오류가 발생했습니다. 기본 정보를 표시합니다.');
-          setApiError(true);
-          // 이미 기본 데이터가 로드되어 있으므로 추가 조치 필요 없음
-        }
-      };
-      fetchUserInfo();
-    } else {
-      // 백엔드 API가 준비되지 않은 경우 또는 이전에 오류가 발생한 경우
-      // 그냥 원래 상태로 복원 (실제로는 변경되지 않으므로 추가 작업 필요 없음)
+    // 프로필 정보를 원래 상태로 복원
+    if (userProfile) {
+      setUserInfo({
+        userId: userProfile.userId || '',
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',
+        jobTitle: userProfile.jobTitle || '',
+        updatedAt: userProfile.updatedAt
+      });
     }
+    
+    // 편집 모드 종료
+    setIsEditing(false);
+    setChangedFields({});
   };
   
   return (
