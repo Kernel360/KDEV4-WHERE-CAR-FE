@@ -145,7 +145,7 @@ export default function HomePage() {
               }}
             ></div>
             <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10 bg-repeat"></div>
-          </div>
+              </div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 flex flex-col lg:flex-row items-center justify-between">
             <div className={`text-left max-w-2xl mb-10 lg:mb-0 ${isLoaded ? 'animate-fadeInLeft' : 'opacity-0'}`}>
@@ -255,12 +255,12 @@ export default function HomePage() {
                         {index + 1}
                       </div>
                       <h3 className={`text-xl font-bold ${currentTheme.text} ml-4 group-hover:text-blue-600 transition-colors`}>{item.title}</h3>
-                    </div>
+              </div>
                     <p className={`${currentTheme.subtext} leading-relaxed`}>
                       {item.description}
                     </p>
-                  </div>
-                </div>
+              </div>
+              </div>
               ))}
             </div>
           </div>
@@ -318,9 +318,9 @@ export default function HomePage() {
                       </div>
                       <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-gradient-to-r from-blue-400/60 to-indigo-400/60 backdrop-blur-sm animate-float-delayed"></div>
                       <div className="absolute -bottom-4 -left-4 w-12 h-12 rounded-full bg-gradient-to-r from-indigo-400/60 to-purple-400/60 backdrop-blur-sm animate-float"></div>
-                    </div>
-                  </div>
-                </div>
+            </div>
+              </div>
+              </div>
               </div>
             </div>
           </div>
@@ -385,7 +385,7 @@ export default function HomePage() {
                       <h3 className={`${currentTheme.text} text-xl font-bold mb-3 text-center relative z-10`}>{item.title}</h3>
                       <p className={`${currentTheme.subtext} text-center px-6 pb-8 flex-grow relative z-10`}>{item.description}</p>
                     </div>
-                  </div>
+              </div>
                 ))}
               </div>
             </div>
@@ -420,8 +420,8 @@ export default function HomePage() {
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-blue-100/0 via-blue-100/30 to-blue-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                     <span className="relative z-10">무료로 시작하기</span>
-                  </Link>
-                </div>
+              </Link>
+            </div>
               </div>
             </div>
           </div>
@@ -452,7 +452,7 @@ export default function HomePage() {
                 <a href="#" className={`${currentTheme.subtext} hover:${currentTheme.text} transition-colors text-sm`}>이용약관</a>
                 <a href="#" className={`${currentTheme.subtext} hover:${currentTheme.text} transition-colors text-sm`}>개인정보처리방침</a>
                 <a href="#" className={`${currentTheme.subtext} hover:${currentTheme.text} transition-colors text-sm`}>문의하기</a>
-              </div>
+          </div>
             </div>
           </div>
         </div>
@@ -624,6 +624,6 @@ export default function HomePage() {
         .delay-400 { animation-delay: 0.4s; }
         .delay-500 { animation-delay: 0.5s; }
       `}</style>
-    </div>
+      </div>
   );
 } 

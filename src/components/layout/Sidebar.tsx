@@ -242,7 +242,14 @@ export default function Sidebar() {
 
         {/* 하단 영역 */}
         <div className={`p-4 border-t ${currentTheme.border} shrink-0`}>
-          <div className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg ${currentTheme.activeBg}`}>
+          <Link
+            href="/profile"
+            className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors ${
+              pathname === '/profile'
+                ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
+                : `${currentTheme.activeBg}`
+            }`}
+          >
             <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-r ${currentTheme.profileGradient} flex items-center justify-center`}>
               <span className="text-sm font-medium text-white">관</span>
             </div>
@@ -252,7 +259,7 @@ export default function Sidebar() {
                 <p className={`text-xs ${currentTheme.subtext}`}>admin@wherecar.com</p>
               </div>
             )}
-          </div>
+          </Link>
         </div>
       </div>
     </>

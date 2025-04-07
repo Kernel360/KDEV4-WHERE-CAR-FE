@@ -6,10 +6,12 @@ import { ArrowLeftIcon, UserIcon, BuildingOfficeIcon } from '@heroicons/react/24
 import { useRouter } from 'next/navigation';
 import { useRegisterStore, UserRequest, CompanyRequest, RootUserRequest } from '@/lib/registerStore';
 import Link from 'next/link';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function RegisterPage() {
   const { currentTheme } = useTheme();
   const router = useRouter();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('user'); // 'user' 또는 'company'
   
   // 사용자 정보 폼 데이터
@@ -71,11 +73,18 @@ export default function RegisterPage() {
   // useEffect를 사용하여 등록 성공 시 리다이렉션 처리
   useEffect(() => {
     if (registerSuccess) {
-      // 추후 성공 페이지나 로그인 페이지로 이동할 수 있습니다.
-      alert('회원가입이 성공적으로 완료되었습니다. 로그인 페이지로 이동합니다.');
-      router.push('/');
+      // alert 대신 토스트 메시지 사용
+      showToast('회원가입이 성공적으로 완료되었습니다.', 'success');
+      
+      // 짧은 지연 후 로그인 페이지로 이동 (자연스러운 사용자 경험을 위함)
+      const redirectTimer = setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+      
+      // 컴포넌트 언마운트 시 타이머 정리
+      return () => clearTimeout(redirectTimer);
     }
-  }, [registerSuccess, router]);
+  }, [registerSuccess, router, showToast]);
 
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,7 +274,7 @@ export default function RegisterPage() {
                 {/* 주소 */}
                 <div>
                   <label htmlFor="address" className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    주소 <span className="text-red-500">*</span>
+                    주소
                   </label>
                   <input
                     type="text"
@@ -273,7 +282,6 @@ export default function RegisterPage() {
                     name="address"
                     value={companyFormData.address}
                     onChange={handleCompanyInputChange}
-                    required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="회사 주소를 입력하세요"
                     disabled={isRegistering}
@@ -283,15 +291,14 @@ export default function RegisterPage() {
                 {/* 회사 이메일 */}
                 <div>
                   <label htmlFor="companyEmail" className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    회사 이메일 <span className="text-red-500">*</span>
+                    회사 이메일
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     id="companyEmail"
                     name="email"
                     value={companyFormData.email}
                     onChange={handleCompanyInputChange}
-                    required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="회사 이메일을 입력하세요"
                     disabled={isRegistering}
@@ -301,7 +308,7 @@ export default function RegisterPage() {
                 {/* 회사 전화번호 */}
                 <div>
                   <label htmlFor="companyPhone" className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    회사 전화번호 <span className="text-red-500">*</span>
+                    회사 전화번호
                   </label>
                   <input
                     type="tel"
@@ -309,7 +316,6 @@ export default function RegisterPage() {
                     name="phone"
                     value={companyFormData.phone}
                     onChange={handleCompanyInputChange}
-                    required
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="회사 전화번호를 입력하세요"
                     disabled={isRegistering}
@@ -322,7 +328,7 @@ export default function RegisterPage() {
                     웹사이트
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     id="website"
                     name="website"
                     value={companyFormData.website}
@@ -398,7 +404,7 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className={`text-sm ${currentTheme.subtext}`}>
             이미 계정이 있으신가요?{' '}
-            <Link href="/" className={`font-medium ${currentTheme.activeText} hover:underline`}>
+            <Link href="/login" className={`font-medium ${currentTheme.activeText} hover:underline`}>
               로그인하기
             </Link>
           </p>
