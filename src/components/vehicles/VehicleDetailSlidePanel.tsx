@@ -5,7 +5,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { useCarOverviewStore } from '@/lib/carOverviewStore';
 
-// vehicleStore.ts에서 가져온 Vehicle 타입 사용
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;
@@ -19,12 +18,14 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
   const { fetchOverview } = useCarOverviewStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedVehicle, setEditedVehicle] = useState<Vehicle | null>(null);
+  const [displayVehicle, setDisplayVehicle] = useState<Vehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (vehicle) {
       setEditedVehicle(vehicle);
+      setDisplayVehicle(vehicle);
     }
   }, [vehicle]);
 
@@ -43,7 +44,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     setIsEditing(false);
     setError(null);
     setSuccessMessage(null);
-    setEditedVehicle(vehicle); // 원래 상태로 되돌림
+    setEditedVehicle(displayVehicle);
     onClose();
   };
 
@@ -68,26 +69,25 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     if (!editedVehicle) return;
     
     try {
+      // 낙관적 업데이트: 먼저 화면에 수정된 데이터를 표시
+      setIsEditing(false);
+      setSuccessMessage("수정되었습니다.");
+      setDisplayVehicle(editedVehicle);
+      
+      // 백그라운드에서 API 호출
       await updateVehicle(editedVehicle);
       fetchOverview();
-      // 수정 완료 후 편집 상태 초기화 및 패널 닫기
-      setIsEditing(false);
-      setError(null);
-      setSuccessMessage("수정되었습니다.");
-      // 짧은 시간 후 패널 닫기 (성공 메시지를 잠깐 표시)
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      
     } catch (err) {
+      // 에러 발생 시 원래 상태로 되돌리지 않고 에러 메시지만 표시
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       console.error('차량 수정 오류:', err);
     }
   };
 
-
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedVehicle(vehicle);
+    setEditedVehicle(displayVehicle);
     setError(null);
   };
 
@@ -98,12 +98,8 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
       try {
         await deleteVehicle(vehicle.id);
         fetchOverview();
-        setSuccessMessage("삭제되었습니다.");
-        
-        // 운행일지와 동일하게 1초 후 패널 닫기 (성공 메시지 표시 시간 확보)
-        setTimeout(() => {
-          onClose();
-        }, 1000);
+        // 삭제 후 즉시 패널 닫기
+        onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
         console.error('차량 삭제 오류:', err);
@@ -111,7 +107,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     }
   };
 
-  if (!vehicle) return null;
+  if (!vehicle || !displayVehicle) return null;
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -153,8 +149,6 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
         return type;
     }
   };
-
-  const displayVehicle = isEditing && editedVehicle ? editedVehicle : vehicle;
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -279,13 +273,13 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                           {/* 차량 번호 및 상태 */}
                           <div className="flex items-center justify-between mb-4">
                             <div>
-                              <h3 className={`text-3xl font-bold ${currentTheme.text}`}>{displayVehicle.mdn}</h3>
+                              <h3 className={`text-3xl font-bold ${currentTheme.text}`}>{displayVehicle?.mdn}</h3>
                               <p className={`mt-2 text-base ${currentTheme.subtext}`}>
-                                {displayVehicle.make} {displayVehicle.model}
+                                {displayVehicle?.make} {displayVehicle?.model}
                               </p>
                             </div>
-                            <span className={`px-6 py-2 text-base font-medium rounded-full ${getStatusClass(displayVehicle.carState)}`}>
-                              {getStatusText(displayVehicle.carState)}
+                            <span className={`px-6 py-2 text-base font-medium rounded-full ${getStatusClass(displayVehicle?.carState || '')}`}>
+                              {getStatusText(displayVehicle?.carState || '')}
                             </span>
                           </div>
                           

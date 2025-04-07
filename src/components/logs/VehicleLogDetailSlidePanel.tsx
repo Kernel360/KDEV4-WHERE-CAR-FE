@@ -18,19 +18,20 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const { currentTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedLog, setEditedLog] = useState<VehicleLog | null>(null);
+  const [displayLog, setDisplayLog] = useState<VehicleLog | null>(null);
   const { updateCarLog, deleteCarLog } = useCarLogsStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // log가 변경되면 editedLog도 업데이트
   useEffect(() => {
     if (log) {
       setEditedLog({ ...log });
+      setDisplayLog({ ...log });
     }
   }, [log]);
 
-  // 성공 메시지가 표시되면 3초 후 자동으로 사라지게 함
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
@@ -49,15 +50,13 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (log) {
-      setEditedLog({ ...log });  // 원래 값으로 되돌림
+    if (displayLog) {
+      setEditedLog({ ...displayLog });
     }
   };
 
   const handleSaveEdit = async () => {
     if (editedLog) {
-      setIsUpdating(true);
-      
       try {
         const updateData = {
           driveType: editedLog.driveType === 'UNREGISTERED' ? null : editedLog.driveType,
@@ -70,26 +69,29 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
           throw new Error('유효하지 않은 로그 ID');
         }
         
+        setIsEditing(false);
+        setSuccessMessage("수정되었습니다.");
+        setDisplayLog(editedLog);
+        
+        setIsUpdating(true);
         const result = await updateCarLog(logId, updateData);
         
         if (result.success) {
           if (onUpdate) {
+            // UI는 이미 업데이트되었지만, 부모 컴포넌트에도 알려줌
             onUpdate(editedLog);
           }
-          
-          // 수정 완료 후 편집 상태 초기화 및 성공 메시지 표시
-          setIsEditing(false);
-          setSuccessMessage("수정되었습니다.");
-          
-          // 잠시 후 패널 닫기 (성공 메시지를 잠깐 표시)
-          setTimeout(() => {
-            onClose();
-          }, 1000);
         } else {
           console.error('수정 실패:', result.message);
+          // API 호출이 실패한 경우 오류 메시지만 표시하고 UI는 그대로 유지
+          setSuccessMessage(null);
+          setError(result.message || '수정에 실패했습니다.');
         }
       } catch (error) {
         console.error('운행 기록 업데이트 오류:', error);
+        // 오류 발생 시 오류 메시지 표시
+        setSuccessMessage(null);
+        setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       } finally {
         setIsUpdating(false);
       }
@@ -99,8 +101,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   // 패널 닫기 시 모든 상태 초기화
   const handleClosePanel = () => {
     setIsEditing(false);
-    setEditedLog(log); // 원래 상태로 복원
+    setEditedLog(displayLog);
     setSuccessMessage(null);
+    setError(null);
     onClose();
   };
 
@@ -122,11 +125,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         deleteCarLog(logId)
           .then(result => {
             if (result.success) {
-              setSuccessMessage("삭제되었습니다.");
-              setTimeout(() => {
-                onClose();
-                onDelete(log.id);
-              }, 1000);
+              // 삭제 후 바로 패널 닫기
+              onClose();
+              onDelete(log.id);
             } else {
               console.error('삭제 실패:', result.message);
             }
@@ -150,7 +151,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     }
   };
 
-  if (!log) return null;
+  if (!log || !displayLog) return null;
 
   const getDriveTypeClass = (type: DriveType) => {
     switch (type) {
@@ -173,8 +174,6 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     } as const;
     return types[type];
   };
-
-  const displayLog = isEditing && editedLog ? editedLog : log;
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -290,6 +289,22 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                               <div className="ml-3">
                                 <p className="text-sm font-medium text-green-800">
                                   {successMessage}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* 오류 메시지 */}
+                        {error && (
+                          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex">
+                              <div className="flex-shrink-0">
+                                <XMarkIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm font-medium text-red-800">
+                                  {error}
                                 </p>
                               </div>
                             </div>
