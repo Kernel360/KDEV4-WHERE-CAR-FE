@@ -6,12 +6,10 @@ import { ArrowLeftIcon, UserIcon, BuildingOfficeIcon } from '@heroicons/react/24
 import { useRouter } from 'next/navigation';
 import { useRegisterStore, UserRequest, CompanyRequest, RootUserRequest } from '@/lib/registerStore';
 import Link from 'next/link';
-import { useToast } from '@/contexts/ToastContext';
 
 export default function RegisterPage() {
   const { currentTheme } = useTheme();
   const router = useRouter();
-  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('user'); // 'user' 또는 'company'
   
   // 사용자 정보 폼 데이터
@@ -73,8 +71,7 @@ export default function RegisterPage() {
   // useEffect를 사용하여 등록 성공 시 리다이렉션 처리
   useEffect(() => {
     if (registerSuccess) {
-      // alert 대신 토스트 메시지 사용
-      showToast('회원가입이 성공적으로 완료되었습니다.', 'success');
+      console.log('회원가입이 성공적으로 완료되었습니다.');
       
       // 짧은 지연 후 로그인 페이지로 이동 (자연스러운 사용자 경험을 위함)
       const redirectTimer = setTimeout(() => {
@@ -84,7 +81,7 @@ export default function RegisterPage() {
       // 컴포넌트 언마운트 시 타이머 정리
       return () => clearTimeout(redirectTimer);
     }
-  }, [registerSuccess, router, showToast]);
+  }, [registerSuccess, router]);
 
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
