@@ -26,7 +26,7 @@ export const useCarOverviewStore = create<CarOverviewState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<CarOverviewData>('/cars/overview');
+      const data = await fetchApi<CarOverviewData>('/api/cars/overview');
       
       set({ 
         data: data,

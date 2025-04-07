@@ -37,10 +37,10 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const overviewData = await fetchApi<{totalCars: number}>('/cars/overview');
+      const overviewData = await fetchApi<{totalCars: number}>('/api/cars/overview');
       const totalCars = overviewData.totalCars || 100; 
       
-      const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/cars?page=0&size=${totalCars}`);
+      const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/api/cars?page=0&size=${totalCars}`);
  
       let vehicles: Vehicle[];
       if (Array.isArray(response)) {
@@ -66,7 +66,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>('/cars', undefined, {
+      const response = await fetchApi<string>('/api/cars', undefined, {
         method: 'POST',
         body: JSON.stringify(vehicle),
       });
@@ -96,7 +96,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>(`/cars/${vehicle.id}`, undefined, {
+      const response = await fetchApi<string>(`/api/cars/${vehicle.id}`, undefined, {
         method: 'PUT',
         body: JSON.stringify(vehicle),
       });
@@ -127,7 +127,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      await fetchApi<void>(`/cars/${id}`, undefined, {
+      await fetchApi<void>(`/api/cars/${id}`, undefined, {
         method: 'DELETE',
       });
       
