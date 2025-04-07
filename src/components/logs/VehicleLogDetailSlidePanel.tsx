@@ -21,6 +21,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const { updateCarLog, deleteCarLog } = useCarLogsStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // log가 변경되면 editedLog도 업데이트
   useEffect(() => {
@@ -28,6 +29,16 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
       setEditedLog({ ...log });
     }
   }, [log]);
+
+  // 성공 메시지가 표시되면 3초 후 자동으로 사라지게 함
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleEdit = () => {
     if (log) {
@@ -65,8 +76,15 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
           if (onUpdate) {
             onUpdate(editedLog);
           }
+          
+          // 수정 완료 후 편집 상태 초기화 및 성공 메시지 표시
           setIsEditing(false);
-          onClose(); // 수정 완료 후 패널 닫기
+          setSuccessMessage("수정되었습니다.");
+          
+          // 잠시 후 패널 닫기 (성공 메시지를 잠깐 표시)
+          setTimeout(() => {
+            onClose();
+          }, 1000);
         } else {
           console.error('수정 실패:', result.message);
         }
@@ -76,6 +94,14 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         setIsUpdating(false);
       }
     }
+  };
+
+  // 패널 닫기 시 모든 상태 초기화
+  const handleClosePanel = () => {
+    setIsEditing(false);
+    setEditedLog(log); // 원래 상태로 복원
+    setSuccessMessage(null);
+    onClose();
   };
 
   // 삭제 처리
@@ -96,8 +122,11 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         deleteCarLog(logId)
           .then(result => {
             if (result.success) {
-              onClose();
-              onDelete(log.id);
+              setSuccessMessage("삭제되었습니다.");
+              setTimeout(() => {
+                onClose();
+                onDelete(log.id);
+              }, 1000);
             } else {
               console.error('삭제 실패:', result.message);
             }
@@ -149,7 +178,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClosePanel}>
         <Transition.Child
           as={Fragment}
           enter="ease-in-out duration-300"
@@ -210,51 +239,63 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                           </>
                         )}
                         
-                        <button
-                          onClick={onClose}
-                          className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1`}
-                        >
-                          <XMarkIcon className="h-5 w-5" />
-                        </button>
+                        {isEditing && (
+                          <>
+                            <button 
+                              onClick={handleSaveEdit}
+                              disabled={isUpdating}
+                              className={`p-1.5 rounded-lg ${isUpdating ? 'text-gray-400' : 'text-green-600 hover:bg-green-50'} focus:outline-none`}
+                            >
+                              {isUpdating ? (
+                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <CheckIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                            
+                            <button 
+                              onClick={handleCancelEdit}
+                              disabled={isUpdating}
+                              className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {!isEditing && (
+                          <button
+                            onClick={handleClosePanel}
+                            className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1`}
+                          >
+                            <XMarkIcon className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* 수정 모드 액션 바 */}
-                    {isEditing && (
-                      <div className={`px-4 py-3 border-b ${currentTheme.border} flex justify-between`}>
-                        <button
-                          onClick={handleCancelEdit}
-                          className={`px-3 py-1.5 border ${currentTheme.border} rounded-lg text-sm ${currentTheme.text}`}
-                          disabled={isUpdating}
-                        >
-                          취소
-                        </button>
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={isUpdating}
-                          className={`px-3 py-1.5 ${isUpdating ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg text-sm flex items-center`}
-                        >
-                          {isUpdating ? (
-                            <>
-                              <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              저장 중...
-                            </>
-                          ) : (
-                            <>
-                              <CheckIcon className="h-4 w-4 inline mr-1" />
-                              저장
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
 
                     {/* 내용 */}
                     <div className="relative flex-1 px-6 py-6 overflow-y-auto">
                       <div className="space-y-6">
+                        {/* 성공 메시지 */}
+                        {successMessage && (
+                          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex">
+                              <div className="flex-shrink-0">
+                                <CheckIcon className="h-5 w-5 text-green-400" aria-hidden="true" />
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm font-medium text-green-800">
+                                  {successMessage}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* 차량 정보 */}
                         <div className="flex flex-col">
                           <h3 className={`text-xl font-bold ${currentTheme.text}`}>
@@ -379,4 +420,4 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
       </Dialog>
     </Transition.Root>
   );
-} 
+}
