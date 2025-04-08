@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchApi, API_BASE_URL } from '@/lib/api';
+import { UserRequest } from '@/lib/registerStore';
 
 // 로그인 요청 인터페이스
 export interface LoginRequest {
@@ -64,6 +65,9 @@ interface AuthState {
   
   // 사용자 프로필 조회 메서드
   fetchUserProfile: () => Promise<UserInfo | null>;
+
+  // 사용자 정보 업데이트
+  updateUserProfile: (userRequest: UserRequest) => Promise<boolean>;
 }
 
 // 로컬 스토리지에서 토큰 추출 함수
@@ -313,6 +317,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       userProfile: null,
       profileError: null
     });
+  },
+
+  // 사용자 정보 업데이트
+  updateUserProfile: async (userRequest: UserRequest) => {
+    try {
+      await fetchApi<void>('/api/users/my', undefined, {
+        method: 'PUT',
+        body: JSON.stringify(userRequest)
+      });
+      
+      // 업데이트된 프로필 정보 다시 가져오기
+      await useAuthStore.getState().fetchUserProfile();
+      
+      return true;
+    } catch (error) {
+      console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
+      throw error;
+    }
   },
 }));
 

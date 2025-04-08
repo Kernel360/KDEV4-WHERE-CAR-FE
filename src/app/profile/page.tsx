@@ -4,11 +4,22 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
 import PageHeader from "@/components/common/PageHeader";
-import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon, ShieldCheckIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { 
+  UserIcon, 
+  EnvelopeIcon, 
+  KeyIcon, 
+  CheckIcon, 
+  XMarkIcon, 
+  PhoneIcon, 
+  BriefcaseIcon, 
+  CalendarIcon,
+  ShieldCheckIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
+} from "@heroicons/react/24/outline";
 import { fetchApi } from '@/lib/api';
 import { UserRequest } from '@/lib/registerStore';
 import { Permission, ALL_PERMISSIONS, PERMISSION_GROUPS } from '@/lib/permissions';
-
 
 // 비밀번호 변경 인터페이스
 interface PasswordChange {
@@ -19,9 +30,12 @@ interface PasswordChange {
 
 export default function ProfilePage() {
   const { currentTheme } = useTheme();
-  const { token, userProfile, profileLoading, profileError, fetchUserProfile } = useAuthStore();
+  const { token, userProfile, profileLoading, profileError, fetchUserProfile, updateUserProfile } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const [showAllPermissions, setShowAllPermissions] = useState(false);
   
   // 로컬 유저 정보 상태 - 편집 시 사용
   const [userInfo, setUserInfo] = useState({
@@ -116,34 +130,41 @@ export default function ProfilePage() {
     
     try {
       setIsLoading(true);
-      setApiError(null);
       
-      // UserRequest 클래스 구조에 맞게 요청 본문 구성
-      const userRequest = {
-        name: userInfo.name,
-        email: userInfo.email,
-        password: "", // 프로필 수정 시에는 비밀번호 필드를 빈 문자열로 설정
-        phone: userInfo.phone,
-        jobTitle: userInfo.jobTitle
-      };
+      // 백엔드 API 사용 여부 (서버 준비 안된 경우 false로 설정)
+      const useBackendApi = true;
       
-      // 프로필 업데이트 API 호출
-      await fetchApi('/api/users/my', undefined, {
-        method: 'PUT',
-        body: JSON.stringify(userRequest)
-      });
+      if (useBackendApi) {
+        // UserRequest 클래스 구조에 맞게 요청 본문 구성
+        const userRequest = {
+          name: userInfo.name,
+          email: userInfo.email,
+          password: "", // 프로필 수정 시에는 비밀번호 필드를 빈 문자열로 설정
+          phone: userInfo.phone,
+          jobTitle: userInfo.jobTitle
+        };
+        
+        // 프로필 업데이트 API 호출 - authStore의 updateUserProfile 함수 사용
+        await updateUserProfile(userRequest);
+        
+        // 편집 모드 종료
+        setIsEditing(false);
+        setChangedFields({});
+      } else {
+        // 모의 응답 (백엔드 API가 아직 준비되지 않은 경우)
+        setTimeout(() => {
+          // 로컬 상태 업데이트만 수행
+          setIsEditing(false);
+          setChangedFields({});
+          setIsLoading(false);
+        }, 800);
+        return;
+      }
       
-      // 업데이트된 프로필 정보 다시 가져오기
-      await fetchUserProfile();
-      
-      // 편집 모드 종료
-      setIsEditing(false);
-      setChangedFields({});
-      
+      setIsLoading(false);
     } catch (error) {
       console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
       setApiError('프로필 업데이트에 실패했습니다.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -164,26 +185,26 @@ export default function ProfilePage() {
       
       await fetchApi('/api/users/password', undefined, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          oldPassword: passwordChange.currentPassword,
+          currentPassword: passwordChange.currentPassword,
           newPassword: passwordChange.newPassword
         })
       });
       
-      // 비밀번호 변경 성공
+      // 비밀번호 변경 성공 시 입력 필드 초기화
       setPasswordChange({
         currentPassword: "",
         newPassword: "",
         confirmPassword: ""
       });
       
-      // 성공 메시지 표시
-      alert('비밀번호가 성공적으로 변경되었습니다.');
-      
+      setIsLoading(false);
     } catch (error) {
       console.error('비밀번호 변경 중 오류가 발생했습니다:', error);
-      setApiError('비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인해주세요.');
-    } finally {
+      setApiError('비밀번호 변경에 실패했습니다.');
       setIsLoading(false);
     }
   };
@@ -207,6 +228,60 @@ export default function ProfilePage() {
     setChangedFields({});
   };
   
+  // 사용자 권한 정보 가져오기
+  const fetchUserPermissions = async () => {
+    if (!token) return;
+    
+    setLoadingPermissions(true);
+    try {
+      const response = await fetchApi<{ permissionTypes: string[] }>('/api/users/permissions/my');
+      
+      if (response && response.permissionTypes) {
+        // 권한 ID 배열을 Permission 객체로 변환
+        const permissions = response.permissionTypes.map(id => {
+          const existingPermission = ALL_PERMISSIONS.find(p => p.id === id);
+          if (existingPermission) {
+            return { ...existingPermission, isGranted: true };
+          }
+          return {
+            id,
+            name: id.replace('PERM_', '').replace(/_/g, ' '),
+            description: '',
+            isGranted: true
+          };
+        });
+        setUserPermissions(permissions);
+      }
+    } catch (error) {
+      console.error('권한 정보를 가져오는 중 오류 발생:', error);
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchUserPermissions();
+    }
+  }, [token]);
+
+  // 권한 그룹별 개수 계산
+  const permissionsByGroup = PERMISSION_GROUPS.map(group => {
+    const groupPermissions = userPermissions.filter(p => {
+      if (group.id === 'admin') return p.id === 'PERM_ADMIN';
+      return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
+    });
+    
+    return {
+      groupName: group.name,
+      total: ALL_PERMISSIONS.filter(p => {
+        if (group.id === 'admin') return p.id === 'PERM_ADMIN';
+        return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
+      }).length,
+      granted: groupPermissions.length
+    };
+  }).filter(g => g.granted > 0);
+
   return (
     <div className="p-6">
       <PageHeader 
@@ -293,11 +368,8 @@ export default function ProfilePage() {
                       id="email"
                       name="email"
                       value={userInfo.email}
-                      onChange={handleUserInfoChange}
-                      disabled={!isEditing}
-                      className={`w-full py-2 pl-10 pr-3 rounded-lg ${
-                        !isEditing ? 'bg-transparent' : currentTheme.inputBg
-                      } ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
+                      disabled={true}
+                      className={`w-full py-2 pl-10 pr-3 rounded-lg bg-transparent ${currentTheme.text} border ${currentTheme.border} opacity-50`}
                     />
                   </div>
                 </div>
@@ -364,27 +436,6 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-                
-                {userInfo.updatedAt && (
-                  <div className={`flex flex-col space-y-2 opacity-50`}>
-                    <label htmlFor="updatedAt" className={`text-sm font-medium ${currentTheme.subtext}`}>
-                      최근 수정일
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <CalendarIcon className={`h-5 w-5 ${currentTheme.iconColor}`} />
-                      </div>
-                      <input
-                        type="text"
-                        id="updatedAt"
-                        name="updatedAt"
-                        value={formatDate(userInfo.updatedAt)}
-                        disabled={true}
-                        className={`w-full py-2 pl-10 pr-3 rounded-lg bg-transparent ${currentTheme.text} border ${currentTheme.border}`}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
             
@@ -414,91 +465,169 @@ export default function ProfilePage() {
           </form>
         </div>
         
-        {/* 비밀번호 변경 카드 */}
-        <div className={`${currentTheme.cardBg} rounded-xl shadow-md overflow-hidden ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className={`text-xl font-semibold ${currentTheme.text}`}>비밀번호 변경</h2>
-          </div>
-          
-          <form onSubmit={handlePasswordUpdate}>
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <label htmlFor="currentPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
-                    현재 비밀번호
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <KeyIcon className={`h-5 w-5 ${currentTheme.iconColor}`} />
+        <div className="space-y-8">
+          {/* 비밀번호 변경 카드 */}
+          <div className={`${currentTheme.cardBg} rounded-xl shadow-md overflow-hidden ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className={`text-xl font-semibold ${currentTheme.text}`}>비밀번호 변경</h2>
+            </div>
+            
+            <form onSubmit={handlePasswordUpdate}>
+              <div className="p-6 space-y-4">
+                <div className="space-y-4">
+                  <div className="flex flex-col space-y-2">
+                    <label htmlFor="currentPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
+                      현재 비밀번호
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <KeyIcon className={`h-5 w-5 ${currentTheme.iconColor}`} />
+                      </div>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={passwordChange.currentPassword}
+                        onChange={handlePasswordChange}
+                        required
+                        disabled={isLoading}
+                        className={`w-full py-2 pl-10 pr-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
+                      />
                     </div>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <label htmlFor="newPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
+                      새 비밀번호
+                    </label>
                     <input
                       type="password"
-                      id="currentPassword"
-                      name="currentPassword"
-                      value={passwordChange.currentPassword}
+                      id="newPassword"
+                      name="newPassword"
+                      value={passwordChange.newPassword}
                       onChange={handlePasswordChange}
                       required
                       disabled={isLoading}
-                      className={`w-full py-2 pl-10 pr-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
+                      className={`w-full py-2 px-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
                     />
                   </div>
-                </div>
-                
-                <div className="flex flex-col space-y-2">
-                  <label htmlFor="newPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
-                    새 비밀번호
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={passwordChange.newPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    disabled={isLoading}
-                    className={`w-full py-2 px-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
-                  />
-                </div>
-                
-                <div className="flex flex-col space-y-2">
-                  <label htmlFor="confirmPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
-                    비밀번호 확인
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={passwordChange.confirmPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    disabled={isLoading}
-                    className={`w-full py-2 px-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
-                  />
-                  {passwordChange.newPassword && 
-                   passwordChange.confirmPassword && 
-                   passwordChange.newPassword !== passwordChange.confirmPassword && (
-                    <p className="text-sm text-red-500 mt-1">비밀번호가 일치하지 않습니다.</p>
-                  )}
+                  
+                  <div className="flex flex-col space-y-2">
+                    <label htmlFor="confirmPassword" className={`text-sm font-medium ${currentTheme.subtext}`}>
+                      비밀번호 확인
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={passwordChange.confirmPassword}
+                      onChange={handlePasswordChange}
+                      required
+                      disabled={isLoading}
+                      className={`w-full py-2 px-3 rounded-lg ${currentTheme.inputBg} ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
+                    />
+                    {passwordChange.newPassword && 
+                     passwordChange.confirmPassword && 
+                     passwordChange.newPassword !== passwordChange.confirmPassword && (
+                      <p className="text-sm text-red-500 mt-1">비밀번호가 일치하지 않습니다.</p>
+                    )}
+                  </div>
                 </div>
               </div>
+              
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm font-medium"
+                  disabled={
+                    isLoading ||
+                    !passwordChange.currentPassword || 
+                    !passwordChange.newPassword || 
+                    !passwordChange.confirmPassword ||
+                    passwordChange.newPassword !== passwordChange.confirmPassword
+                  }
+                >
+                  비밀번호 변경
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          {/* 권한 정보 카드 */}
+          <div className={`${currentTheme.cardBg} rounded-xl shadow-md overflow-hidden`}>
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className={`text-xl font-semibold ${currentTheme.text} flex items-center`}>
+                <ShieldCheckIcon className="h-6 w-6 text-blue-600 mr-2" />
+                권한 정보
+              </h2>
             </div>
             
-            <div className="p-6 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm font-medium"
-                disabled={
-                  isLoading ||
-                  !passwordChange.currentPassword || 
-                  !passwordChange.newPassword || 
-                  !passwordChange.confirmPassword ||
-                  passwordChange.newPassword !== passwordChange.confirmPassword
-                }
-              >
-                비밀번호 변경
-              </button>
+            <div className="p-6">
+              {loadingPermissions ? (
+                <div className="flex justify-center items-center py-4">
+                  <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">권한 정보를 불러오는 중...</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userPermissions.length > 0 ? (
+                    <>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                        총 {userPermissions.length}개의 권한이 있습니다.
+                      </div>
+                      {PERMISSION_GROUPS.map(group => {
+                        const groupPermissions = userPermissions.filter(p => {
+                          if (group.id === 'admin') return p.id === 'PERM_ADMIN';
+                          return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
+                        });
+
+                        if (groupPermissions.length === 0) return null;
+
+                        return (
+                          <div key={group.id} className="space-y-2">
+                            <div className="flex items-center">
+                              <div className="h-2 w-2 rounded-full bg-blue-500 mr-2"></div>
+                              <h3 className={`text-sm font-medium ${currentTheme.text}`}>{group.name}</h3>
+                            </div>
+                            <div className="pl-4 space-y-2">
+                              {groupPermissions.map(permission => {
+                                const fullPermission = ALL_PERMISSIONS.find(p => p.id === permission.id);
+                                return (
+                                  <div 
+                                    key={permission.id} 
+                                    className="flex items-start py-2 px-3 rounded-lg bg-blue-50 dark:bg-blue-900/20"
+                                  >
+                                    <CheckIcon className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <span className="text-sm text-blue-700 dark:text-blue-400 font-medium block">
+                                        {fullPermission?.name || permission.name}
+                                      </span>
+                                      {fullPermission?.description && (
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 block">
+                                          {fullPermission.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      권한 정보가 없습니다.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
