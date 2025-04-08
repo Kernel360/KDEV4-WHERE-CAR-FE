@@ -33,6 +33,9 @@ import { useUserStore } from "@/lib/userStore";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/authStore";
 import { useCarLogsStore } from '@/lib/carLogsStore';
+import { useAnnouncementStore } from "@/lib/announcementStore";
+import { AnnouncementType } from "@/types/announcement";
+
 
 ChartJS.register(
   CategoryScale,
@@ -53,30 +56,6 @@ const userInfo = {
   lastLogin: "2023-06-15 09:30",
 };
 
-// 공지사항 데이터
-const notices = [
-  {
-    id: 1,
-    title: "시스템 점검 안내",
-    content: "6월 20일 새벽 2시부터 4시까지 시스템 점검이 있을 예정입니다.",
-    date: "2023-06-15",
-    isImportant: true,
-  },
-  {
-    id: 2,
-    title: "신규 기능 안내",
-    content: "차량 실시간 위치 추적 기능이 추가되었습니다.",
-    date: "2023-06-10",
-    isImportant: false,
-  },
-  {
-    id: 3,
-    title: "보고서 양식 변경",
-    content: "월간 운행 보고서 양식이 변경되었습니다. 새로운 양식을 확인해주세요.",
-    date: "2023-06-05",
-    isImportant: false,
-  },
-];
 
 // 월간 데이터를 상수로 유지
 const monthlyData = {
@@ -130,8 +109,12 @@ export default function DashboardPage() {
   // Get employee data from user store
   const { users, isLoading: isEmployeeLoading, fetchUsersOfCompany } = useUserStore();
   
+
   // Get car logs stats from store
   const { stats, fetchCarLogsStats } = useCarLogsStore();
+  // Get announcements data from store
+  const { announcements, isLoading: isAnnouncementLoading, fetchAnnouncements } = useAnnouncementStore();
+
   
   // Fetch data on component mount
   useEffect(() => {
@@ -139,6 +122,8 @@ export default function DashboardPage() {
     fetchUsersOfCompany();
     fetchCarLogsStats();
   }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats]);
+    fetchAnnouncements(0, 3); // 대시보드에서는 최신 3개만 표시
+  }, [fetchOverview, fetchUsersOfCompany, fetchAnnouncements]);
   
   // Prepare car status data for chart - moved inside component
   const vehicleStatusData = {
@@ -265,34 +250,43 @@ export default function DashboardPage() {
             <div className="mt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-base font-medium ${currentTheme.text}`}>공지사항</h3>
-                <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium flex items-center`}>
+                <Link href="/announcements" className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium flex items-center`}>
                   <BellIcon className="h-4 w-4 mr-1" />
                   전체보기
-                </button>
+                </Link>
               </div>
               <div className="space-y-3">
-                {notices.map((notice) => (
-                  <div 
-                    key={notice.id} 
-                    className={`p-3 rounded-lg ${notice.isImportant 
-                      ? 'bg-amber-50 border border-amber-200' 
-                      : `${currentTheme.activeBg} hover:bg-opacity-80 transition-colors`
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start">
-                        {notice.isImportant && (
-                          <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
-                        )}
-                        <div>
-                          <h3 className={`font-medium ${notice.isImportant ? 'text-black dark:text-black' : currentTheme.text}`}>{notice.title}</h3>
-                          <p className={`text-sm ${notice.isImportant ? 'text-black dark:text-black mt-1' : `${currentTheme.subtext} mt-1`}`}>{notice.content}</p>
-                        </div>
-                      </div>
-                      <span className={`text-xs ${notice.isImportant ? 'text-black dark:text-black' : currentTheme.subtext} whitespace-nowrap ml-4`}>{notice.date}</span>
-                    </div>
+                {isAnnouncementLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className={`text-sm ${currentTheme.subtext}`}>로딩 중...</p>
                   </div>
-                ))}
+                ) : announcements.length > 0 ? (
+                  announcements.map((notice) => (
+                    <div 
+                      key={notice.id} 
+                      className={`p-3 rounded-lg ${notice.type === AnnouncementType.ALERT
+                        ? 'bg-amber-50 border border-amber-200' 
+                        : `${currentTheme.activeBg} hover:bg-opacity-80 transition-colors`
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start">
+                          {notice.type === AnnouncementType.ALERT && (
+                            <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <h3 className={`font-medium ${notice.type === AnnouncementType.ALERT ? 'text-black dark:text-black' : currentTheme.text}`}>{notice.title}</h3>
+                            <p className={`text-sm ${notice.type === AnnouncementType.ALERT ? 'text-black dark:text-black mt-1' : `${currentTheme.subtext} mt-1`}`}>{notice.content}</p>
+                          </div>
+                        </div>
+                        <span className={`text-xs ${notice.type === AnnouncementType.ALERT ? 'text-black dark:text-black' : currentTheme.subtext} whitespace-nowrap ml-4`}>{notice.createdAt}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className={`text-center py-4 text-sm ${currentTheme.subtext}`}>공지사항이 없습니다.</p>
+                )}
               </div>
             </div>
           </div>
