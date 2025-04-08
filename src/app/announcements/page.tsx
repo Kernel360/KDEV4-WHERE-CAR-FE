@@ -1,21 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/common/PageHeader";
 import { useAnnouncementStore } from "@/lib/announcementStore";
 import { AnnouncementType } from "@/types/announcement";
 import { ExclamationTriangleIcon, BellIcon } from "@heroicons/react/24/outline";
 import { useAuthStore } from "@/lib/authStore";
-import { use } from "react";
 
-export default function AnnouncementsPage({ params }: { params: Promise<{ page?: string }> }) {
+export default function AnnouncementsPage() {
   const { currentTheme } = useTheme();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuthStore();
-  const resolvedParams = use(params);
-  const page = resolvedParams.page ? parseInt(resolvedParams.page) : 0;
+  
+  // URL 쿼리 파라미터에서 페이지 번호 가져오기
+  const pageParam = searchParams.get('page');
+  const page = pageParam ? parseInt(pageParam) : 0;
   
   // 공지 사항 데이터 가져오기
   const { 
@@ -29,9 +31,18 @@ export default function AnnouncementsPage({ params }: { params: Promise<{ page?:
     fetchAnnouncements 
   } = useAnnouncementStore();
   
+  // 공지사항 목록의 페이지당 항목 수 설정
+  const listPageSize = 5;
+  
   // 페이지 변경 핸들러
-  const handlePageChange = (page: number) => {
-    fetchAnnouncements(page, pageSize);
+  const handlePageChange = (newPage: number) => {
+    // URL에 페이지 번호 반영
+    router.push(`/announcements?page=${newPage}`);
+    // 로컬 스토리지에 현재 페이지 번호 저장
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('announcementCurrentPage', newPage.toString());
+    }
+    fetchAnnouncements(newPage, listPageSize);
   };
   
   // 공지 사항 상세 페이지로 이동
@@ -41,13 +52,22 @@ export default function AnnouncementsPage({ params }: { params: Promise<{ page?:
       console.error('공지사항 ID가 유효하지 않습니다.');
       return;
     }
+    // 현재 페이지 번호 저장
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('announcementCurrentPage', page.toString());
+    }
     router.push(`/announcements/${id}`);
   };
   
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
-    fetchAnnouncements(page, pageSize);
-  }, [fetchAnnouncements, page, pageSize]);
+    fetchAnnouncements(page, listPageSize);
+    
+    // 로컬 스토리지에 현재 페이지 번호 저장
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('announcementCurrentPage', page.toString());
+    }
+  }, [fetchAnnouncements, page]);
   
   // 공지사항 데이터 로드 후 ID 확인
   useEffect(() => {
@@ -163,4 +183,4 @@ export default function AnnouncementsPage({ params }: { params: Promise<{ page?:
       </div>
     </div>
   );
-} 
+}
