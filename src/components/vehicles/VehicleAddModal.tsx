@@ -21,15 +21,52 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     mdn: '',
     make: '',
     model: '',
-    year: 0,
+    year: new Date().getFullYear(),
     mileage: 0,
     ownerType: 'CORPORATE',
     acquisitionType: 'PURCHASE',
     batteryVoltage: 0,
-    carState: 'RUNNING'
+    carState: 'NOT_REGISTERED'
   });
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  const validateField = (field: keyof Omit<Vehicle, 'id'>, value: any): string | null => {
+    switch (field) {
+      case 'mdn':
+        // 한국 차량번호 형식 검증 (예: 12가 3456, 123가 4567)
+        const mdnRegex = /^[0-9]{2,3}[가-힣][0-9]{4}$/;
+        if (!mdnRegex.test(value.replace(/\s/g, ''))) {
+          return '올바른 차량번호 형식이 아닙니다 (예: 12가 3456)';
+        }
+        break;
+      case 'year':
+        const currentYear = new Date().getFullYear();
+        const year = Number(value);
+        if (isNaN(year) || year < 1900 || year > currentYear + 1) {
+          return `연식은 1900년에서 ${currentYear + 1}년 사이여야 합니다`;
+        }
+        break;
+      case 'mileage':
+        if (value < 0 || value > 1000000) {
+          return '주행거리는 0km에서 1,000,000km 사이여야 합니다';
+        }
+        break;
+      case 'batteryVoltage':
+        if (value < 0 || value > 1000) {
+          return '배터리 전압은 0V에서 1,000V 사이여야 합니다';
+        }
+        break;
+      case 'make':
+      case 'model':
+        if (value.length < 1 || value.length > 50) {
+          return '1자에서 50자 사이로 입력해주세요';
+        }
+        break;
+    }
+    return null;
+  };
 
   const handleInputChange = (field: keyof Omit<Vehicle, 'id'>, value: string | number) => {
     let processedValue: string | number = value;
@@ -38,6 +75,22 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
       const numValue = field === 'batteryVoltage' ? parseFloat(value as string) : parseInt(value as string);
       processedValue = isNaN(numValue) ? 0 : numValue;
     }
+
+    // 차량번호의 경우 자동으로 공백 추가
+    if (field === 'mdn') {
+      const cleaned = (value as string).replace(/\s/g, '');
+      if (cleaned.length >= 7) {
+        processedValue = cleaned.replace(/([0-9]{2,3})([가-힣])([0-9]{4})/, '$1$2 $3');
+      } else {
+        processedValue = cleaned;
+      }
+    }
+
+    const error = validateField(field, processedValue);
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: error || ''
+    }));
 
     setNewVehicle({
       ...newVehicle,
@@ -49,21 +102,23 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
-    const requiredFields = {
-      '차량번호': newVehicle.mdn,
-      '제조사': newVehicle.make,
-      '모델명': newVehicle.model,
-      '연식': newVehicle.year,
-      '총주행거리': newVehicle.mileage,
-      '배터리전력': newVehicle.batteryVoltage
-    };
 
-    const emptyFields = Object.entries(requiredFields)
-      .filter(([_, value]) => !value && value !== 0)
-      .map(([key]) => key);
+    // 모든 필드 유효성 검사
+    const errors: {[key: string]: string} = {};
+    let hasErrors = false;
 
-    if (emptyFields.length > 0) {
-      setError(`다음 필드를 입력해주세요: ${emptyFields.join(', ')}`);
+    Object.entries(newVehicle).forEach(([field, value]) => {
+      if (field === 'carState') return; // carState 필드는 검사하지 않음
+      const error = validateField(field as keyof Omit<Vehicle, 'id'>, value);
+      if (error) {
+        errors[field] = error;
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setFieldErrors(errors);
+      setError('입력값을 확인해주세요');
       return;
     }
 
@@ -75,7 +130,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
           mdn: '',
           make: '',
           model: '',
-          year: 0,
+          year: new Date().getFullYear(),
           mileage: 0,
           ownerType: 'CORPORATE',
           acquisitionType: 'PURCHASE',
@@ -91,7 +146,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
           mdn: '',
           make: '',
           model: '',
-          year: 0,
+          year: new Date().getFullYear(),
           mileage: 0,
           ownerType: 'CORPORATE',
           acquisitionType: 'PURCHASE',
@@ -100,7 +155,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
         });
       }
     } catch (err) {
-      // onComplete가 있는 경우 오류 처리는 onComplete에 위임
       if (!onComplete) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       }
@@ -171,10 +225,16 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                           id="mdn"
                           value={newVehicle.mdn}
                           onChange={(e) => handleInputChange('mdn', e.target.value)}
-                          className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                          className={`mt-1 block w-full rounded-md border ${
+                            fieldErrors.mdn ? 'border-red-500' : currentTheme.border
+                          } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                          placeholder="12가 3456"
                           required
                           disabled={storeLoading}
                         />
+                        {fieldErrors.mdn && (
+                          <p className="mt-1 text-sm text-red-500">{fieldErrors.mdn}</p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -187,10 +247,16 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             id="make"
                             value={newVehicle.make}
                             onChange={(e) => handleInputChange('make', e.target.value)}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            className={`mt-1 block w-full rounded-md border ${
+                              fieldErrors.make ? 'border-red-500' : currentTheme.border
+                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            placeholder="현대"
                             required
                             disabled={storeLoading}
                           />
+                          {fieldErrors.make && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.make}</p>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="model" className={`block text-sm font-medium ${currentTheme.text}`}>
@@ -201,10 +267,16 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             id="model"
                             value={newVehicle.model}
                             onChange={(e) => handleInputChange('model', e.target.value)}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            className={`mt-1 block w-full rounded-md border ${
+                              fieldErrors.model ? 'border-red-500' : currentTheme.border
+                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            placeholder="아반떼"
                             required
                             disabled={storeLoading}
                           />
+                          {fieldErrors.model && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.model}</p>
+                          )}
                         </div>
                       </div>
 
@@ -217,11 +289,18 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             type="number"
                             id="year"
                             value={newVehicle.year}
-                            onChange={(e) => handleInputChange('year', parseInt(e.target.value))}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            onChange={(e) => handleInputChange('year', e.target.value)}
+                            className={`mt-1 block w-full rounded-md border ${
+                              fieldErrors.year ? 'border-red-500' : currentTheme.border
+                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            min="1900"
+                            max={new Date().getFullYear() + 1}
                             required
                             disabled={storeLoading}
                           />
+                          {fieldErrors.year && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.year}</p>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="mileage" className={`block text-sm font-medium ${currentTheme.text}`}>
@@ -231,11 +310,18 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             type="number"
                             id="mileage"
                             value={newVehicle.mileage}
-                            onChange={(e) => handleInputChange('mileage', parseInt(e.target.value))}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            onChange={(e) => handleInputChange('mileage', e.target.value)}
+                            className={`mt-1 block w-full rounded-md border ${
+                              fieldErrors.mileage ? 'border-red-500' : currentTheme.border
+                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            min="0"
+                            max="1000000"
                             required
                             disabled={storeLoading}
                           />
+                          {fieldErrors.mileage && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.mileage}</p>
+                          )}
                         </div>
                       </div>
 
@@ -284,29 +370,18 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                           type="number"
                           id="batteryVoltage"
                           value={newVehicle.batteryVoltage}
-                          onChange={(e) => handleInputChange('batteryVoltage', parseFloat(e.target.value))}
-                          className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                          onChange={(e) => handleInputChange('batteryVoltage', e.target.value)}
+                          className={`mt-1 block w-full rounded-md border ${
+                            fieldErrors.batteryVoltage ? 'border-red-500' : currentTheme.border
+                          } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                          min="0"
+                          max="1000"
                           required
                           disabled={storeLoading}
                         />
-                      </div>
-
-                      <div>
-                        <label htmlFor="carState" className={`block text-sm font-medium ${currentTheme.text}`}>
-                          차량 상태
-                        </label>
-                        <select
-                          id="carState"
-                          value={newVehicle.carState}
-                          onChange={(e) => handleInputChange('carState', e.target.value as "RUNNING" | "STOPPED" | "NOT_REGISTERED")}
-                          className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                          required
-                          disabled={storeLoading}
-                        >
-                          <option value="RUNNING">운행</option>
-                          <option value="STOPPED">미운행</option>
-                          <option value="NOT_REGISTERED">미관제</option>
-                        </select>
+                        {fieldErrors.batteryVoltage && (
+                          <p className="mt-1 text-sm text-red-500">{fieldErrors.batteryVoltage}</p>
+                        )}
                       </div>
 
                       <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
