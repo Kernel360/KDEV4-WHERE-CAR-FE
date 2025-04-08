@@ -134,12 +134,6 @@ export default function EmployeePermissionsPage() {
   }, [employeeId, fetchUserPermissions, employee]);
 
   useEffect(() => {
-    // 현재 userPermissions 데이터를 확인하기 위한 디버깅
-    console.log('현재 userPermissions:', userPermissions);
-    console.log('employeeId:', employeeId);
-    console.log('현재 권한 데이터:', userPermissions[employeeId]);
-    console.log('권한 데이터 배열 여부:', userPermissions[employeeId] && Array.isArray(userPermissions[employeeId]));
-    
     // 기본적으로 모든 권한을 isGranted가 false인 상태로 초기화
     const allPermissionsCopy = ALL_PERMISSIONS.map(p => ({...p, isGranted: false}));
     
@@ -148,7 +142,6 @@ export default function EmployeePermissionsPage() {
       const permissions = userPermissions[employeeId];
       
       if (Array.isArray(permissions) && permissions.length > 0) {
-        console.log('권한 ID 목록:', permissions.map(p => p.id));
         const grantedPermissionIds = new Set(permissions.map(p => p.id));
         
         // 부여된 권한은 isGranted를 true로 설정
@@ -161,7 +154,6 @@ export default function EmployeePermissionsPage() {
     } 
     // API에서 권한 정보를 가져오지 못했고, 샘플 직원 데이터가 있으면 샘플 권한 사용
     else if (employee && employee.permissions && Array.isArray(employee.permissions) && employee.permissions.length > 0) {
-      console.log('샘플 직원 권한 사용:', employee.permissions);
       const grantedPermissionIds = new Set(employee.permissions.map(p => p.id));
       
       // 부여된 권한은 isGranted를 true로 설정
@@ -173,7 +165,6 @@ export default function EmployeePermissionsPage() {
     }
     
     setPermissions(allPermissionsCopy);
-    console.log('설정된 권한 배열:', allPermissionsCopy);
   }, [employeeId, userPermissions, employee]);
 
   // 권한 변경 처리
@@ -202,7 +193,6 @@ export default function EmployeePermissionsPage() {
   const getGroupedPermissions = () => {
     if (permissions.length === 0) {
       // 권한 정보가 없을 경우 모든 기본 권한을 표시 (isGranted: false)
-      console.log('권한 정보가 없어 기본 권한 그룹 사용');
       return PERMISSION_GROUPS;
     }
     
@@ -214,14 +204,12 @@ export default function EmployeePermissionsPage() {
       })
     }));
     
-    console.log('그룹화된 권한:', groups);
     return groups;
   };
 
   // 검색어에 따라 권한 필터링
   const filteredGroups = useMemo(() => {
     const groupedPermissions = getGroupedPermissions();
-    console.log('필터링 전 그룹:', groupedPermissions);
     
     if (!searchTerm) {
       return groupedPermissions;
@@ -235,7 +223,6 @@ export default function EmployeePermissionsPage() {
       )
     })).filter(group => group.permissions.length > 0);
     
-    console.log('필터링 후 그룹:', filtered);
     return filtered;
   }, [searchTerm, permissions]);
 
@@ -470,15 +457,6 @@ export default function EmployeePermissionsPage() {
                   </div>
                 </div>
               ))}
-              
-              {/* 현재 사용자 권한 상태 디버깅 표시 */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-8 p-4 border border-gray-300 rounded-lg bg-white text-xs font-mono overflow-auto max-h-60">
-                  <h3 className="font-bold mb-2">디버깅 정보:</h3>
-                  <pre>userPermissions: {JSON.stringify(userPermissions[employeeId] || [], null, 2)}</pre>
-                  <pre>권한 부여된 항목: {permissions.filter(p => p.isGranted).length}</pre>
-                </div>
-              )}
             </>
           ) : (
             <div className={`p-6 rounded-xl ${currentTheme.cardBg} shadow border ${currentTheme.border} text-center`}>

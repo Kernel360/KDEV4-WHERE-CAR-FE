@@ -73,30 +73,24 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ loadingPermissions: true, permissionsError: null });
       
-      console.log(`권한 정보 요청 시작: 사용자 ID ${userId}`);
-      
       // API에서 권한 정보 가져오기
       const response = await fetchApi<any>(`/api/users/permissions/${userId}`);
-      console.log('API에서 받은 원본 권한 응답:', response);
       
       // 응답에서 권한 타입 배열 추출 (다양한 응답 형식 처리)
       let permissionIds: string[] = [];
       
       // 응답이 배열인 경우 (API가 권한 ID 목록을 직접 반환)
       if (Array.isArray(response)) {
-        console.log('응답이 배열 형태입니다');
         permissionIds = response;
       } 
       // 응답이 객체이고 permissionTypes 속성이 있는 경우
       else if (response && response.permissionTypes) {
-        console.log('응답이 permissionTypes 속성을 가진 객체입니다');
         permissionIds = Array.isArray(response.permissionTypes) 
           ? response.permissionTypes 
           : [];
       }
       // 응답이 객체이고 권한 관련 다른 형식인 경우 
       else if (response && typeof response === 'object') {
-        console.log('응답이 일반 객체입니다. 권한 ID를 찾습니다');
         // 객체의 모든 키를 검사하여 권한 ID 같은 형식(PERM_ 접두사)을 찾음
         Object.keys(response).forEach(key => {
           if (typeof response[key] === 'boolean' && response[key] === true && key.startsWith('PERM_')) {
@@ -105,11 +99,8 @@ export const useUserStore = create<UserState>((set, get) => ({
         });
       }
       
-      console.log('추출된 권한 ID 목록:', permissionIds);
-      
       // 권한 ID를 Permission 객체 배열로 변환
       const permissions: Permission[] = permissionIds.map(createPermissionFromId);
-      console.log('변환된 권한 객체 목록:', permissions);
       
       // 권한 정보 저장
       set((state) => ({ 
