@@ -109,21 +109,19 @@ export default function DashboardPage() {
   // Get employee data from user store
   const { users, isLoading: isEmployeeLoading, fetchUsersOfCompany } = useUserStore();
   
-
   // Get car logs stats from store
   const { stats, fetchCarLogsStats } = useCarLogsStore();
+
   // Get announcements data from store
   const { announcements, isLoading: isAnnouncementLoading, fetchAnnouncements } = useAnnouncementStore();
-
   
   // Fetch data on component mount
   useEffect(() => {
     fetchOverview();
     fetchUsersOfCompany();
     fetchCarLogsStats();
-  }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats]);
     fetchAnnouncements(0, 3); // 대시보드에서는 최신 3개만 표시
-  }, [fetchOverview, fetchUsersOfCompany, fetchAnnouncements]);
+  }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats, fetchAnnouncements]);
   
   // Prepare car status data for chart - moved inside component
   const vehicleStatusData = {
@@ -157,6 +155,7 @@ export default function DashboardPage() {
       },
     ],
   };
+
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
@@ -171,7 +170,7 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  // 페이지 진입 시마다 인증 상태 확인 (토큰이 만료되었거나 변경된 경우 등을 처리)
+  // 페이지 진입 시마다 인증 상태 확인
   useEffect(() => {
     const checkAuthentication = () => {
       const isAuthed = useAuthStore.getState().checkAuth();
@@ -184,7 +183,7 @@ export default function DashboardPage() {
     // 초기 확인
     checkAuthentication();
     
-    // 페이지 포커스를 받았을 때 다시 확인 (다른 탭에서 로그아웃 했을 수 있음)
+    // 페이지 포커스를 받았을 때 다시 확인
     window.addEventListener('focus', checkAuthentication);
     
     return () => {
@@ -206,18 +205,22 @@ export default function DashboardPage() {
 
   // Prepare monthly data for chart
   const monthlyChartData = {
-    labels: [...(stats?.monthlyMileages || [])]
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .map(item => {
-        const [year, month] = item.month.split('-');
-        return `${year.slice(2)}년 ${parseInt(month)}월`;
-      }),
+    labels: stats?.monthlyMileages
+      ? [...stats.monthlyMileages]
+          .sort((a, b) => a.month.localeCompare(b.month))
+          .map(item => {
+            const [year, month] = item.month.split('-');
+            return `${year.slice(2)}년 ${parseInt(month)}월`;
+          })
+      : [],
     datasets: [
       {
         label: "운행 거리 (km)",
-        data: [...(stats?.monthlyMileages || [])]
-          .sort((a, b) => a.month.localeCompare(b.month))
-          .map(item => item.totalMileage),
+        data: stats?.monthlyMileages
+          ? [...stats.monthlyMileages]
+              .sort((a, b) => a.month.localeCompare(b.month))
+              .map(item => item.totalMileage)
+          : [],
         borderColor: "rgb(79, 70, 229)",
         backgroundColor: "rgba(79, 70, 229, 0.1)",
         tension: 0.4,
