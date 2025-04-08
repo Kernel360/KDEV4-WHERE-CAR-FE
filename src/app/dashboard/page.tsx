@@ -221,11 +221,18 @@ export default function DashboardPage() {
 
   // Prepare monthly data for chart
   const monthlyChartData = {
-    labels: [new Date().getMonth() + 1 + '월'],
+    labels: [...(stats?.monthlyMileages || [])]
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(item => {
+        const [year, month] = item.month.split('-');
+        return `${year.slice(2)}년 ${parseInt(month)}월`;
+      }),
     datasets: [
       {
         label: "운행 거리 (km)",
-        data: [stats?.totalMileage || 0],
+        data: [...(stats?.monthlyMileages || [])]
+          .sort((a, b) => a.month.localeCompare(b.month))
+          .map(item => item.totalMileage),
         borderColor: "rgb(79, 70, 229)",
         backgroundColor: "rgba(79, 70, 229, 0.1)",
         tension: 0.4,

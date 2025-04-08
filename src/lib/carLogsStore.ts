@@ -53,6 +53,10 @@ interface CarLogsState {
   stats: {
     totalMileage: number;
     carLogsCount: string;
+    monthlyMileages: Array<{
+      month: string;
+      totalMileage: number;
+    }>;
   } | null;
   
   fetchCarLogs: (params?: Partial<CarLogsParams>) => Promise<any>;
@@ -176,7 +180,8 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       set({ 
         stats: {
           totalMileage: data.totalMileage || 0,
-          carLogsCount: data.carLogsCount || "0"
+          carLogsCount: data.carLogsCount || "0",
+          monthlyMileages: data.monthlyMileages || []
         },
         isLoading: false
       });
