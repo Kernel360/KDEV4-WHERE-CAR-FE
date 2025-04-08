@@ -115,9 +115,9 @@ export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoa
           position: new window.naver.maps.LatLng(routePoints[0].lat, routePoints[0].lng),
           map: mapInstance.current,
           icon: {
-            content: '<div style="background-color: #4CAF50; width: 20px; height: 20px; border-radius: 50%;"></div>',
-            size: new window.naver.maps.Size(20, 20),
-            anchor: new window.naver.maps.Point(10, 10),
+            content: '<div style="background-color:#4CAF50; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            size: new window.naver.maps.Size(16, 16),
+            anchor: new window.naver.maps.Point(8, 8),
           },
         });
         markers.current.push(startMarker);
@@ -130,22 +130,31 @@ export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoa
           ),
           map: mapInstance.current,
           icon: {
-            content: '<div style="background-color: #F44336; width: 20px; height: 20px; border-radius: 50%;"></div>',
-            size: new window.naver.maps.Size(20, 20),
-            anchor: new window.naver.maps.Point(10, 10),
+            content: '<div style="background-color:#F44336; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            size: new window.naver.maps.Size(16, 16),
+            anchor: new window.naver.maps.Point(8, 8),
           },
         });
         markers.current.push(endMarker);
 
-        // 중간 지점 마커 추가
-        for (let i = 1; i < routePoints.length - 1; i++) {
+        // 중간 지점 마커 추가 (더 적은 수의 지점에만 표시)
+        const step = Math.max(1, Math.floor(routePoints.length / 10)); // 총 점의 약 10%만 표시
+        for (let i = step; i < routePoints.length - step; i += step) {
+          // 다음 지점과의 각도 계산
+          const nextPoint = routePoints[i + 1];
+          const angle = Math.atan2(nextPoint.lng - routePoints[i].lng, nextPoint.lat - routePoints[i].lat) * 180 / Math.PI;
+          
           const marker = new window.naver.maps.Marker({
             position: new window.naver.maps.LatLng(routePoints[i].lat, routePoints[i].lng),
             map: mapInstance.current,
             icon: {
-              content: '<div style="background-color: #2196F3; width: 15px; height: 15px; border-radius: 50%;"></div>',
-              size: new window.naver.maps.Size(15, 15),
-              anchor: new window.naver.maps.Point(7.5, 7.5),
+              content: `<div style="transform: rotate(${angle}deg);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#2196F3">
+                  <path d="M12 2L2 12h7v10h6V12h7z" />
+                </svg>
+              </div>`,
+              size: new window.naver.maps.Size(12, 12),
+              anchor: new window.naver.maps.Point(6, 6),
             },
           });
           markers.current.push(marker);
@@ -158,8 +167,11 @@ export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoa
 
         const polyline = new window.naver.maps.Polyline({
           path: path,
-          strokeColor: '#FF0000',
-          strokeWeight: 3,
+          strokeColor: '#4B70FD',
+          strokeWeight: 4,
+          strokeOpacity: 0.8,
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
           map: mapInstance.current
         });
         polylines.current.push(polyline);
