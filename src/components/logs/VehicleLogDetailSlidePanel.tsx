@@ -238,9 +238,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
           <div className="fixed inset-0 bg-black/30 transition-opacity" />
         </Transition.Child>
 
-        <div className="fixed inset-0 overflow-hidden">
+        <div className="fixed inset-0 overflow-hidden" >
           <div className="absolute inset-0 overflow-hidden">
-            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+            <div className="pointer-events-none fixed inset-y-0 right-0 flex pl-10">
               <Transition.Child
                 as={Fragment}
                 enter="transform transition ease-in-out duration-300"
@@ -250,7 +250,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                 leaveFrom="translate-x-0"
                 leaveTo="translate-x-full"
               >
-                <Dialog.Panel className="pointer-events-auto relative w-[550px]">
+                <Dialog.Panel className="pointer-events-auto relative w-[800px]">
                   <div className={`flex h-full flex-col ${currentTheme.cardBg} ${currentTheme.border} shadow-xl`}>
                     {/* 헤더 */}
                     <div className={`px-4 py-4 border-b ${currentTheme.border} flex items-center justify-between`}>
@@ -453,8 +453,8 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
 
                         {/* 지도 */}
                         <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
-                          <p className={`text-sm font-medium ${currentTheme.subtext} mb-2`}>운행 경로</p>
-                          <div className="h-64 rounded-lg overflow-hidden">
+                          <p className={`text-lg font-medium ${currentTheme.subtext} mb-2`}>운행 경로</p>
+                          <div className="h-96 rounded-lg overflow-hidden">
                             {isLoadingRoute ? (
                               <div className="flex items-center justify-center h-full">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>

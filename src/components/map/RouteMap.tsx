@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
-interface Point {
+interface RoutePoint {
   lat: number;
   lng: number;
+  timestamp: string;
 }
 
 interface RouteMapProps {
-  latitude: number;
-  longitude: number;
-  zoom: number;
-  routePoints?: Point[];
+  routePoints: RoutePoint[];
   isLoading?: boolean;
 }
 
@@ -57,11 +55,10 @@ const loadNaverScript = (): Promise<void> => {
   });
 };
 
-export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoading }: RouteMapProps) {
+export default function RouteMap({ routePoints, isLoading }: RouteMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markers = useRef<any[]>([]);
-  const polylines = useRef<any[]>([]);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,97 +88,93 @@ export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoa
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current && isMapLoaded) {
+      // 경로 데이터가 있는 경우 첫 번째 지점을 중심으로 설정
+      const initialCenter = routePoints && routePoints.length > 0
+        ? new window.naver.maps.LatLng(routePoints[0].lat, routePoints[0].lng)
+        : new window.naver.maps.LatLng(37.5666805, 126.9784147);
+
       const mapOptions = {
-        center: new window.naver.maps.LatLng(latitude, longitude),
-        zoom: zoom,
+        center: initialCenter,
+        zoom: 15,
       };
       mapInstance.current = new window.naver.maps.Map(mapRef.current, mapOptions);
+
+      // 경로 데이터가 있는 경우 지도 범위 조정
+      if (routePoints && routePoints.length > 0) {
+        const bounds = new window.naver.maps.LatLngBounds();
+        routePoints.forEach(point => {
+          bounds.extend(new window.naver.maps.LatLng(point.lat, point.lng));
+        });
+        mapInstance.current.fitBounds(bounds, { padding: 50 });
+      }
     }
-  }, [isMapLoaded]);
+  }, [isMapLoaded, routePoints]);
 
   useEffect(() => {
-    if (mapInstance.current && isMapLoaded) {
+    if (mapInstance.current && isMapLoaded && routePoints && routePoints.length > 0) {
       // 기존 마커 제거
       markers.current.forEach(marker => marker.setMap(null));
       markers.current = [];
 
-      // 기존 경로 제거
-      polylines.current.forEach(polyline => polyline.setMap(null));
-      polylines.current = [];
+      // 경로 선 그리기
+      const path = routePoints.map(point => new window.naver.maps.LatLng(point.lat, point.lng));
+      const polyline = new window.naver.maps.Polyline({
+        path: path,
+        strokeColor: '#4B70FD',
+        strokeWeight: 4,
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid',
+        map: mapInstance.current
+      });
 
-      if (routePoints && routePoints.length > 0) {
-        // 시작점 마커 추가
-        const startMarker = new window.naver.maps.Marker({
-          position: new window.naver.maps.LatLng(routePoints[0].lat, routePoints[0].lng),
+      // 출발지 마커 추가
+      const startMarker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(routePoints[0].lat, routePoints[0].lng),
+        map: mapInstance.current,
+        icon: {
+          content: '<div style="background-color:#10B981; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+          size: new window.naver.maps.Size(16, 16),
+          anchor: new window.naver.maps.Point(8, 8),
+        },
+      });
+      markers.current.push(startMarker);
+
+      // 도착지 마커 추가
+      const endMarker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(routePoints[routePoints.length - 1].lat, routePoints[routePoints.length - 1].lng),
+        map: mapInstance.current,
+        icon: {
+          content: '<div style="background-color:#EF4444; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+          size: new window.naver.maps.Size(16, 16),
+          anchor: new window.naver.maps.Point(8, 8),
+        },
+      });
+      markers.current.push(endMarker);
+
+      // 중간 지점 마커 추가 (더 적은 수의 지점에만 표시)
+      const step = Math.max(1, Math.floor(routePoints.length / 10)); // 총 점의 약 10%만 표시
+      for (let i = step; i < routePoints.length - step; i += step) {
+        // 다음 지점과의 각도 계산
+        const nextPoint = routePoints[i + 1];
+        const angle = Math.atan2(nextPoint.lng - routePoints[i].lng, nextPoint.lat - routePoints[i].lat) * 180 / Math.PI;
+        
+        const marker = new window.naver.maps.Marker({
+          position: new window.naver.maps.LatLng(routePoints[i].lat, routePoints[i].lng),
           map: mapInstance.current,
           icon: {
-            content: '<div style="background-color:#4CAF50; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            size: new window.naver.maps.Size(16, 16),
-            anchor: new window.naver.maps.Point(8, 8),
+            content: `<div style="transform: rotate(${angle}deg);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#2196F3">
+                <path d="M12 2L2 12h7v10h6V12h7z" />
+              </svg>
+            </div>`,
+            size: new window.naver.maps.Size(12, 12),
+            anchor: new window.naver.maps.Point(6, 6),
           },
         });
-        markers.current.push(startMarker);
-
-        // 도착점 마커 추가
-        const endMarker = new window.naver.maps.Marker({
-          position: new window.naver.maps.LatLng(
-            routePoints[routePoints.length - 1].lat,
-            routePoints[routePoints.length - 1].lng
-          ),
-          map: mapInstance.current,
-          icon: {
-            content: '<div style="background-color:#F44336; width:16px; height:16px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
-            size: new window.naver.maps.Size(16, 16),
-            anchor: new window.naver.maps.Point(8, 8),
-          },
-        });
-        markers.current.push(endMarker);
-
-        // 중간 지점 마커 추가 (더 적은 수의 지점에만 표시)
-        const step = Math.max(1, Math.floor(routePoints.length / 10)); // 총 점의 약 10%만 표시
-        for (let i = step; i < routePoints.length - step; i += step) {
-          // 다음 지점과의 각도 계산
-          const nextPoint = routePoints[i + 1];
-          const angle = Math.atan2(nextPoint.lng - routePoints[i].lng, nextPoint.lat - routePoints[i].lat) * 180 / Math.PI;
-          
-          const marker = new window.naver.maps.Marker({
-            position: new window.naver.maps.LatLng(routePoints[i].lat, routePoints[i].lng),
-            map: mapInstance.current,
-            icon: {
-              content: `<div style="transform: rotate(${angle}deg);">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="#2196F3">
-                  <path d="M12 2L2 12h7v10h6V12h7z" />
-                </svg>
-              </div>`,
-              size: new window.naver.maps.Size(12, 12),
-              anchor: new window.naver.maps.Point(6, 6),
-            },
-          });
-          markers.current.push(marker);
-        }
-
-        // 경로 그리기
-        const path = routePoints.map(point => 
-          new window.naver.maps.LatLng(point.lat, point.lng)
-        );
-
-        const polyline = new window.naver.maps.Polyline({
-          path: path,
-          strokeColor: '#4B70FD',
-          strokeWeight: 4,
-          strokeOpacity: 0.8,
-          strokeLineCap: 'round',
-          strokeLineJoin: 'round',
-          map: mapInstance.current
-        });
-        polylines.current.push(polyline);
+        markers.current.push(marker);
       }
-
-      // 지도 중심과 줌 레벨 업데이트
-      mapInstance.current.setCenter(new window.naver.maps.LatLng(latitude, longitude));
-      mapInstance.current.setZoom(zoom);
     }
-  }, [latitude, longitude, zoom, routePoints, isMapLoaded]);
+  }, [routePoints, isMapLoaded]);
 
   if (error) {
     return (
@@ -209,18 +202,35 @@ export default function RouteMap({ latitude, longitude, zoom, routePoints, isLoa
           />
 
           {routePoints && routePoints.length > 0 ? (
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                <p className="text-sm font-medium">현재 위치</p>
+            <>
+              {/* 위치 정보 */}
+              <div className="absolute bottom-8 left-4 bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">출발지</p>
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      <p>위도: {routePoints[0]?.lat.toFixed(6)}</p>
+                      <p>경도: {routePoints[0]?.lng.toFixed(6)}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                위도: {routePoints[0].lat.toFixed(6)}<br />
-                경도: {routePoints[0].lng.toFixed(6)}
-              </p>
-            </div>
+              <div className="absolute bottom-8 right-4 bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">도착지</p>
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      <p>위도: {routePoints[routePoints.length - 1]?.lat.toFixed(6)}</p>
+                      <p>경도: {routePoints[routePoints.length - 1]?.lng.toFixed(6)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
+            <div className="absolute bottom-8 left-4 bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-lg">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
                 <p className="text-sm font-medium">위치 정보 없음</p>

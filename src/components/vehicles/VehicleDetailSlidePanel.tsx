@@ -467,10 +467,11 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                             </div>
                           </div>
 
+                    
                           {/* 네이버 지도 */}
-                          <div className="mt-6">
+                          <div className="p-4 rounded-xl ${currentTheme.border} border">
                             <div className="flex items-center justify-between mb-4">
-                              <h4 className={`text-lg font-medium ${currentTheme.text}`}>차량 위치</h4>
+                              <h4 className={`text-lg font-medium ${currentTheme.subtext} mb-2`}>차량 위치</h4>
                               <div className="flex items-center space-x-2">
                                 {latestPosition && (
                                   <p className="text-sm text-muted-foreground">
