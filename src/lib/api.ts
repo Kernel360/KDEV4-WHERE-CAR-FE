@@ -118,4 +118,35 @@ export async function fetchLatestPosition(mdn: string): Promise<{
     console.error('Error fetching latest position:', error);
     return null;
   }
+}
+
+export async function fetchGpsRoute(mdn: string, startTime: string, endTime: string) {
+  try {
+    const requestBody = {
+      mdn,
+      startTime,
+      endTime,
+    };
+
+    console.log('GPS 경로 요청 데이터:', requestBody);
+
+    const response = await fetch('http://localhost:8080/api/gps/route', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error('GPS 경로 데이터를 가져오는데 실패했습니다.');
+    }
+
+    const responseData = await response.json();
+    console.log('GPS 경로 응답 데이터:', responseData);
+    return responseData;
+  } catch (error) {
+    console.error('GPS 경로 데이터 조회 오류:', error);
+    throw error;
+  }
 } 

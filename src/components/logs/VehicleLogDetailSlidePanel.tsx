@@ -6,6 +6,8 @@ import { VehicleLog, DriveType } from '@/types/logs';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useCarLogsStore } from '@/lib/carLogsStore';
 import AlertMessage from '../common/AlertMessage';
+import RouteMap from '../map/RouteMap';
+import { fetchGpsRoute } from '@/lib/api';
 
 interface VehicleLogDetailSlidePanelProps {
   isOpen: boolean;
@@ -13,6 +15,17 @@ interface VehicleLogDetailSlidePanelProps {
   log: VehicleLog | null;
   onDelete?: (id: string) => void;
   onUpdate?: (log: VehicleLog) => void;
+}
+
+interface RoutePoint {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+}
+
+interface RouteResponse {
+  mdn: string;
+  route: RoutePoint[];
 }
 
 export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDelete, onUpdate }: VehicleLogDetailSlidePanelProps) {
@@ -25,11 +38,13 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const [isDeleting, setIsDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [routePoints, setRoutePoints] = useState<{ lat: number; lng: number; timestamp?: string }[]>([]);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
   useEffect(() => {
     if (log) {
-      setEditedLog({ ...log });
-      setDisplayLog({ ...log });
+      setDisplayLog(log);
+      fetchRouteData();
     }
   }, [log]);
 
@@ -41,6 +56,38 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  const fetchRouteData = async () => {
+    if (!log) return;
+    
+    setIsLoadingRoute(true);
+    try {
+      // 시간 형식 변환 (UTC 변환 없이 원본 시간 유지)
+      const formattedStartTime = `${log.startTime.replace(' ', 'T')}.000Z`;
+      const formattedEndTime = `${log.endTime.replace(' ', 'T')}.000Z`;
+
+      const routeData = await fetchGpsRoute(
+        log.vehicleNumber,
+        formattedStartTime,
+        formattedEndTime
+      ) as RouteResponse;
+
+      if (routeData && routeData.route && routeData.route.length > 0) {
+        const points = routeData.route.map((point: RoutePoint) => ({
+          lat: point.latitude,
+          lng: point.longitude,
+          timestamp: point.timestamp
+        }));
+        setRoutePoints(points);
+      } else {
+        setRoutePoints([]);
+      }
+    } catch (error) {
+      setRoutePoints([]);
+    } finally {
+      setIsLoadingRoute(false);
+    }
+  };
 
   const handleEdit = () => {
     if (log) {
@@ -402,6 +449,29 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                               {displayLog.note || '-'}
                             </p>
                           )}
+                        </div>
+
+                        {/* 지도 */}
+                        <div className={`p-4 rounded-xl ${currentTheme.border} border`}>
+                          <p className={`text-sm font-medium ${currentTheme.subtext} mb-2`}>운행 경로</p>
+                          <div className="h-64 rounded-lg overflow-hidden">
+                            {isLoadingRoute ? (
+                              <div className="flex items-center justify-center h-full">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                              </div>
+                            ) : routePoints.length > 0 ? (
+                              <RouteMap
+                                latitude={routePoints[0].lat}
+                                longitude={routePoints[0].lng}
+                                zoom={15}
+                                routePoints={routePoints}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full">
+                                <p className={`text-sm ${currentTheme.text}`}>경로 데이터가 없습니다.</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
