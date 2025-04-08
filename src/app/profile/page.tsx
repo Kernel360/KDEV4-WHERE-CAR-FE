@@ -6,26 +6,6 @@ import { useAuthStore } from "@/lib/authStore";
 import PageHeader from "@/components/common/PageHeader";
 import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon } from "@heroicons/react/24/outline";
 
-// 백엔드 API 응답 인터페이스
-// interface UserResponse {
-//   userId: number;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   jobTitle: string;
-//   createdAt: string;
-//   updatedAt?: string;
-// }
-
-// 프론트엔드 유저 정보 인터페이스
-// interface UserInfo {
-//   userId: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   jobTitle: string;
-//   updatedAt: Date | string | null;
-// }
 
 // 비밀번호 변경 인터페이스
 interface PasswordChange {
