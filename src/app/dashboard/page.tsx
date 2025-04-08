@@ -32,8 +32,10 @@ import { useCarOverviewStore } from "@/lib/carOverviewStore";
 import { useUserStore } from "@/lib/userStore";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/authStore";
+import { useCarLogsStore } from '@/lib/carLogsStore';
 import { useAnnouncementStore } from "@/lib/announcementStore";
 import { AnnouncementType } from "@/types/announcement";
+
 
 ChartJS.register(
   CategoryScale,
@@ -107,13 +109,19 @@ export default function DashboardPage() {
   // Get employee data from user store
   const { users, isLoading: isEmployeeLoading, fetchUsersOfCompany } = useUserStore();
   
+
+  // Get car logs stats from store
+  const { stats, fetchCarLogsStats } = useCarLogsStore();
   // Get announcements data from store
   const { announcements, isLoading: isAnnouncementLoading, fetchAnnouncements } = useAnnouncementStore();
+
   
   // Fetch data on component mount
   useEffect(() => {
     fetchOverview();
     fetchUsersOfCompany();
+    fetchCarLogsStats();
+  }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats]);
     fetchAnnouncements(0, 3); // 대시보드에서는 최신 3개만 표시
   }, [fetchOverview, fetchUsersOfCompany, fetchAnnouncements]);
   
@@ -195,6 +203,28 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // Prepare monthly data for chart
+  const monthlyChartData = {
+    labels: [...(stats?.monthlyMileages || [])]
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(item => {
+        const [year, month] = item.month.split('-');
+        return `${year.slice(2)}년 ${parseInt(month)}월`;
+      }),
+    datasets: [
+      {
+        label: "운행 거리 (km)",
+        data: [...(stats?.monthlyMileages || [])]
+          .sort((a, b) => a.month.localeCompare(b.month))
+          .map(item => item.totalMileage),
+        borderColor: "rgb(79, 70, 229)",
+        backgroundColor: "rgba(79, 70, 229, 0.1)",
+        tension: 0.4,
+        fill: true,
+      },
+    ],
+  };
 
   return (
       <div className="p-8">
@@ -387,11 +417,15 @@ export default function DashboardPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext}`}>이번 달</span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>1,342,000 km</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {stats ? `${stats.totalMileage.toLocaleString()} km` : "로딩 중..."}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-sm ${currentTheme.subtext}`}>운행 건수</span>
-                <span className={`text-sm font-medium ${currentTheme.text}`}>2,345건</span>
+                <span className={`text-sm font-medium ${currentTheme.text}`}>
+                  {stats ? `${stats.carLogsCount}건` : "로딩 중..."}
+                </span>
               </div>
             </div>
           </div>
@@ -404,14 +438,7 @@ export default function DashboardPage() {
             <h3 className={`text-lg font-medium ${currentTheme.text} mb-4`}>월간 주행거리</h3>
             <div className="h-80">
               <Line
-                data={{
-                  labels: monthlyData.labels,
-                  datasets: [{
-                    ...monthlyData.datasets[0],
-                    borderColor: currentTheme.chartColors[0],
-                    backgroundColor: currentTheme.chartColors[0],
-                  }],
-                }}
+                data={monthlyChartData}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,

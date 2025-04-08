@@ -50,8 +50,17 @@ interface CarLogsState {
     endDate?: string;
     driveType?: DriveType;
   };
+  stats: {
+    totalMileage: number;
+    carLogsCount: string;
+    monthlyMileages: Array<{
+      month: string;
+      totalMileage: number;
+    }>;
+  } | null;
   
   fetchCarLogs: (params?: Partial<CarLogsParams>) => Promise<any>;
+  fetchCarLogsStats: () => Promise<void>;
   updateCarLog: (logId: number, data: CarLogUpdateData) => Promise<{ success: boolean; message: string }>;
   deleteCarLog: (logId: number) => Promise<{ success: boolean; message: string }>;
   setPage: (page: number) => void;
@@ -73,6 +82,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     endDate: undefined,
     driveType: undefined,
   },
+  stats: null,
   
   fetchCarLogs: async (params) => {
     try {
@@ -156,6 +166,31 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         isLoading: false
       });
       return null;
+    }
+  },
+  
+  fetchCarLogsStats: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const data = await fetchApi<any>('/api/carLogs/statics', undefined, {
+        method: 'GET'
+      });
+      
+      set({ 
+        stats: {
+          totalMileage: data.totalMileage || 0,
+          carLogsCount: data.carLogsCount || "0",
+          monthlyMileages: data.monthlyMileages || []
+        },
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('운행 통계 데이터 가져오기 실패:', error);
+      set({ 
+        error: error instanceof Error ? error.message : '운행 통계 데이터를 가져오는 중 오류가 발생했습니다',
+        isLoading: false
+      });
     }
   },
   
