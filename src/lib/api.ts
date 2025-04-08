@@ -97,4 +97,25 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
       }
     }
   }
-}; 
+};
+
+export async function fetchLatestPosition(mdn: string): Promise<{
+  mdn: string;
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+} | null> {
+  try {
+    const response = await fetch(`http://localhost:8080/api/gps/position?mdn=${mdn}`);
+    if (!response.ok) {
+      if (response.status === 500) {
+        return null;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching latest position:', error);
+    return null;
+  }
+} 
