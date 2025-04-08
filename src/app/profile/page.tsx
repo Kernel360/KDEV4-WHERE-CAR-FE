@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
 import PageHeader from "@/components/common/PageHeader";
-import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import { UserIcon, EnvelopeIcon, KeyIcon, CheckIcon, XMarkIcon, PhoneIcon, BriefcaseIcon, CalendarIcon, ShieldCheckIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { fetchApi } from '@/lib/api';
+import { UserRequest } from '@/lib/registerStore';
+import { Permission, ALL_PERMISSIONS, PERMISSION_GROUPS } from '@/lib/permissions';
 
 
 // 비밀번호 변경 인터페이스
@@ -113,51 +116,34 @@ export default function ProfilePage() {
     
     try {
       setIsLoading(true);
+      setApiError(null);
       
-      // 백엔드 API 사용 여부 (서버 준비 안된 경우 false로 설정)
-      const useBackendApi = true;
+      // UserRequest 클래스 구조에 맞게 요청 본문 구성
+      const userRequest = {
+        name: userInfo.name,
+        email: userInfo.email,
+        password: "", // 프로필 수정 시에는 비밀번호 필드를 빈 문자열로 설정
+        phone: userInfo.phone,
+        jobTitle: userInfo.jobTitle
+      };
       
-      if (useBackendApi) {
-        // UserRequest 클래스 구조에 맞게 요청 본문 구성
-        const userRequest = {
-          name: userInfo.name,
-          email: userInfo.email,
-          password: "", // 프로필 수정 시에는 비밀번호 필드를 빈 문자열로 설정
-          phone: userInfo.phone,
-          jobTitle: userInfo.jobTitle
-        };
-        
-        // 프로필 업데이트 API 호출
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/my`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(userRequest)
-        });
-        
-        // 업데이트된 프로필 정보 다시 가져오기
-        await fetchUserProfile();
-        
-        // 편집 모드 종료
-        setIsEditing(false);
-        setChangedFields({});
-      } else {
-        // 모의 응답 (백엔드 API가 아직 준비되지 않은 경우)
-        setTimeout(() => {
-          // 로컬 상태 업데이트만 수행
-          setIsEditing(false);
-          setChangedFields({});
-          setIsLoading(false);
-        }, 800);
-        return;
-      }
+      // 프로필 업데이트 API 호출
+      await fetchApi('/api/users/my', undefined, {
+        method: 'PUT',
+        body: JSON.stringify(userRequest)
+      });
       
-      setIsLoading(false);
+      // 업데이트된 프로필 정보 다시 가져오기
+      await fetchUserProfile();
+      
+      // 편집 모드 종료
+      setIsEditing(false);
+      setChangedFields({});
+      
     } catch (error) {
       console.error('프로필 업데이트 중 오류가 발생했습니다:', error);
       setApiError('프로필 업데이트에 실패했습니다.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -174,48 +160,30 @@ export default function ProfilePage() {
     
     try {
       setIsLoading(true);
+      setApiError(null);
       
-      // 백엔드 API 사용 여부 (서버 준비 안된 경우 false로 설정)
-      const useBackendApi = true;
+      await fetchApi('/api/users/password', undefined, {
+        method: 'PUT',
+        body: JSON.stringify({
+          oldPassword: passwordChange.currentPassword,
+          newPassword: passwordChange.newPassword
+        })
+      });
       
-      if (useBackendApi) {
-        // 비밀번호 변경 API 호출
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/my/password`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            currentPassword: passwordChange.currentPassword,
-            newPassword: passwordChange.newPassword
-          })
-        });
-        
-        // 비밀번호 변경 입력 필드 초기화
-        setPasswordChange({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        });
-      } else {
-        // 모의 응답 (백엔드 API가 아직 준비되지 않은 경우)
-        setTimeout(() => {
-          // 비밀번호 변경 입력 필드 초기화
-          setPasswordChange({
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: ""
-          });
-          setIsLoading(false);
-        }, 800);
-        return;
-      }
+      // 비밀번호 변경 성공
+      setPasswordChange({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
       
-      setIsLoading(false);
+      // 성공 메시지 표시
+      alert('비밀번호가 성공적으로 변경되었습니다.');
+      
     } catch (error) {
       console.error('비밀번호 변경 중 오류가 발생했습니다:', error);
-      setApiError('비밀번호 변경에 실패했습니다.');
+      setApiError('비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인해주세요.');
+    } finally {
       setIsLoading(false);
     }
   };

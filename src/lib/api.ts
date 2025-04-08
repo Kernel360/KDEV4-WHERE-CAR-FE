@@ -1,5 +1,5 @@
-// API 엔드포인트 기본 URL
-export const API_BASE_URL = 'http://localhost:8080';
+// API 기본 URL 설정
+export const API_BASE_URL = 'https://api.where-car.com:8080';
 
 // API 요청 함수
 export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string, any>, options?: RequestInit): Promise<T> => {
