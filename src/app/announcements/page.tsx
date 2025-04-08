@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import PageHeader from "@/components/common/PageHeader";
@@ -9,7 +9,8 @@ import { AnnouncementType } from "@/types/announcement";
 import { ExclamationTriangleIcon, BellIcon } from "@heroicons/react/24/outline";
 import { useAuthStore } from "@/lib/authStore";
 
-export default function AnnouncementsPage() {
+// SearchParams를 사용하는 컴포넌트를 분리
+function AnnouncementsContent() {
   const { currentTheme } = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,9 +37,7 @@ export default function AnnouncementsPage() {
   
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
-    // URL에 페이지 번호 반영
     router.push(`/announcements?page=${newPage}`);
-    // 로컬 스토리지에 현재 페이지 번호 저장
     if (typeof window !== 'undefined') {
       localStorage.setItem('announcementCurrentPage', newPage.toString());
     }
@@ -47,12 +46,6 @@ export default function AnnouncementsPage() {
   
   // 공지 사항 상세 페이지로 이동
   const handleAnnouncementClick = (id: number) => {
-    console.log(`공지사항 ID ${id}로 이동합니다.`);
-    if (id === undefined || id === null) {
-      console.error('공지사항 ID가 유효하지 않습니다.');
-      return;
-    }
-    // 현재 페이지 번호 저장
     if (typeof window !== 'undefined') {
       localStorage.setItem('announcementCurrentPage', page.toString());
     }
@@ -62,34 +55,19 @@ export default function AnnouncementsPage() {
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
     fetchAnnouncements(page, listPageSize);
-    
-    // 로컬 스토리지에 현재 페이지 번호 저장
     if (typeof window !== 'undefined') {
       localStorage.setItem('announcementCurrentPage', page.toString());
     }
   }, [fetchAnnouncements, page]);
   
-  // 공지사항 데이터 로드 후 ID 확인
-  useEffect(() => {
-    if (announcements.length > 0) {
-      console.log('로드된 공지사항:', announcements);
-      announcements.forEach(announcement => {
-        console.log(`공지사항 ID: ${announcement.id}, 제목: ${announcement.title}`);
-      });
-    }
-  }, [announcements]);
-  
   // 로그인 상태 확인
   useEffect(() => {
     const isAuthed = useAuthStore.getState().checkAuth();
-    
     if (!isAuthed) {
-      console.log('공지사항: 인증되지 않은 사용자 감지. 로그인 페이지로 리다이렉트합니다.');
       router.push('/login');
     }
   }, [router]);
   
-  // 로그인되지 않았거나 로딩 중인 경우 로딩 화면 표시
   if (!isAuthenticated) {
     return (
       <div className={`min-h-screen ${currentTheme.background} flex items-center justify-center`}>
@@ -182,5 +160,22 @@ export default function AnnouncementsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// 메인 컴포넌트
+export default function AnnouncementsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8">
+        <PageHeader title="공지사항" />
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg">로딩 중...</p>
+        </div>
+      </div>
+    }>
+      <AnnouncementsContent />
+    </Suspense>
   );
 }
