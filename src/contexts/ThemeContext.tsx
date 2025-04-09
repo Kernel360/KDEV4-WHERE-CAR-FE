@@ -23,6 +23,19 @@ export type Theme = {
   chartColors: string[];
   inputBg: string;
   chartGrid: string;
+  
+  // 추가 속성들
+  successBg: string;
+  successText: string;
+  dangerBg: string;
+  dangerText: string;
+  primaryButton: string;
+  primaryButtonText: string;
+  mutedText: string;
+  headingText: string;
+  selectedBg: string;
+  progressBg: string;
+  progressFill: string;
 };
 
 export const themes: Theme[] = [
@@ -45,6 +58,17 @@ export const themes: Theme[] = [
     chartColors: ["#3b82f6", "#6366f1", "#a5b4fc"],
     inputBg: "bg-white",
     chartGrid: "rgba(0, 0, 0, 0.1)",
+    successBg: "bg-green-50",
+    successText: "text-green-700",
+    dangerBg: "bg-red-50",
+    dangerText: "text-red-700",
+    primaryButton: "bg-blue-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-gray-500",
+    headingText: "text-gray-900",
+    selectedBg: "bg-gray-100",
+    progressBg: "bg-gray-200",
+    progressFill: "bg-blue-600",
   },
   {
     name: "Modern-Dark",
@@ -65,6 +89,17 @@ export const themes: Theme[] = [
     chartColors: ["#60a5fa", "#818cf8", "#c7d2fe"],
     inputBg: "bg-gray-700",
     chartGrid: "rgba(255, 255, 255, 0.1)",
+    successBg: "bg-green-900",
+    successText: "text-green-300",
+    dangerBg: "bg-red-900",
+    dangerText: "text-red-300",
+    primaryButton: "bg-blue-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-gray-400",
+    headingText: "text-white",
+    selectedBg: "bg-gray-700",
+    progressBg: "bg-gray-700",
+    progressFill: "bg-blue-500",
   },
   {
     name: "Ocean-Light",
@@ -85,6 +120,17 @@ export const themes: Theme[] = [
     chartColors: ["#0d9488", "#14b8a6", "#5eead4"],
     inputBg: "bg-white",
     chartGrid: "rgba(0, 0, 0, 0.1)",
+    successBg: "bg-green-50",
+    successText: "text-green-700",
+    dangerBg: "bg-red-50",
+    dangerText: "text-red-700",
+    primaryButton: "bg-teal-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-slate-500",
+    headingText: "text-slate-900",
+    selectedBg: "bg-slate-100",
+    progressBg: "bg-slate-200",
+    progressFill: "bg-teal-600",
   },
   {
     name: "Ocean-Dark",
@@ -105,6 +151,17 @@ export const themes: Theme[] = [
     chartColors: ["#14b8a6", "#2dd4bf", "#99f6e4"],
     inputBg: "bg-slate-700",
     chartGrid: "rgba(255, 255, 255, 0.1)",
+    successBg: "bg-green-900",
+    successText: "text-green-300",
+    dangerBg: "bg-red-900",
+    dangerText: "text-red-300",
+    primaryButton: "bg-teal-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-slate-400",
+    headingText: "text-white",
+    selectedBg: "bg-slate-700",
+    progressBg: "bg-slate-700",
+    progressFill: "bg-teal-500",
   },
   {
     name: "Sunset-Light",
@@ -125,6 +182,17 @@ export const themes: Theme[] = [
     chartColors: ["#ea580c", "#f97316", "#fdba74"],
     inputBg: "bg-white",
     chartGrid: "rgba(0, 0, 0, 0.1)",
+    successBg: "bg-green-50",
+    successText: "text-green-700",
+    dangerBg: "bg-red-50",
+    dangerText: "text-red-700",
+    primaryButton: "bg-orange-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-gray-500",
+    headingText: "text-gray-900",
+    selectedBg: "bg-orange-100",
+    progressBg: "bg-orange-200",
+    progressFill: "bg-orange-600",
   },
   {
     name: "Sunset-Dark",
@@ -145,6 +213,17 @@ export const themes: Theme[] = [
     chartColors: ["#f97316", "#fb923c", "#fed7aa"],
     inputBg: "bg-gray-700",
     chartGrid: "rgba(255, 255, 255, 0.1)",
+    successBg: "bg-green-900",
+    successText: "text-green-300",
+    dangerBg: "bg-red-900",
+    dangerText: "text-red-300",
+    primaryButton: "bg-orange-600",
+    primaryButtonText: "text-white",
+    mutedText: "text-gray-400",
+    headingText: "text-white",
+    selectedBg: "bg-gray-700",
+    progressBg: "bg-gray-700",
+    progressFill: "bg-orange-500",
   },
 ];
 

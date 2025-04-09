@@ -13,6 +13,7 @@ import {
   MoonIcon,
   Bars3Icon,
   XMarkIcon,
+  MapIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme, themes } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "대시보드", href: "/", icon: HomeIcon },
   { name: "차량", href: "/vehicles", icon: TruckIcon },
   { name: "운행일지", href: "/logs", icon: ClipboardDocumentListIcon },
+  { name: "실시간 관제", href: "/monitoring", icon: MapIcon },
   { name: "회사", href: "/companies", icon: BuildingOfficeIcon },
 ];
 
