@@ -106,7 +106,7 @@ export async function fetchLatestPosition(mdn: string): Promise<{
   timestamp: string;
 } | null> {
   try {
-    const response = await fetch(`http://localhost:8080/api/gps/position?mdn=${mdn}`);
+    const response = await fetch(`${API_BASE_URL}/api/gps/position?mdn=${mdn}`);
     if (!response.ok) {
       if (response.status === 500) {
         return null;
@@ -130,7 +130,7 @@ export async function fetchGpsRoute(mdn: string, startTime: string, endTime: str
 
     console.log('GPS 경로 요청 데이터:', requestBody);
 
-    const response = await fetch('http://localhost:8080/api/gps/route', {
+    const response = await fetch(`${API_BASE_URL}/api/gps/route`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
