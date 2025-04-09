@@ -5,9 +5,10 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { useCarOverviewStore } from '@/lib/carOverviewStore';
 import AlertMessage from '../common/AlertMessage';
-import NaverMap from './NaverMap';
+import VehicleLocationMap from '@/components/map/VehicleLocationMap';
 import { fetchLatestPosition } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { formatDate, formatNumber } from '@/lib/utils';
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;
@@ -492,36 +493,14 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                               </div>
                             </div>
                             <div className="relative rounded-xl overflow-hidden shadow-lg">
-                              {isLoadingPosition ? (
-                                <div className="flex items-center justify-center h-[400px] bg-muted">
-                                  <div className="flex flex-col items-center space-y-2">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
-                                    <p className="text-sm text-muted-foreground">위치 정보를 불러오는 중...</p>
-                                  </div>
-                                </div>
-                              ) : latestPosition ? (
-                                <div className="h-[400px] relative">
-                                  <NaverMap
-                                    latitude={latestPosition.latitude}
-                                    longitude={latestPosition.longitude}
-                                    zoom={15}
-                                  />
-                                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
-                                    <div className="flex items-center space-x-2">
-                                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                                      <p className="text-sm font-medium">현재 위치</p>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      위도: {latestPosition.latitude.toFixed(6)}<br />
-                                      경도: {latestPosition.longitude.toFixed(6)}
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center h-[400px] bg-muted">
-                                  <p className="text-muted-foreground">최근 위치 정보가 없습니다.</p>
-                                </div>
-                              )}
+                              <VehicleLocationMap
+                                latitude={latestPosition?.latitude || 37.5666805}
+                                longitude={latestPosition?.longitude || 126.9784147}
+                                zoom={15}
+                                height="400px"
+                                isLoading={isLoadingPosition}
+                                showLocationInfo={!!latestPosition}
+                              />
                             </div>
                           </div>
                         </div>
