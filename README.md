@@ -2,7 +2,26 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 환경 변수 설정
+
+프로젝트 실행 전 다음 환경 변수를 설정해야 합니다:
+
+1. `.env.example` 파일을 `.env` 파일로 복사합니다.
+2. `.env` 파일에서 환경 변수를 적절히 수정합니다:
+   ```
+   # API Keys
+   NEXT_PUBLIC_NAVER_CLIENT_ID=your_naver_client_id_here
+   
+   # Backend API
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+   
+   # Environment
+   NODE_ENV=development
+   ```
+
+### 개발 서버 실행
+
+환경 변수를 설정한 후, 개발 서버를 실행합니다:
 
 ```bash
 npm run dev

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { NAVER_CLIENT_ID } from '@/lib/env';
 
 interface RoutePoint {
   lat: number;
@@ -33,7 +34,7 @@ declare global {
 const DebugModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   if (!isOpen) return null;
   
-  const clientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || 'xefwc1thif';
+  const clientId = NAVER_CLIENT_ID || 'Not Set';
   const currentURL = typeof window !== 'undefined' ? window.location.href : '';
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const protocol = typeof window !== 'undefined' ? window.location.protocol : '';
@@ -131,7 +132,7 @@ const loadNaverScript = (): Promise<void> => {
     script.type = 'text/javascript';
     
     // 환경변수에서 CLIENT ID 가져오기
-    const clientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || 'xefwc1thif';
+    const clientId = NAVER_CLIENT_ID || 'xefwc1thif';
     
     console.log(`NaverMap: 사용 clientId=${clientId}`);
     
@@ -146,7 +147,7 @@ const loadNaverScript = (): Promise<void> => {
       });
     }
     
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
     
     script.onload = () => {
       console.log('NaverMap: 스크립트 로드 완료, window.naver 객체:', window.naver);
