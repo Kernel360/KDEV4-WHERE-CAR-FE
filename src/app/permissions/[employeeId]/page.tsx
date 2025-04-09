@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeftIcon, ShieldCheckIcon, CheckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
@@ -189,13 +189,8 @@ export default function EmployeePermissionsPage() {
     await updateUserPermissions(employeeId, permissions);
   };
 
-  // 기존 PERMISSION_GROUPS 기반으로 실제 권한 정보로 그룹화
-  const getGroupedPermissions = () => {
-    if (permissions.length === 0) {
-      // 권한 정보가 없을 경우 모든 기본 권한을 표시 (isGranted: false)
-      return PERMISSION_GROUPS;
-    }
-    
+  // 권한을 그룹별로 정렬하는 함수
+  const getGroupedPermissions = useCallback(() => {
     const groups = PERMISSION_GROUPS.map(group => ({
       ...group,
       permissions: permissions.filter(p => {
@@ -205,7 +200,7 @@ export default function EmployeePermissionsPage() {
     }));
     
     return groups;
-  };
+  }, [permissions]);
 
   // 검색어에 따라 권한 필터링
   const filteredGroups = useMemo(() => {
@@ -224,7 +219,7 @@ export default function EmployeePermissionsPage() {
     })).filter(group => group.permissions.length > 0);
     
     return filtered;
-  }, [searchTerm, permissions]);
+  }, [searchTerm, getGroupedPermissions]);
 
   // 뒤로가기 함수
   const handleGoBack = () => {

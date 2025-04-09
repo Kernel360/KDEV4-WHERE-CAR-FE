@@ -1,5 +1,7 @@
+import { API_BASE_URL as ENV_API_BASE_URL } from './env';
+
 // API 기본 URL 설정
-export const API_BASE_URL = 'https://api.where-car.com:8080';
+export const API_BASE_URL = ENV_API_BASE_URL;
 
 // API 요청 함수
 export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string, any>, options?: RequestInit): Promise<T> => {

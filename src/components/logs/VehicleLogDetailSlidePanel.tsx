@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CalendarIcon, ClockIcon, TruckIcon, UserIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -41,23 +41,8 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
   const [routePoints, setRoutePoints] = useState<{ lat: number; lng: number; timestamp?: string }[]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
-  useEffect(() => {
-    if (log) {
-      setDisplayLog(log);
-      fetchRouteData();
-    }
-  }, [log]);
-
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-
-  const fetchRouteData = async () => {
+  // fetchRouteData 함수를 useCallback으로 감싸기
+  const fetchRouteData = useCallback(async () => {
     if (!log) return;
     
     setIsLoadingRoute(true);
@@ -87,7 +72,23 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     } finally {
       setIsLoadingRoute(false);
     }
-  };
+  }, [log]);
+
+  useEffect(() => {
+    if (log) {
+      setDisplayLog(log);
+      fetchRouteData();
+    }
+  }, [log, fetchRouteData]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleEdit = () => {
     if (log) {
@@ -461,9 +462,6 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                               </div>
                             ) : routePoints.length > 0 ? (
                               <RouteMap
-                                latitude={routePoints[0].lat}
-                                longitude={routePoints[0].lng}
-                                zoom={15}
                                 routePoints={routePoints}
                               />
                             ) : (
