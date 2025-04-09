@@ -1,11 +1,13 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon, UserIcon, PencilIcon, TrashIcon, CheckIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon, UserIcon, PencilIcon, TrashIcon, CheckIcon, CurrencyDollarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { useCarOverviewStore } from '@/lib/carOverviewStore';
 import AlertMessage from '../common/AlertMessage';
-
+import NaverMap from './NaverMap';
+import { fetchLatestPosition } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 interface VehicleDetailSlidePanelProps {
   isOpen: boolean;
@@ -22,11 +24,18 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
   const [displayVehicle, setDisplayVehicle] = useState<Vehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [latestPosition, setLatestPosition] = useState<{
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  } | null>(null);
+  const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 
   useEffect(() => {
     if (vehicle) {
       setEditedVehicle(vehicle);
       setDisplayVehicle(vehicle);
+      fetchLatestPositionData();
     }
   }, [vehicle]);
 
@@ -105,6 +114,29 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
         console.error('차량 삭제 오류:', err);
       }
+    }
+  };
+
+  const fetchLatestPositionData = async () => {
+    if (!vehicle) return;
+    
+    setIsLoadingPosition(true);
+    try {
+      const position = await fetchLatestPosition(vehicle.mdn);
+      if (position) {
+        setLatestPosition({
+          latitude: position.latitude,
+          longitude: position.longitude,
+          timestamp: position.timestamp
+        });
+      } else {
+        setLatestPosition(null);
+      }
+    } catch (error) {
+      console.error('Error fetching position:', error);
+      setLatestPosition(null);
+    } finally {
+      setIsLoadingPosition(false);
     }
   };
 
@@ -432,6 +464,62 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                   </p>
                                 </div>
                               </div>
+                            </div>
+                          </div>
+
+                    
+                          {/* 네이버 지도 */}
+                          <div className="p-4 rounded-xl ${currentTheme.border} border">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className={`text-lg font-medium ${currentTheme.subtext} mb-2`}>차량 위치</h4>
+                              <div className="flex items-center space-x-2">
+                                {latestPosition && (
+                                  <p className="text-sm text-muted-foreground">
+                                    마지막 업데이트: {new Date(latestPosition.timestamp).toLocaleString()}
+                                  </p>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={fetchLatestPositionData}
+                                  disabled={isLoadingPosition}
+                                  className="h-6 w-6"
+                                >
+                                  <ArrowPathIcon className={`h-3 w-3 ${isLoadingPosition ? 'animate-spin' : ''}`} />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="relative rounded-xl overflow-hidden shadow-lg">
+                              {isLoadingPosition ? (
+                                <div className="flex items-center justify-center h-[400px] bg-muted">
+                                  <div className="flex flex-col items-center space-y-2">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+                                    <p className="text-sm text-muted-foreground">위치 정보를 불러오는 중...</p>
+                                  </div>
+                                </div>
+                              ) : latestPosition ? (
+                                <div className="h-[400px] relative">
+                                  <NaverMap
+                                    latitude={latestPosition.latitude}
+                                    longitude={latestPosition.longitude}
+                                    zoom={15}
+                                  />
+                                  <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                                      <p className="text-sm font-medium">현재 위치</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      위도: {latestPosition.latitude.toFixed(6)}<br />
+                                      경도: {latestPosition.longitude.toFixed(6)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center h-[400px] bg-muted">
+                                  <p className="text-muted-foreground">최근 위치 정보가 없습니다.</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

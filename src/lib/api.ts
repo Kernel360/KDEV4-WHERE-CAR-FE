@@ -97,4 +97,56 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
       }
     }
   }
-}; 
+};
+
+export async function fetchLatestPosition(mdn: string): Promise<{
+  mdn: string;
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+} | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/gps/position?mdn=${mdn}`);
+    if (!response.ok) {
+      if (response.status === 500) {
+        return null;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching latest position:', error);
+    return null;
+  }
+}
+
+export async function fetchGpsRoute(mdn: string, startTime: string, endTime: string) {
+  try {
+    const requestBody = {
+      mdn,
+      startTime,
+      endTime,
+    };
+
+    console.log('GPS 경로 요청 데이터:', requestBody);
+
+    const response = await fetch(`${API_BASE_URL}/api/gps/route`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error('GPS 경로 데이터를 가져오는데 실패했습니다.');
+    }
+
+    const responseData = await response.json();
+    console.log('GPS 경로 응답 데이터:', responseData);
+    return responseData;
+  } catch (error) {
+    console.error('GPS 경로 데이터 조회 오류:', error);
+    throw error;
+  }
+} 

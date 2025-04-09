@@ -13,6 +13,8 @@ export type Vehicle = {
   acquisitionType: "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING";
   batteryVoltage: number;
   carState: "RUNNING" | "STOPPED" | "NOT_REGISTERED";
+  latitude?: number;  // 차량 위치 - 위도
+  longitude?: number; // 차량 위치 - 경도
 };
 
 interface VehicleState {
