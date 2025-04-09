@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, TruckIcon, CalendarIcon, Battery100Icon, BuildingOfficeIcon, UserIcon, PencilIcon, TrashIcon, CheckIcon, CurrencyDollarIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -31,12 +31,37 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
   } | null>(null);
   const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 
+  // fetchLatestPositionData를 useCallback으로 감싸기
+  const fetchLatestPositionData = useCallback(async () => {
+    if (!vehicle) return;
+    
+    setIsLoadingPosition(true);
+    try {
+      const position = await fetchLatestPosition(vehicle.mdn);
+      if (position) {
+        setLatestPosition({
+          latitude: position.latitude,
+          longitude: position.longitude,
+          timestamp: position.timestamp
+        });
+      } else {
+        setLatestPosition(null);
+      }
+    } catch (error) {
+      console.error('Error fetching position:', error);
+      setLatestPosition(null);
+    } finally {
+      setIsLoadingPosition(false);
+    }
+  }, [vehicle]);
+
   useEffect(() => {
     if (vehicle) {
       setEditedVehicle(vehicle);
       setDisplayVehicle(vehicle);
       fetchLatestPositionData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicle]);
 
   useEffect(() => {
@@ -114,29 +139,6 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
         console.error('차량 삭제 오류:', err);
       }
-    }
-  };
-
-  const fetchLatestPositionData = async () => {
-    if (!vehicle) return;
-    
-    setIsLoadingPosition(true);
-    try {
-      const position = await fetchLatestPosition(vehicle.mdn);
-      if (position) {
-        setLatestPosition({
-          latitude: position.latitude,
-          longitude: position.longitude,
-          timestamp: position.timestamp
-        });
-      } else {
-        setLatestPosition(null);
-      }
-    } catch (error) {
-      console.error('Error fetching position:', error);
-      setLatestPosition(null);
-    } finally {
-      setIsLoadingPosition(false);
     }
   };
 

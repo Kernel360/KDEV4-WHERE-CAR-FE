@@ -4,7 +4,7 @@ import { ArrowPathIcon } from '@heroicons/react/24/outline';
 interface RoutePoint {
   lat: number;
   lng: number;
-  timestamp: string;
+  timestamp?: string;
 }
 
 interface RouteMapProps {

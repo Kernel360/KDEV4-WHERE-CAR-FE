@@ -263,6 +263,7 @@ export default function ProfilePage() {
     if (token) {
       fetchUserPermissions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // 권한 그룹별 개수 계산

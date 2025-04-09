@@ -24,13 +24,27 @@ export default function NaverMap({ latitude, longitude, zoom }: NaverMapProps) {
       };
       mapInstance.current = new window.naver.maps.Map(mapRef.current, mapOptions);
     }
-  }, []);
+  }, [latitude, longitude, zoom]);
 
   useEffect(() => {
     if (mapInstance.current) {
       mapInstance.current.setCenter(new window.naver.maps.LatLng(latitude, longitude));
       mapInstance.current.setZoom(zoom);
     }
+  }, [latitude, longitude, zoom]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeMap = async () => {
+      // ... existing code ...
+    };
+
+    initializeMap();
+
+    return () => {
+      isMounted = false;
+    };
   }, [latitude, longitude, zoom]);
 
   return (

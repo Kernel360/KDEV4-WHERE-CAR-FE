@@ -188,6 +188,7 @@ export default function NaverMap({
       
       return () => clearTimeout(timeout);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debug]);
   
   // 지도 초기화 효과
@@ -319,6 +320,7 @@ export default function NaverMap({
       isMounted = false;
       addDebugInfo('NaverMap: 컴포넌트 언마운트');
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latitude, longitude, zoom, debug, isRefReady]);
   
   return (
