@@ -13,6 +13,8 @@ interface MarkerData {
   label?: string;
   color?: string;
   isSelected?: boolean;
+  vehicleId?: string;
+  onClick?: (vehicleId: string) => void;
 }
 
 interface NaverMapProps {
@@ -241,6 +243,7 @@ export default function CarMap({
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                cursor: pointer;
               ">
                 ${markerData.label || ''}
               </div>
@@ -248,6 +251,13 @@ export default function CarMap({
             anchor: new window.naver.maps.Point(15, 15)
           }
         });
+
+        // 마커 클릭 이벤트 추가
+        if (markerData.vehicleId && markerData.onClick) {
+          window.naver.maps.Event.addListener(marker, 'click', () => {
+            markerData.onClick!(markerData.vehicleId!);
+          });
+        }
         
         return marker;
       });

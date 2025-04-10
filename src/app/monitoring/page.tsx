@@ -428,7 +428,11 @@ export default function MonitoringPage() {
       lng: pos.currentLocation.longitude,
       label: pos.carId,
       color: pos.color,
-      isSelected: selectedCars.includes(pos.carId)
+      isSelected: selectedCars.includes(pos.carId),
+      vehicleId: pos.carId,
+      onClick: (vehicleId: string) => {
+        toggleCarSelection(vehicleId);
+      }
     }));
     
   useEffect(() => {
