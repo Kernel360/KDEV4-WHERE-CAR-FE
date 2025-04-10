@@ -34,13 +34,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
 
   const validateField = (field: keyof Omit<Vehicle, 'id'>, value: any): string | null => {
     switch (field) {
-      case 'mdn':
-        // 한국 차량번호 형식 검증 (예: 12가 3456, 123가 4567)
-        const mdnRegex = /^[0-9]{2,3}[가-힣][0-9]{4}$/;
-        if (!mdnRegex.test(value.replace(/\s/g, ''))) {
-          return '올바른 차량번호 형식이 아닙니다 (예: 12가 3456)';
-        }
-        break;
       case 'year':
         const currentYear = new Date().getFullYear();
         const year = Number(value);
@@ -74,16 +67,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     if (field === 'year' || field === 'mileage' || field === 'batteryVoltage') {
       const numValue = field === 'batteryVoltage' ? parseFloat(value as string) : parseInt(value as string);
       processedValue = isNaN(numValue) ? 0 : numValue;
-    }
-
-    // 차량번호의 경우 자동으로 공백 추가
-    if (field === 'mdn') {
-      const cleaned = (value as string).replace(/\s/g, '');
-      if (cleaned.length >= 7) {
-        processedValue = cleaned.replace(/([0-9]{2,3})([가-힣])([0-9]{4})/, '$1$2 $3');
-      } else {
-        processedValue = cleaned;
-      }
     }
 
     const error = validateField(field, processedValue);
