@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -40,6 +40,7 @@ export const sidebarEvents = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { currentTheme, setTheme } = useTheme();
   const { userProfile, fetchUserProfile } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -259,24 +260,42 @@ export default function Sidebar() {
 
         {/* 하단 영역 - 유저 프로필 */}
         <div className={`p-4 border-t ${currentTheme.border} shrink-0`}>
-          <Link
-            href="/profile"
-            className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg transition-all duration-200 ${
-              pathname === '/profile'
-                ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
-                : `${currentTheme.textColor} hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-sm`
-            }`}
-          >
-            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-r ${currentTheme.profileGradient} flex items-center justify-center`}>
-              <span className="text-sm font-medium text-white">{getUserInitial()}</span>
-            </div>
-            {isOpen && (
-              <div className="ml-3">
-                <p className={`text-sm font-medium ${currentTheme.text}`}>{userProfile?.name || '사용자'}</p>
-                <p className={`text-xs ${currentTheme.subtext}`}>{userProfile?.email || 'user@wherecar.com'}</p>
+          <div className="relative group">
+            <Link
+              href="/profile"
+              className={`flex items-center ${isOpen ? 'px-4' : 'px-2 justify-center'} py-3 rounded-lg transition-all duration-200 ${
+                pathname === '/profile'
+                  ? `${currentTheme.activeBg} ${currentTheme.activeText} shadow-sm`
+                  : `${currentTheme.textColor} hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-sm`
+              }`}
+            >
+              <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-r ${currentTheme.profileGradient} flex items-center justify-center`}>
+                <span className="text-sm font-medium text-white">{getUserInitial()}</span>
               </div>
-            )}
-          </Link>
+              {isOpen && (
+                <div className="ml-3">
+                  <p className={`text-sm font-medium ${currentTheme.text}`}>{userProfile?.name || '사용자'}</p>
+                  <p className={`text-xs ${currentTheme.subtext}`}>{userProfile?.email || 'user@wherecar.com'}</p>
+                </div>
+              )}
+            </Link>
+            {/* 로그아웃 버튼 */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={() => {
+                  const { logout } = useAuthStore.getState();
+                  logout();
+                  router.push('/');
+                }}
+                className={`p-2 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor} hover:text-red-500`}
+                title="로그아웃"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

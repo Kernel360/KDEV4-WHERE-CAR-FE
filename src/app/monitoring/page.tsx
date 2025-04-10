@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import CarMap from '@/components/map/CarMap';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { 
   MinusIcon, 
@@ -15,6 +16,7 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/common/PageHeader';
+import CarMap from '@/components/map/CarMap';
 
 interface Location {
   latitude: number;
@@ -189,6 +191,8 @@ function VehicleSidebar({
 }
 
 export default function MonitoringPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const { currentTheme } = useTheme(); 
   const [wsConnected, setWsConnected] = useState(false);
   const [carLocations, setCarLocations] = useState<CarLocation[]>([]);
@@ -471,6 +475,16 @@ export default function MonitoringPage() {
     }
     connectWebSocket();
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className={`${currentTheme.background} min-h-screen`}>

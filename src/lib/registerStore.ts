@@ -33,7 +33,7 @@ interface RegisterState {
   registerSuccess: boolean;
   
   // 루트 계정 등록 메서드
-  registerRootUser: (data: RootUserRequest) => Promise<void>;
+  registerRootUser: (requestData: RootUserRequest) => Promise<boolean>;
   
   // 성공 상태 초기화
   resetRegisterSuccess: () => void;
@@ -45,45 +45,34 @@ export const useRegisterStore = create<RegisterState>((set) => ({
   registerSuccess: false,
   
   // 루트 계정 등록 메서드
-  registerRootUser: async (data: RootUserRequest) => {
+  registerRootUser: async (requestData: RootUserRequest) => {
     try {
       set({ isRegistering: true, registerError: null });
       
-      console.log('회원가입 요청 데이터:', data);
-      console.log('API 요청 URL:', `${API_BASE_URL}/api/users/root`);
-      
-      // 요청 본문 구성 (서버 형식에 맞게 조정)
-      const requestBody = JSON.stringify(data);
-      console.log('요청 본문:', requestBody);
-      
-      // API 요청 - 엔드포인트에 '/api' 접두사 추가, 메소드 명시적으로 POST로 지정
-      const response = await fetchApi('/api/users/root', undefined, {
+      // API 응답이 성공하면 빈 객체를 반환하므로, 에러가 발생하지 않으면 성공으로 간주
+      await fetchApi<any>('/api/users/root', undefined, {
         method: 'POST',
-        body: requestBody,
+        body: JSON.stringify(requestData)
       });
-      
-      console.log('회원가입 응답:', response);
-      
-      set({ 
-        isRegistering: false, 
-        registerSuccess: true,
-        registerError: null,
-      });
-    } catch (error) {
-      console.error('회원가입 에러:', error);
-      
-      // 에러 메시지를 더 자세히 표시
-      const errorMessage = error instanceof Error 
-        ? `${error.message} (${JSON.stringify(error)})`
-        : '회원가입 중 오류가 발생했습니다.';
       
       set({ 
         isRegistering: false,
-        registerError: errorMessage,
+        registerSuccess: true
       });
+      
+      return true;
+    } catch (error) {
+      set({ 
+        isRegistering: false,
+        registerError: error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      });
+      
+      return false;
     }
   },
   
   // 성공 상태 초기화
-  resetRegisterSuccess: () => set({ registerSuccess: false }),
+  resetRegisterSuccess: () => {
+    set({ registerSuccess: false });
+  }
 })); 

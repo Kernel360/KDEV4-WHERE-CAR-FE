@@ -146,7 +146,7 @@ export default function CompanyDetailPanel({
               >
                 <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
                   <div className={`flex h-full flex-col overflow-y-scroll ${currentTheme.cardBg} shadow-xl`}>
-                    <div className={`px-6 py-6 ${currentTheme.border} border-b`}>
+                    <div className="px-4 py-6">
                       <div className="flex items-center justify-between">
                         <Dialog.Title className={`text-xl font-semibold ${currentTheme.text}`}>
                           회사 상세 정보
@@ -161,14 +161,6 @@ export default function CompanyDetailPanel({
                               >
                                 <span className="sr-only">수정</span>
                                 <PencilIcon className="h-5 w-5" aria-hidden="true" />
-                              </button>
-                              <button
-                                type="button"
-                                className={`rounded-md ${currentTheme.text} hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2`}
-                                onClick={handleDelete}
-                              >
-                                <span className="sr-only">삭제</span>
-                                <TrashIcon className="h-5 w-5" aria-hidden="true" />
                               </button>
                             </>
                           ) : (

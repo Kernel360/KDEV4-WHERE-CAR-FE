@@ -33,8 +33,8 @@ import { useUserStore } from "@/lib/userStore";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/authStore";
 import { useCarLogsStore } from '@/lib/carLogsStore';
-import { useAnnouncementStore } from "@/lib/announcementStore";
-import { AnnouncementType } from "@/types/announcement";
+import { useAnnouncementStore } from '@/lib/announcementStore';
+import { AnnouncementType } from '@/types/announcement';
 
 
 ChartJS.register(
@@ -115,13 +115,17 @@ export default function DashboardPage() {
   // Get announcements data from store
   const { announcements, isLoading: isAnnouncementLoading, fetchAnnouncements } = useAnnouncementStore();
   
+  // Get current user info from auth store
+  const { userProfile, fetchUserProfile } = useAuthStore();
+  
   // Fetch data on component mount
   useEffect(() => {
     fetchOverview();
     fetchUsersOfCompany();
     fetchCarLogsStats();
     fetchAnnouncements(0, 3); // 대시보드에서는 최신 3개만 표시
-  }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats, fetchAnnouncements]);
+    fetchUserProfile(); // 현재 사용자 정보 가져오기
+  }, [fetchOverview, fetchUsersOfCompany, fetchCarLogsStats, fetchAnnouncements, fetchUserProfile]);
   
   // Prepare car status data for chart - moved inside component
   const vehicleStatusData = {
@@ -244,8 +248,10 @@ export default function DashboardPage() {
                 <UserIcon className={`h-6 w-6 ${currentTheme.activeText}`} />
               </div>
               <div>
-                <h2 className={`text-xl font-semibold ${currentTheme.text}`}>안녕하세요, {userInfo.name}님</h2>
-                <p className={`text-sm ${currentTheme.subtext}`}>마지막 로그인: {userInfo.lastLogin}</p>
+                <h2 className={`text-xl font-semibold ${currentTheme.text}`}>안녕하세요, {userProfile?.name || '사용자'}님</h2>
+                <p className={`text-sm ${currentTheme.subtext}`}>
+                  {userProfile?.jobTitle || '직원'} | {userProfile?.email || ''}
+                </p>
               </div>
             </div>
 

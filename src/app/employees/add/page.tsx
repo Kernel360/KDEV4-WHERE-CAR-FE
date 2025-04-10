@@ -87,14 +87,10 @@ export default function AddEmployeePage() {
   // useEffect를 사용하여 등록 성공 시 리다이렉션 처리
   useEffect(() => {
     if (registerSuccess) {
-      // 직원 추가 성공 정보를 로컬 스토리지에 저장 (회사 페이지에서 표시하기 위함)
-      localStorage.setItem('employeeAddSuccess', 'true');
-      localStorage.setItem('employeeAddName', formData.name);
-      
-      // 바로 회사 페이지로 이동
+      resetRegisterSuccess(); // 상태 초기화
       router.push('/companies');
     }
-  }, [registerSuccess, formData.name, router]);
+  }, [registerSuccess, router, resetRegisterSuccess]);
 
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
