@@ -207,9 +207,9 @@ export default function MonitoringPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [mapSettings, setMapSettings] = useState({
-    latitude: 37.5666805,
-    longitude: 126.9784147,
-    zoom: 13,
+    latitude: 36.5,
+    longitude: 127.5,
+    zoom: 7,
     followVehicle: false, 
   });
 
@@ -428,7 +428,11 @@ export default function MonitoringPage() {
       lng: pos.currentLocation.longitude,
       label: pos.carId,
       color: pos.color,
-      isSelected: selectedCars.includes(pos.carId)
+      isSelected: selectedCars.includes(pos.carId),
+      vehicleId: pos.carId,
+      onClick: (vehicleId: string) => {
+        toggleCarSelection(vehicleId);
+      }
     }));
     
   useEffect(() => {
@@ -447,7 +451,8 @@ export default function MonitoringPage() {
         setMapSettings(prev => ({
           ...prev,
           latitude: selectedCar.currentLocation.latitude,
-          longitude: selectedCar.currentLocation.longitude
+          longitude: selectedCar.currentLocation.longitude,
+          zoom: 15
         }));
       }
     }
