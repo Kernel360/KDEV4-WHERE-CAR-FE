@@ -207,9 +207,9 @@ export default function MonitoringPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [mapSettings, setMapSettings] = useState({
-    latitude: 37.5666805,
-    longitude: 126.9784147,
-    zoom: 13,
+    latitude: 36.5,
+    longitude: 127.5,
+    zoom: 7,
     followVehicle: false, 
   });
 
