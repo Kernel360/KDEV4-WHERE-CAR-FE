@@ -44,7 +44,11 @@ export default function EmployeeList(props: EmployeeListProps) {
       department: "", // API에서 부서 정보가 없음
       email: user.email,
       phone: user.phone,
-      joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : "", // createdAt을 가입일로 표시
+      joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }) : "", // createdAt을 가입일로 표시 (년월일만)
       permissions: [] // API에서 권한 정보가 없음
     };
   };
