@@ -262,10 +262,6 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     if (carLocations.length > 0) {
-      console.log('애니메이션 시작: 차량 데이터 업데이트됨', {
-        차량수: carLocations.length,
-        첫차량ID: carLocations[0]?.carId
-      });
 
       if (animationRef.current) {
         clearInterval(animationRef.current);
@@ -273,7 +269,7 @@ export default function MonitoringPage() {
 
       const initialPositions = assignCarColors(carLocations);
       setCurrentPositions(initialPositions);
-      console.log('🏁 초기 위치 설정 완료', initialPositions);
+      console.log('초기 위치 설정 완료', initialPositions);
 
       animationRef.current = setInterval(() => {
         setCurrentPositions(prev => {
@@ -328,7 +324,7 @@ export default function MonitoringPage() {
 
   const connectWebSocket = () => {
     try {
-      const wsUrl = 'ws://localhost:8080/ws';
+      const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOKET_URL}/ws`;
       
       console.log(`WebSocket 연결 시도: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
@@ -395,7 +391,7 @@ export default function MonitoringPage() {
 
   const processReceivedData = (data: CarLocation[]) => {
     try {
-      console.log('📊 데이터 처리 중...', {
+      console.log('데이터 처리 중...', {
         차량수: data.length,
         첫차량: data[0]?.carId,
         데이터포인트: data[0]?.locations.length
