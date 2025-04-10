@@ -451,7 +451,8 @@ export default function MonitoringPage() {
         setMapSettings(prev => ({
           ...prev,
           latitude: selectedCar.currentLocation.latitude,
-          longitude: selectedCar.currentLocation.longitude
+          longitude: selectedCar.currentLocation.longitude,
+          zoom: 15
         }));
       }
     }
