@@ -244,8 +244,8 @@ export default function DashboardPage() {
           {/* 환영 메시지와 공지사항 */}
           <div className={`lg:col-span-4 ${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center mb-6">
-              <div className={`h-12 w-12 rounded-full ${currentTheme.activeBg} flex items-center justify-center mr-4`}>
-                <UserIcon className={`h-6 w-6 ${currentTheme.activeText}`} />
+              <div className={`h-12 w-12 rounded-full bg-gradient-to-r ${currentTheme.profileGradient} flex items-center justify-center mr-4`}>
+                <span className="text-sm font-medium text-white">{userProfile?.name ? userProfile.name.charAt(0) : '사'}</span>
               </div>
               <div>
                 <h2 className={`text-xl font-semibold ${currentTheme.text}`}>안녕하세요, {userProfile?.name || '사용자'}님</h2>
