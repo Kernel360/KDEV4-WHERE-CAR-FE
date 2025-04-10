@@ -426,7 +426,7 @@ export default function MonitoringPage() {
     .map(pos => ({
       lat: pos.currentLocation.latitude,
       lng: pos.currentLocation.longitude,
-      label: pos.carId,
+      label: '',
       color: pos.color,
       isSelected: selectedCars.includes(pos.carId),
       vehicleId: pos.carId,

@@ -221,8 +221,17 @@ export default function CarMap({
       const newMarkers = markers.map(markerData => {
         // 마커 스타일 설정
         const markerColor = markerData.color || '#3B82F6';
-        const borderColor = markerData.isSelected ? '#000000' : '#FFFFFF';
+        const selectedGradient = `linear-gradient(135deg, ${markerColor}, ${lightenColor(markerColor, 20)})`;
+        const normalGradient = `linear-gradient(135deg, ${darkenColor(markerColor, 10)}, ${markerColor})`;
+        const borderGlow = markerData.isSelected ? `0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 0 4px ${markerColor}80` : 'none';
+        const boxShadow = markerData.isSelected 
+          ? `0 2px 8px rgba(0,0,0,0.3), 0 0 16px ${markerColor}60, inset 0 1px 3px rgba(255,255,255,0.6)` 
+          : '0 2px 4px rgba(0,0,0,0.3)';
+        const transform = markerData.isSelected ? 'translateY(-2px)' : 'none';
+        const borderColor = markerData.isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)';
         const borderWidth = markerData.isSelected ? 3 : 2;
+        const circleSize = markerData.isSelected ? 28  : 25;
+        const animation = markerData.isSelected ? 'pulse 2s infinite' : 'none';
         
         const marker = new window.naver.maps.Marker({
           position: new window.naver.maps.LatLng(markerData.lat, markerData.lng),
@@ -230,25 +239,77 @@ export default function CarMap({
           title: markerData.label,
           icon: {
             content: `
-              <div style="
-                background-color: ${markerColor};
-                color: #FFFFFF;
-                padding: 6px 10px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: bold;
+              <style>
+                @keyframes pulse {
+                  0% { transform: scale(1); }
+                  50% { transform: scale(1.05); }
+                  100% { transform: scale(1); }
+                }
+              </style>
+              <div class="vehicle-marker" style="
+                position: relative;
+                width: ${circleSize}px;
+                height: ${circleSize}px;
+                border-radius: 50%;
+                background: ${markerData.isSelected ? selectedGradient : normalGradient};
                 border: ${borderWidth}px solid ${borderColor};
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                white-space: nowrap;
+                box-shadow: ${boxShadow};
+                filter: ${markerData.isSelected ? 'contrast(110%) brightness(105%)' : 'none'};
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                cursor: pointer;
-              ">
-                ${markerData.label || ''}
+                font-size: ${markerData.isSelected ? '12px' : '10px'};
+                font-weight: bold;
+                color: white;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+                transform: ${transform};
+                animation: ${animation};
+              " 
+              onmouseover="this.style.transform='scale(1.1) ${markerData.isSelected ? 'translateY(-2px)' : ''}'; 
+                          document.getElementById('tooltip-${markerData.vehicleId}').style.opacity='1';
+                          document.getElementById('tooltip-${markerData.vehicleId}').style.visibility='visible';"
+              onmouseout="this.style.transform='${markerData.isSelected ? 'translateY(-2px)' : 'scale(1)'}'; 
+                         document.getElementById('tooltip-${markerData.vehicleId}').style.opacity='0';
+                         document.getElementById('tooltip-${markerData.vehicleId}').style.visibility='hidden';"
+              >
+                ${markerData.vehicleId ? markerData.vehicleId.substring(0, 2) : ''}
+                <div id="tooltip-${markerData.vehicleId}" style="
+                  position: absolute;
+                  bottom: 100%;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  margin-bottom: 12px;
+                  background: linear-gradient(to bottom, rgba(40, 40, 40, 0.95), rgba(20, 20, 20, 0.95));
+                  color: white;
+                  padding: 8px 12px;
+                  border-radius: 8px;
+                  font-size: 12px;
+                  font-weight: 500;
+                  white-space: nowrap;
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+                  opacity: 0;
+                  visibility: hidden;
+                  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+                  z-index: 1000;
+                  pointer-events: none;
+                  border: 1px solid rgba(255,255,255,0.15);
+                ">
+                  ${markerData.vehicleId}
+                  <div style="
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    margin-left: -6px;
+                    border-width: 6px;
+                    border-style: solid;
+                    border-color: rgba(20, 20, 20, 0.95) transparent transparent transparent;
+                  "></div>
+                </div>
               </div>
             `,
-            anchor: new window.naver.maps.Point(15, 15)
+            anchor: new window.naver.maps.Point(circleSize/2, circleSize/2)
           }
         });
 
@@ -298,4 +359,35 @@ export default function CarMap({
       </div>
     </div>
   );
+}
+
+// 색상 조정 유틸리티 함수
+function lightenColor(color: string, percent: number): string {
+  if (color.startsWith('#')) {
+    let r = parseInt(color.substring(1, 3), 16);
+    let g = parseInt(color.substring(3, 5), 16);
+    let b = parseInt(color.substring(5, 7), 16);
+
+    r = Math.min(255, Math.floor(r * (1 + percent / 100)));
+    g = Math.min(255, Math.floor(g * (1 + percent / 100)));
+    b = Math.min(255, Math.floor(b * (1 + percent / 100)));
+
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  return color;
+}
+
+function darkenColor(color: string, percent: number): string {
+  if (color.startsWith('#')) {
+    let r = parseInt(color.substring(1, 3), 16);
+    let g = parseInt(color.substring(3, 5), 16);
+    let b = parseInt(color.substring(5, 7), 16);
+
+    r = Math.max(0, Math.floor(r * (1 - percent / 100)));
+    g = Math.max(0, Math.floor(g * (1 - percent / 100)));
+    b = Math.max(0, Math.floor(b * (1 - percent / 100)));
+
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  return color;
 } 
