@@ -198,7 +198,8 @@ export default function MonitoringPage() {
   const [carLocations, setCarLocations] = useState<CarLocation[]>([]);
   const [currentPositions, setCurrentPositions] = useState<CurrentCarPosition[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  const [companyId, setCompanyId] = useState<string>('2');
+  //Todo: 회사 아이디 받아오기
+  const [companyId, setCompanyId] = useState<string>('1');
   const [selectedCars, setSelectedCars] = useState<string[]>([]);
   const [showAllCars, setShowAllCars] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);

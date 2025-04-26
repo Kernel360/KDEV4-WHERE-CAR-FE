@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { NAVER_CLIENT_ID } from '@/lib/env';
 
 interface RoutePoint {
   lat: number;
@@ -66,9 +65,8 @@ const loadNaverScript = (): Promise<void> => {
     const script = document.createElement('script');
     script.id = 'naver-map-script';
     script.type = 'text/javascript';
-    
     // 환경변수에서 CLIENT ID 가져오기
-    const clientId = NAVER_CLIENT_ID || 'xefwc1thif';
+    const clientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
     
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
     
