@@ -285,7 +285,6 @@ export default function Sidebar() {
                 onClick={() => {
                   const { logout } = useAuthStore.getState();
                   logout();
-                  router.push('/');
                 }}
                 className={`p-2 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor} hover:text-red-500`}
                 title="로그아웃"
