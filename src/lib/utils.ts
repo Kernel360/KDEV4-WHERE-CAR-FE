@@ -45,3 +45,20 @@ function convertToCSV(data: any[]): string {
   );
   return [headers.join(','), ...rows].join('\n');
 }
+
+export function formatTime(seconds: number): string {
+  if (seconds <= 0) return "0분";
+
+  const days = Math.floor(seconds / (24 * 3600));
+  seconds %= (24 * 3600);
+  const hours = Math.floor(seconds / 3600);
+  seconds %= 3600;
+  const minutes = Math.floor(seconds / 60);
+  
+  let result = "";
+  if (days > 0) result += `${days}일 `;
+  if (hours > 0) result += `${hours}시간 `;
+  if (minutes > 0) result += `${minutes}분`;
+  
+  return result.trim();
+}
