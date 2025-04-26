@@ -14,6 +14,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   MapIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme, themes } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
@@ -43,14 +45,13 @@ export default function Sidebar() {
   const router = useRouter();
   const { currentTheme, setTheme } = useTheme();
   const { userProfile, fetchUserProfile } = useAuthStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // 초기 상태를 펼쳐진 상태로 변경
   const [userToggled, setUserToggled] = useState(false);
 
   // 초기 로드 시 localStorage에서 사이드바 상태 가져오기
   useEffect(() => {
     const storedSidebarState = localStorage.getItem('sidebarOpen');
-    // localStorage에 값이 저장되어 있으면 그 값을 사용, 없으면 기본값 false
+    // localStorage에 값이 저장되어 있으면 그 값을 사용, 없으면 기본값 true (펼쳐진 상태)
     if (storedSidebarState) {
       setIsOpen(storedSidebarState === 'true');
       setUserToggled(true);
@@ -83,13 +84,6 @@ export default function Sidebar() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // 호버 상태에 따라 사이드바 열기/닫기
-  useEffect(() => {
-    if (window.innerWidth >= 768 && !userToggled) {
-      setIsOpen(isHovered);
-    }
-  }, [isHovered, userToggled]);
 
   // 사용자가 토글 버튼을 클릭했을 때 상태 저장
   const handleToggleSidebar = useCallback(() => {
@@ -128,6 +122,18 @@ export default function Sidebar() {
         )}
       </button>
 
+      {/* 데스크톱 토글 버튼 */}
+      <button
+        onClick={handleToggleSidebar}
+        className={`hidden md:flex fixed top-4 ${isOpen ? 'left-64' : 'left-20'} z-20 p-2 rounded-lg ${currentTheme.cardBg} ${currentTheme.border} shadow-sm transition-all duration-300`}
+      >
+        {isOpen ? (
+          <ChevronLeftIcon className={`h-5 w-5 ${currentTheme.text}`} />
+        ) : (
+          <ChevronRightIcon className={`h-5 w-5 ${currentTheme.text}`} />
+        )}
+      </button>
+
       {/* 오버레이 */}
       {isOpen && (
         <div
@@ -143,11 +149,6 @@ export default function Sidebar() {
         } border-r z-40 transition-all duration-300 ease-in-out overflow-hidden ${
           isOpen ? "w-64" : "w-20"
         }`}
-        onMouseEnter={() => {
-          setIsHovered(true);
-          if (userToggled) setUserToggled(false);
-        }}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {/* 로고 영역 */}
         <div className="flex h-16 shrink-0 items-center justify-between px-6 overflow-hidden">
