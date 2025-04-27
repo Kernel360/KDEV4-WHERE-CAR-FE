@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Chart as ChartJS,
@@ -22,6 +22,7 @@ import { MapPinIcon, ClockIcon, TagIcon } from "@heroicons/react/24/outline";
 import { formatTime } from "@/lib/utils";
 import { useAuthStore } from "@/lib/authStore";
 import { API_BASE_URL, fetchApi } from "@/lib/api";
+import { NAVER_CLIENT_ID } from "@/lib/env";
 
 // Chart.js 등록
 ChartJS.register(
@@ -112,6 +113,13 @@ const CardContent = React.forwardRef<
 ));
 CardContent.displayName = "CardContent";
 
+// 열지도 클래스 타입 정의
+declare global {
+  interface Window {
+    naver: any;
+  }
+}
+
 export default function StatisticsPage() {
   const [statistics, setStatistics] = useState<StatisticsData>({
     totalDistance: 0,
@@ -135,6 +143,13 @@ export default function StatisticsPage() {
     from: formatDateToYYYYMMDD(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)), // 30일 전
     to: formatDateToYYYYMMDD(new Date()) // 오늘
   });
+
+  // 지도 관련 상태 - 통합
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [heatmap, setHeatmap] = useState<any>(null);
+  const [mapMode, setMapMode] = useState<'departure' | 'arrival'>('departure'); // 지도 모드 상태 추가
+  const [mapInstance, setMapInstance] = useState<any>(null); // 네이버 맵 인스턴스 보관
 
   const router = useRouter();
   const { token } = useAuthStore();
@@ -324,6 +339,165 @@ export default function StatisticsPage() {
     return `${year}-${month}-${day}`;
   };
 
+  // 네이버 맵 API 스크립트 로드
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_CLIENT_ID}&submodules=visualization`;
+    script.async = true;
+    script.onload = () => setMapLoaded(true);
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
+  // 지도 인스턴스 초기화
+  useEffect(() => {
+    if (!mapLoaded || !window.naver || !mapRef.current || loading) return;
+
+    try {
+      // 네이버 맵 인스턴스 생성 - 한국 전체가 보이도록 설정
+      const mapOptions = {
+        center: new window.naver.maps.LatLng(36.5, 127.5), // 한국의 중심 좌표
+        zoom: 7, // 한국 전체가 보이는 줌 레벨
+        zoomControl: true,
+        zoomControlOptions: {
+          position: window.naver.maps.Position.TOP_RIGHT
+        }
+      };
+
+      const map = new window.naver.maps.Map(mapRef.current, mapOptions);
+      setMapInstance(map);
+
+      return () => {
+        if (heatmap) {
+          heatmap.setMap(null);
+        }
+      };
+    } catch (error) {
+      console.error("지도 초기화 오류:", error);
+    }
+  }, [mapLoaded, loading]);
+
+  // 지도 모드가 변경되거나 데이터가 변경될 때 히트맵 업데이트
+  useEffect(() => {
+    if (!mapLoaded || !window.naver || !mapInstance || loading) return;
+
+    // 이전 히트맵 제거 (효과 보장을 위해 최상단에서 실행)
+    if (heatmap) {
+      console.log('이전 히트맵 제거');
+      heatmap.setMap(null);
+      setHeatmap(null);
+    }
+
+    // 지도 모드에 따라 데이터 선택
+    const locationData = mapMode === 'departure' 
+      ? statistics.onList.map(item => ({
+          lat: item.latitude,
+          lng: item.longitude,
+          weight: 1.0
+        }))
+      : statistics.offList.map(item => ({
+          lat: item.latitude,
+          lng: item.longitude,
+          weight: 1.0
+        }));
+
+    // 데이터가 없는 경우 메시지 표시
+    if (locationData.length === 0) {
+      console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포를 위한 위치 데이터가 없습니다.`);
+      return;
+    }
+
+    console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포 데이터:`, locationData.length, "개 포인트");
+
+    // 항상 출발지와 도착지 데이터를 모두 고려한 bounds 계산
+    if (statistics.onList.length > 0 || statistics.offList.length > 0) {
+      // 도착지와 출발지 모두의 위치 데이터로 통합 bounds 계산
+      const allLocationData = [...statistics.onList, ...statistics.offList].map(item => ({
+        lat: item.latitude,
+        lng: item.longitude
+      }));
+      
+      const bounds = new window.naver.maps.LatLngBounds();
+      
+      // 모든 위치 데이터를 경계에 추가
+      allLocationData.forEach(point => {
+        bounds.extend(new window.naver.maps.LatLng(point.lat, point.lng));
+      });
+      
+      // 데이터 포인트가 충분히 있는 경우에만 경계 조정
+      const hasValidBounds = bounds.hasOwnProperty('_ne') && bounds.hasOwnProperty('_sw');
+      if (hasValidBounds) {
+        // 경계에 맞게 지도 영역 조정 (여백 추가)
+        setTimeout(() => {
+          try {
+            mapInstance.fitBounds(bounds, {
+              top: 50,    // 위쪽 여백
+              right: 50,  // 오른쪽 여백
+              bottom: 50, // 아래쪽 여백
+              left: 50    // 왼쪽 여백
+            });
+            console.log("지도 경계 설정 완료 (출발지와 도착지 모두 포함)");
+          } catch (e) {
+            console.error("지도 경계 설정 오류:", e);
+          }
+        }, 100);
+      }
+    }
+
+    // 현재 모드에 맞는 데이터만 사용하여 히트맵 생성
+    console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 히트맵 생성 시작`);
+    
+    // 히트맵 데이터 포맷 변환 (현재 모드에 맞는 데이터만 표시)
+    const heatmapData = locationData.map(point => {
+      // 네이버 맵 LatLng 객체 생성
+      const latLng = new window.naver.maps.LatLng(point.lat, point.lng);
+      
+      // WeightedLocation 객체처럼 location과 weight 속성 설정
+      latLng.weight = point.weight;
+      
+      return latLng;
+    });
+
+    // 히트맵 옵션 및 인스턴스 생성
+    const heatmapOptions = {
+      map: mapInstance,
+      data: heatmapData,
+      opacity: 0.7,
+      radius: 10
+    };
+
+    // 잠시 대기 후 히트맵 생성 (지도 로드 완료 대기)
+    setTimeout(() => {
+      try {
+        const heatmapInstance = new window.naver.maps.visualization.HeatMap(heatmapOptions);
+        console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 히트맵 생성 성공 (${heatmapData.length}개 포인트)`);
+        setHeatmap(heatmapInstance);
+      } catch (e) {
+        console.error(`${mapMode === 'departure' ? '출발지' : '도착지'} 히트맵 생성 오류:`, e);
+      }
+    }, 500);
+
+  }, [mapLoaded, statistics, loading, mapMode, mapInstance]);
+
+  // 컴포넌트 언마운트 시 정리 작업 추가
+  useEffect(() => {
+    return () => {
+      if (heatmap) {
+        heatmap.setMap(null);
+      }
+    };
+  }, [heatmap]);
+
+  // 모드 변경 핸들러
+  const toggleMapMode = () => {
+    setMapMode(prev => prev === 'departure' ? 'arrival' : 'departure');
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <PageHeader 
@@ -380,7 +554,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl font-semibold text-gray-700">
                     {statistics.commuteCount + statistics.businessCount + statistics.personalCount + statistics.unclassifiedCount}건
                   </p>
                 </div>
@@ -393,7 +567,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{statistics.totalDistance}km</p>
+                  <p className="text-2xl font-semibold text-gray-700">{statistics.totalDistance}km</p>
                 </div>
               </CardContent>
             </Card>
@@ -404,7 +578,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{formatTime(statistics.totalDriveTime)}</p>
+                  <p className="text-2xl font-semibold text-gray-700">{formatTime(statistics.totalDriveTime)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -415,7 +589,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{statistics.maxSpeed}km/h</p>
+                  <p className="text-2xl font-semibold text-gray-700">{statistics.maxSpeed}km/h</p>
                 </div>
               </CardContent>
             </Card>
@@ -429,7 +603,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{statistics.averageDistance}km</p>
+                  <p className="text-2xl font-semibold text-gray-700">{statistics.averageDistance}km</p>
                 </div>
               </CardContent>
             </Card>
@@ -440,7 +614,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{statistics.maxDistance}km</p>
+                  <p className="text-2xl font-semibold text-gray-700">{statistics.maxDistance}km</p>
                 </div>
               </CardContent>
             </Card>
@@ -451,7 +625,7 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl font-semibold text-gray-700">
                     {statistics.averageSpeed < 0 ? '0' : statistics.averageSpeed}km/h
                   </p>
                 </div>
@@ -464,19 +638,19 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <p className="text-3xl font-bold text-gray-900">{formatTime(statistics.maxDriveTime)}</p>
+                  <p className="text-2xl font-semibold text-gray-700">{formatTime(statistics.maxDriveTime)}</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* 운행 종류 분류 - 제목 변경 및 데이터 활용 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="md:col-span-1">
+          {/* 운행 종류 분류와 지도 - 레이아웃 유지하고 지도만 변경 */}
+          <div className="grid grid-cols-1 md:grid-cols-10 gap-4 mb-8">
+            <Card className="md:col-span-4">
               <CardHeader>
                 <CardTitle>운행 목적별 운행건수</CardTitle>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-96">
                 <Doughnut 
                   data={tripTypeData} 
                   options={{
@@ -492,19 +666,55 @@ export default function StatisticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>도착지 분포</CardTitle>
+            {/* 하나의 지도로 통합하고 모드 전환 버튼 추가 */}
+            <Card className="md:col-span-6">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>{mapMode === 'departure' ? '출발지 분포' : '도착지 분포'}</CardTitle>
+                <div className="flex space-x-1 rounded-md shadow-sm" role="group">
+                  <button
+                    type="button"
+                    onClick={() => setMapMode('departure')}
+                    className={`px-4 py-2 text-sm font-medium rounded-l-md border 
+                      ${mapMode === 'departure' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    출발지
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMapMode('arrival')}
+                    className={`px-4 py-2 text-sm font-medium rounded-r-md border 
+                      ${mapMode === 'arrival' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  >
+                    도착지
+                  </button>
+                </div>
               </CardHeader>
               <CardContent className="h-80">
-                <div className="h-full w-full bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-gray-500">지도 영역</p>
-                </div>
+                {mapLoaded ? (
+                  <div ref={mapRef} className="w-full h-full rounded-md"></div>
+                ) : (
+                  <div className="h-full w-full bg-gray-100 rounded-md flex items-center justify-center">
+                    <p className="text-gray-500">지도를 불러오는 중...</p>
+                  </div>
+                )}
               </CardContent>
+              <div className="px-6 pb-4">
+                <p className="text-xs text-gray-500">
+                  * 빨간색 영역일수록 차량 {mapMode === 'departure' ? '출발' : '도착'}이 자주 발생한 지역입니다.
+                </p>
+                <p className="text-xs text-gray-500">
+                  * {mapMode === 'departure' ? '출발' : '도착'} 위치 데이터 기준: 
+                  {mapMode === 'departure' ? statistics.onList.length : statistics.offList.length}개 데이터
+                </p>
+              </div>
             </Card>
           </div>
-
-          {/* 시간/요일별 차트 유지 */}
+          
+          {/* 시간/요일별 차트 - 기존 코드 유지 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <Card>
               <CardHeader>
