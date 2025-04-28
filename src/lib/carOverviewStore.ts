@@ -26,7 +26,10 @@ export const useCarOverviewStore = create<CarOverviewState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<CarOverviewData>('/api/cars/overview');
+      const response = await fetchApi<{data: CarOverviewData, message: string, statusCode: number}>('/api/cars/overview');
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const data = response.data || response;
       
       set({ 
         data: data,
