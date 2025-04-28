@@ -108,7 +108,7 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     if (editedLog) {
       try {
         const updateData = {
-          driveType: editedLog.driveType === 'UNREGISTERED' ? null : editedLog.driveType,
+          driveType: editedLog.driveType,
           driver: editedLog.driver?.name || '',
           description: editedLog.note || ''
         };
@@ -206,20 +206,22 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
     switch (type) {
       case 'COMMUTE':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-50 dark:text-blue-700';
-      case 'WORK':
+      case 'BUSINESS':
         return 'bg-teal-50 text-teal-700 dark:bg-teal-50 dark:text-teal-700';
-      case 'UNREGISTERED':
-        return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
+      case 'PERSONAL':
+        return 'bg-purple-50 text-purple-700 dark:bg-purple-50 dark:text-purple-700';
+      case 'UNCLASSIFIED':
       default:
-        return '';
+        return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
     }
   };
 
   const getDriveTypeLabel = (type: DriveType) => {
     const types = {
       COMMUTE: '출퇴근',
-      WORK: '업무',
-      UNREGISTERED: '미등록',
+      BUSINESS: '업무',
+      PERSONAL: '개인',
+      UNCLASSIFIED: '미분류',
     } as const;
     return types[type];
   };
@@ -355,8 +357,9 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
                                 className={`ml-2 rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                               >
                                 <option value="COMMUTE">출퇴근</option>
-                                <option value="WORK">업무</option>
-                                <option value="UNREGISTERED">미등록</option>
+                                <option value="BUSINESS">업무</option>
+                                <option value="PERSONAL">개인</option>
+                                <option value="UNCLASSIFIED">미분류</option>
                               </select>
                             )}
                           </div>

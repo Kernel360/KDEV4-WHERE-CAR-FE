@@ -125,14 +125,17 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         requestBody.driveType = driveType;
       }
       
-      const data = await fetchApi<any>(`/api/carLogs?page=${page}&size=${size}`, undefined, {
+      const data = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/carLogs?page=${page}&size=${size}`, undefined, {
         method: 'POST',
         body: JSON.stringify(requestBody)
       });
       
-      const content = Array.isArray(data.content) ? data.content : (Array.isArray(data) ? data : []);
-      const totalPages = data.totalPages || 1;
-      const totalElements = data.totalElements || content.length;
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const responseData = data.data || data;
+      
+      const content = Array.isArray(responseData.content) ? responseData.content : (Array.isArray(responseData) ? responseData : []);
+      const totalPages = responseData.totalPages || 1;
+      const totalElements = responseData.totalElements || content.length;
       
       if (params) {
         const newFilter = { ...currentFilter };
@@ -158,7 +161,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         });
       }
       
-      return data;
+      return responseData;
     } catch (error) {
       console.error('운행일지 데이터 가져오기 실패:', error);
       set({ 
@@ -173,9 +176,12 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<any>('/api/carLogs/statics', undefined, {
+      const response = await fetchApi<{data: any, message: string, statusCode: number}>('/api/carLogs/statics', undefined, {
         method: 'GET'
       });
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const data = response.data || response;
       
       set({ 
         stats: {
@@ -198,7 +204,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
+      const response = await fetchApi<{data: string, message: string, statusCode: number}>(`/api/carLogs/${logId}`, undefined, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
@@ -207,7 +213,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       
       return {
         success: true,
-        message: responseText || '운행일지가 성공적으로 수정되었습니다.'
+        message: response.message || response.data || '운행일지가 성공적으로 수정되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 수정 실패:', error);
@@ -227,7 +233,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const responseText = await fetchApi<string>(`/api/carLogs/${logId}`, undefined, {
+      const response = await fetchApi<{data: string, message: string, statusCode: number}>(`/api/carLogs/${logId}`, undefined, {
         method: 'DELETE'
       });
       
@@ -235,7 +241,7 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       
       return {
         success: true,
-        message: responseText || '운행일지가 성공적으로 삭제되었습니다.'
+        message: response.message || response.data || '운행일지가 성공적으로 삭제되었습니다.'
       };
     } catch (error) {
       console.error('운행일지 삭제 실패:', error);

@@ -156,7 +156,7 @@ export function VehicleLogFilter({ onChange, onApplyFilter, initialFilter }: Veh
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className={`block text-xs font-medium ${currentTheme.subtext} mb-1`}>시작 날짜</label>
           <div className={`relative border ${currentTheme.border} rounded-lg`}>
@@ -189,6 +189,33 @@ export function VehicleLogFilter({ onChange, onApplyFilter, initialFilter }: Veh
               <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
                 <button
                   onClick={() => handleResetFilter('endDate')}
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                >
+                  <XCircleIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div>
+          <label className={`block text-xs font-medium ${currentTheme.subtext} mb-1`}>운행 유형</label>
+          <div className={`relative border ${currentTheme.border} rounded-lg`}>
+            <select
+              name="driveType"
+              value={localFilter.driveType || ''}
+              onChange={handleFilterChange}
+              className={`w-full py-2 px-3 ${currentTheme.cardBg} ${currentTheme.text} rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200`}
+            >
+              <option value="">전체</option>
+              <option value="COMMUTE">출퇴근</option>
+              <option value="BUSINESS">업무</option>
+              <option value="PERSONAL">개인</option>
+              <option value="UNCLASSIFIED">미분류</option>
+            </select>
+            {localFilter.driveType && (
+              <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
+                <button
+                  onClick={() => handleResetFilter('driveType')}
                   className="text-gray-400 hover:text-gray-500 focus:outline-none"
                 >
                   <XCircleIcon className="h-4 w-4" />
