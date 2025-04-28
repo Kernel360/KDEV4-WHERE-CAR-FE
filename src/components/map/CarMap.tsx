@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { NAVER_CLIENT_ID } from '@/lib/env';
 
 interface RoutePoint {
   lat: number;
@@ -17,6 +16,12 @@ interface MarkerData {
   onClick?: (vehicleId: string) => void;
 }
 
+interface RouteGroup {
+  carId: string;
+  color: string;
+  points: { lat: number; lng: number }[];
+}
+
 interface NaverMapProps {
   // 기본 지도 속성
   latitude?: number;
@@ -28,9 +33,14 @@ interface NaverMapProps {
   // 마커 관련 속성
   markers?: MarkerData[];
   
+  // 경로 관련 속성
+  showRoute?: boolean;
+  routePoints?: RouteGroup[];
+  
   // 단순화된 속성들
   allowDrag?: boolean; // 드래그 허용 (기본값: true)
   onMapDrag?: (center: {lat: number, lng: number}, zoom: number) => void; // 지도 드래그 콜백
+  followVehicle?: boolean; // 차량 추적 여부
 }
 
 declare global {
@@ -66,9 +76,8 @@ const loadNaverScript = (): Promise<void> => {
     const script = document.createElement('script');
     script.id = 'naver-map-script';
     script.type = 'text/javascript';
-    
     // 환경변수에서 CLIENT ID 가져오기
-    const clientId = NAVER_CLIENT_ID || 'xefwc1thif';
+    const clientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
     
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
     
@@ -95,12 +104,16 @@ export default function CarMap({
   width = '100%',
   zoom = 15,
   markers = [],
+  showRoute = false,
+  routePoints = [],
   allowDrag = true,
-  onMapDrag
+  onMapDrag,
+  followVehicle = false
 }: NaverMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const routeLinesRef = useRef<{[key: string]: any}>({}); // 각 차량의 경로를 개별적으로 관리
   const [isRefReady, setIsRefReady] = useState(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -330,6 +343,56 @@ export default function CarMap({
       markersRef.current = [];
     }
   }, [markers]);
+
+  // 경로 업데이트 효과
+  useEffect(() => {
+    if (mapInstance.current && window.naver && showRoute && routePoints.length > 0) {
+      // 기존 경로 제거
+      Object.values(routeLinesRef.current).forEach(line => {
+        if (line) line.setMap(null);
+      });
+      routeLinesRef.current = {};
+
+      // 새 경로 생성
+      const drawRoutes = () => {
+        routePoints.forEach(routeGroup => {
+          const path = routeGroup.points.map(point => 
+            new window.naver.maps.LatLng(point.lat, point.lng)
+          );
+
+          routeLinesRef.current[routeGroup.carId] = new window.naver.maps.Polyline({
+            path: path,
+            strokeColor: routeGroup.color,
+            strokeWeight: 3,
+            strokeOpacity: 0.8,
+            map: mapInstance.current
+          });
+        });
+      };
+
+      drawRoutes();
+    } else {
+      // 경로 표시가 꺼졌을 때 모든 경로 제거
+      Object.values(routeLinesRef.current).forEach(line => {
+        if (line) line.setMap(null);
+      });
+      routeLinesRef.current = {};
+    }
+  }, [showRoute, routePoints, isMapLoaded]);
+
+  // 차량 추적 효과
+  useEffect(() => {
+    if (mapInstance.current && window.naver && followVehicle && markers.length > 0) {
+      const selectedMarker = markers.find(marker => marker.isSelected);
+      if (selectedMarker) {
+        // 선택된 차량의 위치로 지도 중심 이동
+        const position = new window.naver.maps.LatLng(selectedMarker.lat, selectedMarker.lng);
+        mapInstance.current.setCenter(position);
+        // 줌 레벨은 고정 (기본값 15)
+        mapInstance.current.setZoom(15);
+      }
+    }
+  }, [followVehicle, markers, isMapLoaded]);
 
   if (error) {
     return (

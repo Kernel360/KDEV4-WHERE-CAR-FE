@@ -49,6 +49,8 @@ interface VehicleSidebarProps {
   currentTheme: any;
   carLocations: CarLocation[];
   currentPositions: CurrentCarPosition[];
+  showRoute: boolean;
+  setShowRoute: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function VehicleSidebar({ 
@@ -57,7 +59,9 @@ function VehicleSidebar({
   toggleCarSelection, 
   currentTheme,
   carLocations,
-  currentPositions
+  currentPositions,
+  showRoute,
+  setShowRoute
 }: VehicleSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -81,14 +85,26 @@ function VehicleSidebar({
     <div className={`w-80 ${currentTheme.cardBg} ${currentTheme.border} rounded-lg shadow-sm overflow-hidden h-[calc(100vh-160px)] flex flex-col`}>
 
       <div className={`p-4 ${currentTheme.border} border-b`}>
-        <div className="flex items-center gap-1.5 mb-3">
-          <TruckIcon className={`h-5 w-5 ${currentTheme.iconColor}`} />
-          <h2 className={`text-lg font-bold ${currentTheme.headingText}`}>
-            차량 목록
-            <span className={`ml-2 text-sm font-normal ${currentTheme.mutedText}`}>
-              {vehicles.length}대
-            </span>
-          </h2>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <TruckIcon className={`h-5 w-5 ${currentTheme.iconColor}`} />
+            <h2 className={`text-lg font-bold ${currentTheme.headingText}`}>
+              차량 목록
+              <span className={`ml-2 text-sm font-normal ${currentTheme.mutedText}`}>
+                {vehicles.length}대
+              </span>
+            </h2>
+          </div>
+          <button
+            onClick={() => setShowRoute(!showRoute)}
+            className={`px-3 py-1 rounded-md text-sm ${
+              showRoute 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
+            }`}
+          >
+            {showRoute ? '경로 숨기기' : '경로 보기'}
+          </button>
         </div>
         
         <div className={`relative`}>
@@ -190,6 +206,12 @@ function VehicleSidebar({
   );
 }
 
+interface RouteGroup {
+  carId: string;
+  color: string;
+  points: { lat: number; lng: number }[];
+}
+
 export default function MonitoringPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -197,8 +219,11 @@ export default function MonitoringPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const [carLocations, setCarLocations] = useState<CarLocation[]>([]);
   const [currentPositions, setCurrentPositions] = useState<CurrentCarPosition[]>([]);
+  const [showRoute, setShowRoute] = useState(false);
+  const [routePoints, setRoutePoints] = useState<RouteGroup[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  const [companyId, setCompanyId] = useState<string>('2');
+  //Todo: 회사 아이디 받아오기
+  const [companyId, setCompanyId] = useState<string>('1');
   const [selectedCars, setSelectedCars] = useState<string[]>([]);
   const [showAllCars, setShowAllCars] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -210,9 +235,9 @@ export default function MonitoringPage() {
     latitude: 36.5,
     longitude: 127.5,
     zoom: 7,
-    followVehicle: false, 
+    followVehicle: false,
+    userSetPosition: true // 사용자가 직접 설정한 위치인지 여부
   });
-
 
   const [lastDragTime, setLastDragTime] = useState<number>(0);
   const dragCooldownMs = 5000; 
@@ -229,15 +254,12 @@ export default function MonitoringPage() {
   ]);
 
   const handleMapDrag = (center: {lat: number, lng: number}, zoom: number) => {
-
-    setLastDragTime(Date.now());
-    
-
     setMapSettings(prev => ({
       ...prev,
       latitude: center.lat,
       longitude: center.lng,
-      zoom: zoom
+      zoom: zoom,
+      userSetPosition: true
     }));
   };
 
@@ -251,7 +273,8 @@ export default function MonitoringPage() {
   const toggleVehicleFollow = () => {
     setMapSettings(prev => ({
       ...prev,
-      followVehicle: !prev.followVehicle
+      followVehicle: !prev.followVehicle,
+      userSetPosition: false
     }));
   };
 
@@ -411,6 +434,35 @@ export default function MonitoringPage() {
     }
   };
 
+  // 경로 포인트 업데이트 함수
+  const updateRoutePoints = () => {
+    if (!showRoute) {
+      setRoutePoints([]);
+      return;
+    }
+
+    // 각 차량별로 경로를 그룹화하여 저장
+    const groupedRoutes = currentPositions.map(pos => {
+      const vehicle = carLocations.find(v => v.carId === pos.carId);
+      if (vehicle) {
+        return {
+          carId: pos.carId,
+          color: pos.color,
+          points: vehicle.locations
+            .slice(0, pos.currentIndex + 1)
+            .map(loc => ({
+              lat: loc.latitude,
+              lng: loc.longitude
+            }))
+        };
+      }
+      return null;
+    }).filter((route): route is RouteGroup => route !== null);
+
+    setRoutePoints(groupedRoutes);
+  };
+
+  // 차량 선택 토글 함수 수정
   const toggleCarSelection = (carId: string) => {
     setSelectedCars(prev => {
       if (prev.includes(carId)) {
@@ -420,6 +472,16 @@ export default function MonitoringPage() {
       }
     });
   };
+
+  // 차량 위치가 업데이트될 때마다 경로도 업데이트
+  useEffect(() => {
+    updateRoutePoints();
+  }, [currentPositions, showRoute]);
+
+  // 경로 보기/숨기기 토글 시 경로 업데이트
+  useEffect(() => {
+    updateRoutePoints();
+  }, [showRoute]);
 
   const visibleMarkers = currentPositions
     .filter(pos => showAllCars || selectedCars.includes(pos.carId))
@@ -435,13 +497,9 @@ export default function MonitoringPage() {
       }
     }));
     
+  // 차량 위치가 업데이트될 때마다 지도 위치 업데이트
   useEffect(() => {
     if (!mapSettings.followVehicle) {
-      return;
-    }
-
-    const timeSinceDrag = Date.now() - lastDragTime;
-    if (timeSinceDrag < dragCooldownMs) {
       return;
     }
 
@@ -452,11 +510,12 @@ export default function MonitoringPage() {
           ...prev,
           latitude: selectedCar.currentLocation.latitude,
           longitude: selectedCar.currentLocation.longitude,
-          zoom: 15
+          zoom: 15,
+          userSetPosition: false
         }));
       }
     }
-  }, [currentPositions, selectedCars, mapSettings.followVehicle, lastDragTime]);
+  }, [currentPositions, selectedCars, mapSettings.followVehicle]);
 
   const handleSubscribe = () => {
     if (wsRef.current && companyId && wsConnected) {
@@ -536,7 +595,6 @@ export default function MonitoringPage() {
         </div>
       </div>
 
-
       <div className="container mx-auto px-6 pb-4">
         <div className="flex gap-6">
           <VehicleSidebar 
@@ -546,10 +604,11 @@ export default function MonitoringPage() {
             currentTheme={currentTheme}
             carLocations={carLocations}
             currentPositions={currentPositions}
+            showRoute={showRoute}
+            setShowRoute={setShowRoute}
           />
           
           <div className={`flex-1 ${currentTheme.cardBg} ${currentTheme.border} rounded-lg shadow-sm overflow-hidden`}>
-
             <div className={`flex justify-between items-center px-4 py-3 ${currentTheme.border} border-b`}>
               <div className="flex items-center gap-3">
                 <div className={`flex items-center ${currentTheme.cardBg} rounded-md shadow-sm ${currentTheme.border} p-1`}>
@@ -624,6 +683,9 @@ export default function MonitoringPage() {
                 markers={visibleMarkers}
                 onMapDrag={handleMapDrag}
                 allowDrag={true}
+                showRoute={showRoute}
+                routePoints={routePoints}
+                followVehicle={mapSettings.followVehicle}
               />
             </div>
   
@@ -640,4 +702,4 @@ export default function MonitoringPage() {
       </div>
     </div>
   );
-} 
+}
