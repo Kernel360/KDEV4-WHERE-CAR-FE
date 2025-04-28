@@ -39,16 +39,18 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const overviewData = await fetchApi<{totalCars: number}>('/api/cars/overview');
+      const overviewResponse = await fetchApi<{data: {totalCars: number}, message: string, statusCode: number}>('/api/cars/overview');
+      const overviewData = overviewResponse.data || overviewResponse;
       const totalCars = overviewData.totalCars || 100; 
       
-      const response = await fetchApi<Vehicle[] | {content: Vehicle[], totalElements: number}>(`/api/cars?page=0&size=${totalCars}`);
+      const response = await fetchApi<{data: Vehicle[] | {content: Vehicle[], totalElements: number}, message: string, statusCode: number}>(`/api/cars?page=0&size=${totalCars}`);
+      const responseData = response.data || response;
  
       let vehicles: Vehicle[];
-      if (Array.isArray(response)) {
-        vehicles = response;
-      } else if (response && typeof response === 'object' && 'content' in response) {
-        vehicles = response.content;
+      if (Array.isArray(responseData)) {
+        vehicles = responseData;
+      } else if (responseData && typeof responseData === 'object' && 'content' in responseData) {
+        vehicles = responseData.content;
       } else {
         vehicles = [];
       }
@@ -68,7 +70,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>('/api/cars', undefined, {
+      const response = await fetchApi<{data: string, message: string, statusCode: number}>('/api/cars', undefined, {
         method: 'POST',
         body: JSON.stringify(vehicle),
       });
@@ -78,8 +80,12 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
       
       set({ isLoading: false });
       
-      if (typeof response === 'string') {
-        return response;
+      const responseData = response.data || response;
+      
+      if (typeof responseData === 'string') {
+        return responseData;
+      } else if (response.message) {
+        return response.message;
       } else {
         return '차량이 성공적으로 등록되었습니다.';
       }
@@ -98,7 +104,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const response = await fetchApi<string>(`/api/cars/${vehicle.id}`, undefined, {
+      const response = await fetchApi<{data: string, message: string, statusCode: number}>(`/api/cars/${vehicle.id}`, undefined, {
         method: 'PUT',
         body: JSON.stringify(vehicle),
       });
@@ -109,9 +115,13 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
       
       set({ isLoading: false });
       
+      const responseData = response.data || response;
+      
       // 응답이 문자열이라면 그대로 반환, 아니라면 기본 성공 메시지 반환
-      if (typeof response === 'string') {
-        return response;
+      if (typeof responseData === 'string') {
+        return responseData;
+      } else if (response.message) {
+        return response.message;
       } else {
         return '차량 정보가 성공적으로 수정되었습니다.';
       }
@@ -129,7 +139,7 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      await fetchApi<void>(`/api/cars/${id}`, undefined, {
+      await fetchApi<{data: any, message: string, statusCode: number}>(`/api/cars/${id}`, undefined, {
         method: 'DELETE',
       });
       

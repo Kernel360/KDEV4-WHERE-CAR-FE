@@ -52,7 +52,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<UserResponse[]>('/api/users/companies/my');
+      const response = await fetchApi<{data: UserResponse[], message: string, statusCode: number}>('/api/users/companies/my');
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const data = response.data || response;
       
       set({ 
         users: data,
@@ -74,26 +77,29 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ loadingPermissions: true, permissionsError: null });
       
       // API에서 권한 정보 가져오기
-      const response = await fetchApi<any>(`/api/users/permissions/${userId}`);
+      const response = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/users/permissions/${userId}`);
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const permissionData = response.data || response;
       
       // 응답에서 권한 타입 배열 추출 (다양한 응답 형식 처리)
       let permissionIds: string[] = [];
       
       // 응답이 배열인 경우 (API가 권한 ID 목록을 직접 반환)
-      if (Array.isArray(response)) {
-        permissionIds = response;
+      if (Array.isArray(permissionData)) {
+        permissionIds = permissionData;
       } 
       // 응답이 객체이고 permissionTypes 속성이 있는 경우
-      else if (response && response.permissionTypes) {
-        permissionIds = Array.isArray(response.permissionTypes) 
-          ? response.permissionTypes 
+      else if (permissionData && permissionData.permissionTypes) {
+        permissionIds = Array.isArray(permissionData.permissionTypes) 
+          ? permissionData.permissionTypes 
           : [];
       }
       // 응답이 객체이고 권한 관련 다른 형식인 경우 
-      else if (response && typeof response === 'object') {
+      else if (permissionData && typeof permissionData === 'object') {
         // 객체의 모든 키를 검사하여 권한 ID 같은 형식(PERM_ 접두사)을 찾음
-        Object.keys(response).forEach(key => {
-          if (typeof response[key] === 'boolean' && response[key] === true && key.startsWith('PERM_')) {
+        Object.keys(permissionData).forEach(key => {
+          if (typeof permissionData[key] === 'boolean' && permissionData[key] === true && key.startsWith('PERM_')) {
             permissionIds.push(key);
           }
         });
@@ -178,14 +184,15 @@ export const useUserStore = create<UserState>((set, get) => ({
         delete requestData.password;
       }
       
-      await fetchApi<void>(`/api/users/${userId}`, undefined, {
+      const updateResponse = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/users/${userId}`, undefined, {
         method: 'PUT',
         body: JSON.stringify(requestData)
       });
       
       // API에서 업데이트된 사용자 정보 다시 조회
       try {
-        const updatedUser = await fetchApi<UserResponse>(`/api/users/${userId}`);
+        const response = await fetchApi<{data: UserResponse, message: string, statusCode: number}>(`/api/users/${userId}`);
+        const updatedUser = response.data || response;
         console.log(`업데이트된 사용자 정보 조회 (ID: ${userId}):`, updatedUser);
         
         // 스토어의 사용자 데이터 업데이트 (API에서 받은 최신 정보 사용)
@@ -218,21 +225,24 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   fetchUser: async (userId: string) => {
     try {
-      const response = await fetchApi<UserResponse>(`/api/users/${userId}`);
+      const response = await fetchApi<{data: UserResponse, message: string, statusCode: number}>(`/api/users/${userId}`);
       console.log(`API에서 사용자 정보 가져옴 (ID: ${userId}):`, response);
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const userData = response.data || response;
       
       // 캐시된 사용자 목록에 없는 경우 추가
       set((state) => {
         const exists = state.users.some(u => u.userId.toString() === userId);
         if (!exists) {
           return { 
-            users: [...state.users, response] 
+            users: [...state.users, userData] 
           };
         }
         return state;
       });
       
-      return response;
+      return userData;
     } catch (error) {
       console.error(`사용자 정보 가져오기 실패 (ID: ${userId}):`, error);
       return undefined;
@@ -241,7 +251,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   
   deleteUser: async (userId: string) => {
     try {
-      const response = await fetchApi<void>(`/api/users/${userId}`, undefined, {
+      const response = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/users/${userId}`, undefined, {
         method: 'DELETE'
       });
       

@@ -47,8 +47,8 @@ export function VehicleLogList({
   const mappedLogs = useMemo(() => {
     return carLogs.map(log => {
       // API 응답의 driveType을 변환
-      let driveType: DriveType = 'UNREGISTERED';
-      if (log.driveType === 'COMMUTE' || log.driveType === 'WORK') {
+      let driveType: DriveType = 'UNCLASSIFIED';
+      if (log.driveType === 'COMMUTE' || log.driveType === 'BUSINESS' || log.driveType === 'PERSONAL') {
         driveType = log.driveType as DriveType;
       }
       
@@ -108,20 +108,22 @@ export function VehicleLogList({
     switch (type) {
       case 'COMMUTE':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-50 dark:text-blue-700';
-      case 'WORK':
+      case 'BUSINESS':
         return 'bg-teal-50 text-teal-700 dark:bg-teal-50 dark:text-teal-700';
-      case 'UNREGISTERED':
-        return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
+      case 'PERSONAL':
+        return 'bg-purple-50 text-purple-700 dark:bg-purple-50 dark:text-purple-700';
+      case 'UNCLASSIFIED':
       default:
-        return '';
+        return 'bg-slate-50 text-slate-700 dark:bg-slate-50 dark:text-slate-700';
     }
   };
 
   const getDriveTypeLabel = (type: DriveType) => {
     const types = {
       COMMUTE: '출퇴근',
-      WORK: '업무',
-      UNREGISTERED: '미등록',
+      BUSINESS: '업무',
+      PERSONAL: '개인',
+      UNCLASSIFIED: '미분류',
     } as const;
     return types[type];
   };

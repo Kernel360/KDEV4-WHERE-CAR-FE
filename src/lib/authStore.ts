@@ -147,7 +147,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ profileLoading: true, profileError: null });
       
       // 백엔드 API 호출
-      const response = await fetchApi<UserResponse>('/api/users/my');
+      const apiResponse = await fetchApi<{data: UserResponse, message: string, statusCode: number}>('/api/users/my');
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const response = apiResponse.data || apiResponse;
       
       // API 응답을 UserInfo 형태로 변환
       const userInfo: UserInfo = {
@@ -322,7 +325,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // 사용자 정보 업데이트
   updateUserProfile: async (userRequest: UserRequest) => {
     try {
-      await fetchApi<void>('/api/users/my', undefined, {
+      await fetchApi<{data: any, message: string, statusCode: number}>('/api/users/my', undefined, {
         method: 'PUT',
         body: JSON.stringify(userRequest)
       });
