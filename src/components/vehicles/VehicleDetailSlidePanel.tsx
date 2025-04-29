@@ -38,12 +38,12 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     
     setIsLoadingPosition(true);
     try {
-      const position = await fetchLatestPosition(vehicle.mdn);
-      if (position) {
+      const response = await fetchLatestPosition(vehicle.mdn);
+      if (response && response.data) {
         setLatestPosition({
-          latitude: position.latitude,
-          longitude: position.longitude,
-          timestamp: position.timestamp
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          timestamp: response.data.timestamp
         });
       } else {
         setLatestPosition(null);

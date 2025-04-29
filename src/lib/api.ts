@@ -110,10 +110,14 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
 };
 
 export async function fetchLatestPosition(mdn: string): Promise<{
-  mdn: string;
-  latitude: number;
-  longitude: number;
-  timestamp: string;
+  data: {
+    mdn: string;
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  };
+  message: string;
+  statusCode: number;
 } | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/gps/position?mdn=${mdn}`);
