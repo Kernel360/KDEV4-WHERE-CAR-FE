@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -276,7 +276,7 @@ interface RouteGroup {
   points: { lat: number; lng: number }[];
 }
 
-export default function MonitoringPage() {
+function MonitoringContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuthStore();
@@ -406,12 +406,28 @@ export default function MonitoringPage() {
     };
   }, []);
 
+  const handleSubscribe = useCallback(() => {
+    if (wsRef.current && companyId && wsConnected) {
+      console.log('구독 요청 전송:', companyId);
+      
+      const subscribeMsg = JSON.stringify({
+        type: 'subscribe',
+        companyId: companyId
+      });
+      
+      wsRef.current.send(subscribeMsg);
+    } else {
+      console.warn('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
+      setError('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
+    }
+  }, [companyId, wsConnected]);
+
   useEffect(() => {
     if (wsConnected && companyId) {
       console.log('WebSocket 연결됨, 자동 구독 시도:', companyId);
       handleSubscribe();
     }
-  }, [wsConnected]);
+  }, [wsConnected, companyId, handleSubscribe]);
 
   const connectWebSocket = () => {
     try {
@@ -543,11 +559,11 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     updateRoutePoints();
-  }, [currentPositions, showRoute]);
+  }, [currentPositions, showRoute, carLocations]);
 
   useEffect(() => {
     updateRoutePoints();
-  }, [showRoute]);
+  }, [showRoute, currentPositions, carLocations]);
 
   const visibleMarkers = currentPositions
     .filter(pos => showAllCars || selectedCars.includes(pos.carId))
@@ -581,22 +597,6 @@ export default function MonitoringPage() {
       }
     }
   }, [currentPositions, selectedCars, mapSettings.followVehicle]);
-
-  const handleSubscribe = () => {
-    if (wsRef.current && companyId && wsConnected) {
-      console.log('구독 요청 전송:', companyId);
-      
-      const subscribeMsg = JSON.stringify({
-        type: 'subscribe',
-        companyId: companyId
-      });
-      
-      wsRef.current.send(subscribeMsg);
-    } else {
-      console.warn('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
-      setError('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
-    }
-  };
 
   const handleRefresh = () => {
     if (wsRef.current) {
@@ -770,5 +770,13 @@ export default function MonitoringPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MonitoringPage() {
+  return (
+    <Suspense fallback={null}>
+      <MonitoringContent />
+    </Suspense>
   );
 }

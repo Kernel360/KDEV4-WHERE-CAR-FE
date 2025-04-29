@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { UserCircleIcon, KeyIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore, LoginRequest } from '@/lib/authStore';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginContent() {
   const { currentTheme } = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,8 +28,8 @@ export default function LoginPage() {
   } = useAuthStore();
 
   // silent 모드 확인 (내부 처리용)
-  const isSilentMode = searchParams.get('silent') === 'true';
-  const callbackUrl = searchParams.get('callbackUrl');
+  const isSilentMode = searchParams?.get('silent') === 'true';
+  const callbackUrl = searchParams?.get('callbackUrl');
 
   // 페이지 로드 시 인증 상태 확인
   useEffect(() => {
@@ -201,4 +201,12 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  );
+}

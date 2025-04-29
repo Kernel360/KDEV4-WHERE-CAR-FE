@@ -56,7 +56,7 @@ export default function EmployeePermissionsPage() {
   const { currentTheme } = useTheme();
   const params = useParams();
   const router = useRouter();
-  const employeeId = params.employeeId as string;
+  const employeeId = params?.employeeId as string;
   const { users, userPermissions, loadingPermissions, permissionsError, fetchUserPermissions, 
     updateUserPermissions, savingPermissions, savePermissionsError, savePermissionsSuccess, fetchUser } = useUserStore();
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -65,8 +65,45 @@ export default function EmployeePermissionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  // 직원 정보 가져오기
+  // 권한을 그룹별로 정렬하는 함수
+  const getGroupedPermissions = useCallback(() => {
+    const groups = PERMISSION_GROUPS.map(group => ({
+      ...group,
+      permissions: permissions.filter(p => {
+        if (group.id === 'admin') return p.id === 'PERM_ADMIN';
+        return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
+      })
+    }));
+    
+    return groups;
+  }, [permissions]);
+
+  // 검색어에 따라 권한 필터링
+  const filteredGroups = useMemo(() => {
+    const groupedPermissions = getGroupedPermissions();
+    
+    if (!searchTerm) {
+      return groupedPermissions;
+    }
+    
+    const filtered = groupedPermissions.map(group => ({
+      ...group,
+      permissions: group.permissions.filter(p => 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        p.description.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    })).filter(group => group.permissions.length > 0);
+    
+    return filtered;
+  }, [searchTerm, getGroupedPermissions]);
+
   useEffect(() => {
+    if (!params?.employeeId) {
+      router.push('/employees');
+      return;
+    }
+
+    const employeeId = params.employeeId as string;
     const fetchEmployeeData = async () => {
       setLoadingEmployee(true);
       setEmployeeError(null);
@@ -124,16 +161,20 @@ export default function EmployeePermissionsPage() {
     };
 
     fetchEmployeeData();
-  }, [employeeId, users, fetchUser]);
+  }, [params, router, users, fetchUser]);
 
   // 권한 정보 가져오기
   useEffect(() => {
+    if (!params?.employeeId) return;
+    const employeeId = params.employeeId as string;
     if (employee) {
       fetchUserPermissions(employeeId);
     }
-  }, [employeeId, fetchUserPermissions, employee]);
+  }, [params, employee, fetchUserPermissions]);
 
   useEffect(() => {
+    if (!params?.employeeId) return;
+    const employeeId = params.employeeId as string;
     // 기본적으로 모든 권한을 isGranted가 false인 상태로 초기화
     const allPermissionsCopy = ALL_PERMISSIONS.map(p => ({...p, isGranted: false}));
     
@@ -165,7 +206,7 @@ export default function EmployeePermissionsPage() {
     }
     
     setPermissions(allPermissionsCopy);
-  }, [employeeId, userPermissions, employee]);
+  }, [params, userPermissions, employee]);
 
   // 권한 변경 처리
   const handlePermissionChange = (permissionId: string, isGranted: boolean) => {
@@ -188,38 +229,6 @@ export default function EmployeePermissionsPage() {
     // API를 통해 권한 정보를 저장
     await updateUserPermissions(employeeId, permissions);
   };
-
-  // 권한을 그룹별로 정렬하는 함수
-  const getGroupedPermissions = useCallback(() => {
-    const groups = PERMISSION_GROUPS.map(group => ({
-      ...group,
-      permissions: permissions.filter(p => {
-        if (group.id === 'admin') return p.id === 'PERM_ADMIN';
-        return p.id.startsWith(`PERM_${group.id.toUpperCase()}_`);
-      })
-    }));
-    
-    return groups;
-  }, [permissions]);
-
-  // 검색어에 따라 권한 필터링
-  const filteredGroups = useMemo(() => {
-    const groupedPermissions = getGroupedPermissions();
-    
-    if (!searchTerm) {
-      return groupedPermissions;
-    }
-    
-    const filtered = groupedPermissions.map(group => ({
-      ...group,
-      permissions: group.permissions.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    })).filter(group => group.permissions.length > 0);
-    
-    return filtered;
-  }, [searchTerm, getGroupedPermissions]);
 
   // 뒤로가기 함수
   const handleGoBack = () => {

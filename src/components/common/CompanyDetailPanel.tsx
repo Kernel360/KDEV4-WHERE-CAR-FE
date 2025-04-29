@@ -29,8 +29,8 @@ export interface Company {
 interface CompanyDetailPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  company: Company | null;
-  onUpdate?: (company: Company) => void;
+  company: Company;
+  onUpdate: (company: Company) => void;
 }
 
 export default function CompanyDetailPanel({ 

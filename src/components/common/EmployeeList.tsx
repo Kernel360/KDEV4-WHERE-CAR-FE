@@ -18,7 +18,7 @@ export interface Employee {
 }
 
 interface EmployeeListProps {
-  // 사용하지 않는 employees props 제거
+  // 필요한 props가 있다면 여기에 추가
 }
 
 export default function EmployeeList(props: EmployeeListProps) {

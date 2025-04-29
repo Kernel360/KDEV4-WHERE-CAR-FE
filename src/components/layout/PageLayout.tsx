@@ -19,7 +19,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
   const hideSidebarPaths = ['/', '/login', '/register'];
   
   // 사이드바를 표시할지 여부 결정
-  const showSidebar = !hideSidebarPaths.includes(pathname);
+  const showSidebar = pathname ? !hideSidebarPaths.includes(pathname) : true;
 
   // 인증 인터셉터 설정
   useEffect(() => {

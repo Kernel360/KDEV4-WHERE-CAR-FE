@@ -17,7 +17,7 @@ function AnnouncementsContent() {
   const { isAuthenticated } = useAuthStore();
   
   // URL 쿼리 파라미터에서 페이지 번호 가져오기
-  const pageParam = searchParams.get('page');
+  const pageParam = searchParams?.get('page');
   const page = pageParam ? parseInt(pageParam) : 0;
   
   // 공지 사항 데이터 가져오기

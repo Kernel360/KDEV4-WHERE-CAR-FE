@@ -23,9 +23,13 @@ interface RoutePoint {
   timestamp: string;
 }
 
-interface RouteResponse {
+interface RouteData {
   mdn: string;
   route: RoutePoint[];
+}
+
+interface RouteResponse {
+  data: RouteData;
 }
 
 export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDelete, onUpdate }: VehicleLogDetailSlidePanelProps) {
