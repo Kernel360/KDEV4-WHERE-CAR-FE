@@ -122,17 +122,15 @@ export default function Sidebar() {
         )}
       </button>
 
-      {/* 데스크톱 토글 버튼 */}
-      <button
-        onClick={handleToggleSidebar}
-        className={`hidden md:flex fixed top-4 ${isOpen ? 'left-64' : 'left-20'} z-20 p-2 rounded-lg ${currentTheme.cardBg} ${currentTheme.border} shadow-sm transition-all duration-300`}
-      >
-        {isOpen ? (
-          <ChevronLeftIcon className={`h-5 w-5 ${currentTheme.text}`} />
-        ) : (
+      {/* 데스크톱 토글 버튼: 사이드바가 닫혀있을 때만 바깥에 표시 */}
+      {!isOpen && (
+        <button
+          onClick={handleToggleSidebar}
+          className={`hidden md:flex fixed top-4 left-20 z-20 p-2 rounded-lg ${currentTheme.cardBg} ${currentTheme.border} shadow-sm transition-all duration-300`}
+        >
           <ChevronRightIcon className={`h-5 w-5 ${currentTheme.text}`} />
-        )}
-      </button>
+        </button>
+      )}
 
       {/* 오버레이 */}
       {isOpen && (
@@ -151,16 +149,29 @@ export default function Sidebar() {
         }`}
       >
         {/* 로고 영역 */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-6 overflow-hidden">
+        <div className="flex h-16 shrink-0 items-center px-6 overflow-hidden relative">
           <div className={`transition-opacity duration-300 w-full ${isOpen ? 'opacity-100' : 'opacity-0 absolute'}`}>
             <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap overflow-hidden">WHERE CAR</h1>
           </div>
           <div className={`transition-opacity duration-300 w-full flex justify-center ${isOpen ? 'opacity-0 absolute' : 'opacity-100'}`}>
             <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap">WC</h1>
           </div>
+          {/* 사이드바가 열렸을 때만 내부에 토글 버튼 표시 */}
+          {isOpen && (
+            <button
+              onClick={handleToggleSidebar}
+              className="hidden md:flex ml-2 p-2 rounded-lg transition-all duration-300"
+              style={{ position: 'absolute', right: '0.5rem' }}
+            >
+              <ChevronLeftIcon className={`h-5 w-5 ${currentTheme.text}`} />
+            </button>
+          )}
+          {/* 다크/라이트 토글 버튼은 항상 로고 오른쪽에 */}
+          
+          {/* 모바일 닫기 버튼 */}
           <button
             onClick={handleToggleSidebar}
-            className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200"
+            className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200 ml-2"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
