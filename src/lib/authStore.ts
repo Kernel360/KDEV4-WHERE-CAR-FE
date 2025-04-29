@@ -117,7 +117,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     }
     
-    console.log('로컬 스토리지에서 토큰을 찾을 수 없습니다. 미인증 상태 유지');
     return false;
   },
   
@@ -420,37 +419,27 @@ if (typeof window !== 'undefined') {
   useAuthStore.getState().initAuth();
 }
 
-// 쿠키 삭제 함수 추가
-function clearAllCookies() {
-  if (typeof document === 'undefined') return;
-  document.cookie.split(";").forEach((c) => {
-    document.cookie = c
-      .replace(/^ +/, "")
-      .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-  });
-}
-
-// 인증 실패 시 처리하는 함수
-function handleAuthFailure() {
-  if (typeof window !== 'undefined') {
-    // 로컬스토리지 초기화
-    localStorage.clear();
-    // 쿠키 삭제
-    clearAllCookies();
-    // 로그인 페이지로 리다이렉트
-    window.location.href = '/login';
-  }
-}
-
+// Next.js 클라이언트 사이드에서 API 요청 전에 인증 헤더 추가
 export const setupAuthInterceptor = () => {
-  if (typeof window === 'undefined') return; // 서버 사이드에서는 실행하지 않음
+  if (typeof window === 'undefined') return;
   
-  // 진행 중인 토큰 재발급 요청을 추적
   let isRefreshing = false;
-  // 토큰 재발급 중 대기 중인 요청들
   let failedQueue: {resolve: (value: any) => void, reject: (reason?: any) => void, config: any}[] = [];
   
-  // 대기 중인 요청들 처리
+  const clearAllCookies = () => {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    clearAllCookies();
+    window.location.href = '/login';
+  };
+  
   const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach(prom => {
       if (error) {
@@ -459,47 +448,28 @@ export const setupAuthInterceptor = () => {
         prom.resolve(token);
       }
     });
-    
     failedQueue = [];
   };
   
-  // 원래의 fetch 함수를 저장
   const originalFetch = window.fetch;
   
-  // fetch 함수 재정의
   window.fetch = async (input, init) => {
     try {
-      // 초기 설정이 없으면 빈 객체로 초기화
       const initOptions = init || {};
-      
-      // 헤더 설정이 없으면 빈 객체로 초기화
       const headers = new Headers(initOptions.headers || {});
-      
-      // 로컬 스토리지에서 토큰 가져오기
       const token = localStorage.getItem('Authorization');
-      
-      // 요청 URL 확인 (디버깅용)
-      const url = typeof input === 'string' 
-        ? input 
-        : input instanceof Request 
-          ? input.url 
-          : input.toString();
-      
-      // 토큰 갱신 요청인 경우 이중 헤더 방지
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString();
       const isTokenRefreshRequest = url.includes('/token/reissue');
       
-      // 토큰이 있고 Authorization 헤더가 아직 설정되지 않았다면 추가
       if (token && !headers.has('Authorization') && !isTokenRefreshRequest) {
         headers.set('Authorization', `Bearer ${token}`);
       }
       
-      // 설정된 헤더로 초기 설정 업데이트
       const updatedInit = {
         ...initOptions,
         headers,
       };
       
-      // 원래의 fetch 함수 호출
       const response = await originalFetch(input, updatedInit);
       
       const contentType = response.headers.get('Content-Type');
@@ -509,27 +479,74 @@ export const setupAuthInterceptor = () => {
         try {
           const data = await responseClone.json();
           
-          // 401 에러 처리 부분 수정
-          if (data.statusCode === 401) {
-            console.log('인증 오류 발생:', url);
-            
-            // 토큰 만료가 아닌 다른 401 에러의 경우 바로 로그아웃 처리
-            if (data.message !== 'ACCESS_TOKEN_EXPIRED' || isTokenRefreshRequest) {
-              handleAuthFailure();
-              throw new Error('인증 오류로 인해 로그아웃 처리됨');
+          // ACCESS_TOKEN_EXPIRED 체크 (statusCode와 message 모두 확인)
+          if (data.statusCode === 401 && data.message === 'ACCESS_TOKEN_EXPIRED') {
+            // 토큰 재발급 요청 자체가 실패한 경우는 로그아웃
+            if (isTokenRefreshRequest) {
+              handleLogout();
+              throw new Error('토큰 재발급 실패');
             }
 
-            // 토큰 만료인 경우 재발급 시도
-            if (data.message === 'ACCESS_TOKEN_EXPIRED' && !isTokenRefreshRequest) {
-              // ... 기존의 토큰 재발급 로직 ...
-              
-              // 토큰 재발급 실패 시
-              if (!reissued) {
-                handleAuthFailure();
-                throw new Error('토큰 재발급 실패로 로그아웃 처리됨');
-              }
+            if (isRefreshing) {
+              return new Promise((resolve, reject) => {
+                failedQueue.push({
+                  resolve: (token) => {
+                    if (token) {
+                      headers.set('Authorization', `Bearer ${token}`);
+                      resolve(originalFetch(input, { ...updatedInit, headers }));
+                    } else {
+                      reject(new Error('토큰 재발급 실패'));
+                    }
+                  },
+                  reject,
+                  config: { input, init: updatedInit }
+                });
+              });
             }
+
+            isRefreshing = true;
+
+            try {
+              const { reissueToken } = useAuthStore.getState();
+              const reissued = await reissueToken();
+
+              if (reissued) {
+                const { token: stateToken } = useAuthStore.getState();
+                const storedToken = localStorage.getItem('Authorization');
+                const newToken = stateToken || storedToken;
+
+                processQueue(null, newToken);
+
+                if (newToken) {
+                  headers.set('Authorization', `Bearer ${newToken}`);
+                  const retryInit = {
+                    ...updatedInit,
+                    headers,
+                  };
+
+                  isRefreshing = false;
+                  return originalFetch(input, retryInit);
+                }
+              } else {
+                handleLogout();
+                processQueue(new Error('토큰 재발급 실패'));
+                throw new Error('토큰 재발급 실패');
+              }
+            } catch (error) {
+              isRefreshing = false;
+              processQueue(error);
+              handleLogout();
+              throw error;
+            } finally {
+              isRefreshing = false;
+            }
+          } else if (data.statusCode === 401) {
+            // ACCESS_TOKEN_EXPIRED가 아닌 다른 401 에러는 로그아웃
+            handleLogout();
+            throw new Error('인증 오류');
           }
+          
+          return response;
         } catch (error) {
           console.error('응답 처리 중 오류:', error);
           throw error;
@@ -542,6 +559,4 @@ export const setupAuthInterceptor = () => {
       throw error;
     }
   };
-  
-  console.log('인증 인터셉터가 설정되었습니다.');
 }; 
