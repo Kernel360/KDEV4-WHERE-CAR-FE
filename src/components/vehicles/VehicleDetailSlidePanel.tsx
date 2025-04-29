@@ -506,7 +506,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                 <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl" style={{ height: "400px" }}>
                                   <div className="text-center p-4">
                                     <p className="text-gray-700 dark:text-gray-300">
-                                      차량 위치 정보가 없습니다
+                                      현재 차량 위치 정보가 없습니다
                                     </p>
                                   </div>
                                 </div>
