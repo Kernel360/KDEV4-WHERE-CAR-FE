@@ -60,9 +60,20 @@ export function middleware(request: NextRequest) {
   const needsAuth = PROTECTED_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
   if (needsAuth && !isAuthenticated) {
     console.log(`[Middleware] 인증되지 않은 사용자가 보호된 경로 접근: ${pathname} -> /login으로 리다이렉트`);
+    
+    // 로그인 페이지로 리다이렉트할 때 특별한 쿼리 파라미터 추가
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', encodeURI(pathname));
-    return NextResponse.redirect(url);
+    url.searchParams.set('silent', 'true'); // 내부 처리용 플래그
+    
+    // 리다이렉트 응답 생성
+    const response = NextResponse.redirect(url);
+    
+    // 응답 헤더에 인증 상태 정보 추가
+    response.headers.set('x-authenticated', 'false');
+    response.headers.set('x-redirect', 'true');
+    
+    return response;
   }
   
   // 인증된 사용자가 로그인/회원가입 페이지에 접근하면 대시보드로 리다이렉트
