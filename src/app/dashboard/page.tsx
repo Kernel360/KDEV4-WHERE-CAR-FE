@@ -307,9 +307,9 @@ export default function DashboardPage() {
           <div className={`${currentTheme.cardBg} p-6 rounded-xl shadow-sm ${currentTheme.border}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-base font-medium ${currentTheme.text}`}>사용자</h3>
-              <button className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
-                + 등록
-              </button>
+              <Link href="/companies" className={`text-sm ${currentTheme.activeText} hover:opacity-80 font-medium`}>
+                자세히
+              </Link>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
