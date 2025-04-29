@@ -45,13 +45,10 @@ export function validateEnvVariables(): { valid: boolean; missingVars: string[] 
 
 // 개발 환경에서 시작 시 자동으로 환경변수 검증
 if (isDevelopment && typeof window !== 'undefined') {
-  console.log('개발 환경에서 실행 중입니다. 환경변수를 검증합니다...');
   const { valid, missingVars } = validateEnvVariables();
   
   if (!valid) {
     console.warn(`주의: 일부 환경변수가 설정되지 않았습니다: ${missingVars.join(', ')}`);
     console.warn('필요한 환경변수는 .env.example 파일을 참조하세요.');
-  } else {
-    console.log('모든 환경변수가 정상적으로 설정되었습니다.');
   }
 } 
