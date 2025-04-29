@@ -97,37 +97,29 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
       const endDate = params?.endDate !== undefined ? params.endDate : currentFilter.endDate;
       const driveType = params?.driveType !== undefined ? params.driveType : currentFilter.driveType;
       
-      const requestBody: Record<string, any> = {};
+      // 쿼리 파라미터 구성
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('size', size.toString());
       
       if (vehicleNumber) {
-        requestBody.mdn = vehicleNumber;
+        queryParams.append('mdn', vehicleNumber);
       }
       
       if (startDate) {
-        const formattedStartDate = new Date(startDate);
-        formattedStartDate.setHours(0, 0, 0, 0);
-        
-        // 한국 시간대로 변환 (UTC+9)
-        const koreaTimeString = formatToKoreaTime(formattedStartDate, true);
-        requestBody.startTime = koreaTimeString;
+        queryParams.append('from', startDate);
       }
       
       if (endDate) {
-        const formattedEndDate = new Date(endDate);
-        formattedEndDate.setHours(23, 59, 59, 999);
-        
-        // 한국 시간대로 변환 (UTC+9)
-        const koreaTimeString = formatToKoreaTime(formattedEndDate, false);
-        requestBody.endTime = koreaTimeString;
+        queryParams.append('to', endDate);
       }
       
       if (driveType) {
-        requestBody.driveType = driveType;
+        queryParams.append('driveType', driveType);
       }
       
-      const data = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/carLogs?page=${page}&size=${size}`, undefined, {
-        method: 'POST',
-        body: JSON.stringify(requestBody)
+      const data = await fetchApi<{data: any, message: string, statusCode: number}>(`/api/carLogs?${queryParams.toString()}`, undefined, {
+        method: 'GET'
       });
       
       // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
@@ -180,14 +172,14 @@ export const useCarLogsStore = create<CarLogsState>((set, get) => ({
         method: 'GET'
       });
       
-      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      // 새로운 API 응답 형식 처리
       const data = response.data || response;
       
       set({ 
         stats: {
           totalMileage: data.totalMileage || 0,
           carLogsCount: data.carLogsCount || "0",
-          monthlyMileages: data.monthlyMileages || []
+          monthlyMileages: Array.isArray(data) ? data : []
         },
         isLoading: false
       });
