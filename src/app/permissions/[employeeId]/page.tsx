@@ -56,7 +56,6 @@ export default function EmployeePermissionsPage() {
   const { currentTheme } = useTheme();
   const params = useParams();
   const router = useRouter();
-  const employeeId = params.employeeId as string;
   const { users, userPermissions, loadingPermissions, permissionsError, fetchUserPermissions, 
     updateUserPermissions, savingPermissions, savePermissionsError, savePermissionsSuccess, fetchUser } = useUserStore();
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -64,6 +63,13 @@ export default function EmployeePermissionsPage() {
   const [employeeError, setEmployeeError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [permissions, setPermissions] = useState<Permission[]>([]);
+
+  if (!params?.employeeId) {
+    router.push('/employees');
+    return null;
+  }
+  
+  const employeeId = params.employeeId as string;
 
   // 직원 정보 가져오기
   useEffect(() => {
