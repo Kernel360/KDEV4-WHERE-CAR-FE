@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { 
@@ -192,6 +192,7 @@ function VehicleSidebar({
 
 export default function MonitoringPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuthStore();
   const { currentTheme } = useTheme(); 
   const [wsConnected, setWsConnected] = useState(false);
@@ -481,14 +482,16 @@ export default function MonitoringPage() {
     connectWebSocket();
   };
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
-
+  // 인증되지 않은 경우 로딩 화면 표시
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className={`${currentTheme.background} min-h-screen flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className={`text-lg ${currentTheme.text}`}>인증 확인 중...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

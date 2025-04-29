@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { UserCircleIcon, KeyIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore, LoginRequest } from '@/lib/authStore';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const { currentTheme } = useTheme();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // 로그인 폼 데이터
   const [loginData, setLoginData] = useState<LoginRequest>({
@@ -22,15 +23,42 @@ export default function LoginPage() {
     isLoading, 
     error, 
     isAuthenticated,
-    login
+    login,
+    checkAuth
   } = useAuthStore();
+
+  // silent 모드 확인 (내부 처리용)
+  const isSilentMode = searchParams.get('silent') === 'true';
+  const callbackUrl = searchParams.get('callbackUrl');
+
+  // 페이지 로드 시 인증 상태 확인
+  useEffect(() => {
+    // silent 모드일 경우 자동으로 인증 상태 확인
+    if (isSilentMode) {
+      const isAuthed = checkAuth();
+      
+      if (isAuthed) {
+        // 이미 인증된 경우 callbackUrl로 리다이렉트
+        if (callbackUrl) {
+          router.push(decodeURIComponent(callbackUrl));
+        } else {
+          router.push('/');
+        }
+      }
+    }
+  }, [isSilentMode, callbackUrl, router, checkAuth]);
 
   // 로그인 후 리다이렉션
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      // callbackUrl 파라미터 확인
+      if (callbackUrl) {
+        router.push(decodeURIComponent(callbackUrl));
+      } else {
+        router.push('/');
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, callbackUrl]);
 
   // 입력 필드 변경 처리
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +79,18 @@ export default function LoginPage() {
     e.preventDefault();
     await login(loginData);
   };
+
+  // silent 모드일 경우 로딩 화면 표시
+  if (isSilentMode) {
+    return (
+      <div className={`min-h-screen ${currentTheme.background} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className={`text-lg ${currentTheme.text}`}>인증 확인 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${currentTheme.background} p-8`}>
