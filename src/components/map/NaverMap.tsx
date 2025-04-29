@@ -132,7 +132,7 @@ const loadNaverScript = (): Promise<void> => {
     script.type = 'text/javascript';
     
     // 환경변수에서 CLIENT ID 가져오기
-    const clientId = NAVER_CLIENT_ID || 'xefwc1thif';
+    const clientId = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
     
     console.log(`NaverMap: 사용 clientId=${clientId}`);
     

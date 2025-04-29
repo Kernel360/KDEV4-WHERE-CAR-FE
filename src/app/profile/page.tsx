@@ -183,7 +183,7 @@ export default function ProfilePage() {
       setIsLoading(true);
       setApiError(null);
       
-      await fetchApi('/api/users/password', undefined, {
+      await fetchApi<{data: any, message: string, statusCode: number}>('/api/users/password', undefined, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +234,10 @@ export default function ProfilePage() {
     
     setLoadingPermissions(true);
     try {
-      const response = await fetchApi<{ permissionTypes: string[] }>('/api/users/permissions/my');
+      const apiResponse = await fetchApi<{data: { permissionTypes: string[] }, message: string, statusCode: number}>('/api/users/permissions/my');
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const response = apiResponse.data || apiResponse;
       
       if (response && response.permissionTypes) {
         // 권한 ID 배열을 Permission 객체로 변환

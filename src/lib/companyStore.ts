@@ -45,7 +45,10 @@ export const useCompanyStore = create<CompanyState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const data = await fetchApi<CompanyResponse>('/api/companies/my');
+      const response = await fetchApi<{data: CompanyResponse, message: string, statusCode: number}>('/api/companies/my');
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const data = response.data || response;
       
       set({ 
         company: data,
@@ -66,13 +69,14 @@ export const useCompanyStore = create<CompanyState>((set) => ({
     try {
       set({ updating: true, updateError: null, updateSuccess: false });
       
-      await fetchApi<void>('/api/companies/my', undefined, {
+      const updateResponse = await fetchApi<{data: any, message: string, statusCode: number}>('/api/companies/my', undefined, {
         method: 'PUT',
         body: JSON.stringify(companyRequest)
       });
       
       // 업데이트가 성공하면 회사 정보를 다시 가져옴
-      const updatedCompany = await fetchApi<CompanyResponse>('/api/companies/my');
+      const response = await fetchApi<{data: CompanyResponse, message: string, statusCode: number}>('/api/companies/my');
+      const updatedCompany = response.data || response;
       
       set({ 
         company: updatedCompany,

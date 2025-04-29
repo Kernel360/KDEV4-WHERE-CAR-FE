@@ -94,8 +94,8 @@ export default function LogsPage() {
             // carLogs를 VehicleLog 형식으로 변환해서 전달
             const mappedLogs = carLogs.map(log => {
               // API 응답의 driveType을 변환
-              let driveType: DriveType = 'UNREGISTERED';
-              if (log.driveType === 'COMMUTE' || log.driveType === 'WORK') {
+              let driveType: DriveType = 'UNCLASSIFIED';
+              if (log.driveType === 'COMMUTE' || log.driveType === 'BUSINESS' || log.driveType === 'PERSONAL') {
                 driveType = log.driveType as DriveType;
               }
               

@@ -37,75 +37,87 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'omit', // CORS 관련 문제 방지를 위해 credentials 제외
-    mode: 'cors', // CORS 요청 모드 설정
-  });
-  
-  if (!response.ok) {
-    throw new Error(`API 요청 실패: ${response.status} - ${response.statusText}`);
-  }
-  
-  // 응답 크기가 0인 경우 (204 No Content 등)
-  if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-    return {} as T; // 빈 객체를 반환
-  }
-  
-  // Content-Type 헤더를 확인하여 응답 데이터를 적절히 파싱
-  const contentType = response.headers.get('Content-Type') || '';
-  
-  if (contentType.includes('application/json')) {
-    // JSON 응답인 경우
-    try {
-      return await response.json();
-    } catch (e) {
-      console.warn('JSON 파싱 실패:', e);
-      return {} as T; // 파싱 실패시 빈 객체 반환
-    }
-  } else if (contentType.includes('text/plain') || contentType.includes('text/html')) {
-    // 텍스트 응답인 경우
-    const text = await response.text();
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // 쿠키를 포함하기 위해 'omit'에서 'include'로 변경
+      mode: 'cors', // CORS 요청 모드 설정
+    });
     
-    // 빈 텍스트인 경우
-    if (!text) {
-      return {} as T;
-    }
-    
-    // 텍스트를 JSON으로 파싱 시도 (일부 API가 Content-Type을 잘못 설정했을 수 있음)
-    try {
-      return JSON.parse(text) as T;
-    } catch (e) {
-      // 텍스트를 그대로 반환 (문자열을 T 타입으로 강제 변환)
-      return text as unknown as T;
-    }
-  } else {
-    // 기본적으로 JSON 파싱 시도
-    try {
-      return await response.json();
-    } catch (e) {
-      // JSON 파싱 실패 시 텍스트로 시도
-      try {
-        const text = await response.text();
-        if (!text) {
-          return {} as T;
+    if (!response.ok) {
+      // 401 응답은 인터셉터가 처리할 것이므로 특별히 표시
+      if (response.status === 401) {
+        const responseData = await response.json().catch(() => ({}));
+        if (responseData.message === 'ACCESS_TOKEN_EXPIRED') {
+          throw new Error(`토큰 만료로 인한 인증 오류: ${response.status}`);
+        } else {
+          throw new Error(`인증 오류: ${response.status} - ${response.statusText}`);
         }
-        return text as unknown as T;
-      } catch (textError) {
-        // 텍스트 읽기도 실패한 경우
-        console.warn('응답 읽기 실패:', textError);
+      }
+      throw new Error(`API 요청 실패: ${response.status} - ${response.statusText}`);
+    }
+    
+    // 응답 크기가 0인 경우 (204 No Content 등)
+    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+      return {} as T; // 빈 객체를 반환
+    }
+    
+    // Content-Type 헤더를 확인하여 응답 데이터를 적절히 파싱
+    const contentType = response.headers.get('Content-Type') || '';
+    
+    if (contentType.includes('application/json')) {
+      try {
+        return await response.json();
+      } catch (e) {
+        console.warn('JSON 파싱 실패:', e);
+        return {} as T; 
+      }
+    } else if (contentType.includes('text/plain') || contentType.includes('text/html')) {
+      const text = await response.text();
+      
+      if (!text) {
         return {} as T;
       }
+      
+      try {
+        return JSON.parse(text) as T;
+      } catch (e) {
+        return text as unknown as T;
+      }
+    } else {
+      // 기본적으로 JSON 파싱 시도
+      try {
+        return await response.json();
+      } catch (e) {
+        // JSON 파싱 실패 시 텍스트로 시도
+        try {
+          const text = await response.text();
+          if (!text) {
+            return {} as T;
+          }
+          return text as unknown as T;
+        } catch (textError) {
+          console.warn('응답 읽기 실패:', textError);
+          return {} as T;
+        }
+      }
     }
+  } catch (error) {
+    console.error(`[${endpoint}] API 요청 실패:`, error);
+    throw error;
   }
 };
 
 export async function fetchLatestPosition(mdn: string): Promise<{
-  mdn: string;
-  latitude: number;
-  longitude: number;
-  timestamp: string;
+  data: {
+    mdn: string;
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  };
+  message: string;
+  statusCode: number;
 } | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/gps/position?mdn=${mdn}`);

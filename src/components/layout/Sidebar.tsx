@@ -14,6 +14,9 @@ import {
   Bars3Icon,
   XMarkIcon,
   MapIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme, themes } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/lib/authStore";
@@ -23,6 +26,7 @@ const navigation = [
   { name: "차량", href: "/vehicles", icon: TruckIcon },
   { name: "운행일지", href: "/logs", icon: ClipboardDocumentListIcon },
   { name: "실시간 관제", href: "/monitoring", icon: MapIcon },
+  { name: "분석", href: "/statistics", icon: ChartBarIcon },
   { name: "회사", href: "/companies", icon: BuildingOfficeIcon },
 ];
 
@@ -43,14 +47,13 @@ export default function Sidebar() {
   const router = useRouter();
   const { currentTheme, setTheme } = useTheme();
   const { userProfile, fetchUserProfile } = useAuthStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // 초기 상태를 펼쳐진 상태로 변경
   const [userToggled, setUserToggled] = useState(false);
 
   // 초기 로드 시 localStorage에서 사이드바 상태 가져오기
   useEffect(() => {
     const storedSidebarState = localStorage.getItem('sidebarOpen');
-    // localStorage에 값이 저장되어 있으면 그 값을 사용, 없으면 기본값 false
+    // localStorage에 값이 저장되어 있으면 그 값을 사용, 없으면 기본값 true (펼쳐진 상태)
     if (storedSidebarState) {
       setIsOpen(storedSidebarState === 'true');
       setUserToggled(true);
@@ -83,13 +86,6 @@ export default function Sidebar() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // 호버 상태에 따라 사이드바 열기/닫기
-  useEffect(() => {
-    if (window.innerWidth >= 768 && !userToggled) {
-      setIsOpen(isHovered);
-    }
-  }, [isHovered, userToggled]);
 
   // 사용자가 토글 버튼을 클릭했을 때 상태 저장
   const handleToggleSidebar = useCallback(() => {
@@ -128,6 +124,16 @@ export default function Sidebar() {
         )}
       </button>
 
+      {/* 데스크톱 토글 버튼: 사이드바가 닫혀있을 때만 바깥에 표시 */}
+      {!isOpen && (
+        <button
+          onClick={handleToggleSidebar}
+          className={`hidden md:flex fixed top-4 left-20 z-20 p-2 rounded-lg ${currentTheme.cardBg} ${currentTheme.border} shadow-sm transition-all duration-300`}
+        >
+          <ChevronRightIcon className={`h-5 w-5 ${currentTheme.text}`} />
+        </button>
+      )}
+
       {/* 오버레이 */}
       {isOpen && (
         <div
@@ -143,23 +149,31 @@ export default function Sidebar() {
         } border-r z-40 transition-all duration-300 ease-in-out overflow-hidden ${
           isOpen ? "w-64" : "w-20"
         }`}
-        onMouseEnter={() => {
-          setIsHovered(true);
-          if (userToggled) setUserToggled(false);
-        }}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {/* 로고 영역 */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-6 overflow-hidden">
+        <div className="flex h-16 shrink-0 items-center px-6 overflow-hidden relative">
           <div className={`transition-opacity duration-300 w-full ${isOpen ? 'opacity-100' : 'opacity-0 absolute'}`}>
             <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap overflow-hidden">WHERE CAR</h1>
           </div>
           <div className={`transition-opacity duration-300 w-full flex justify-center ${isOpen ? 'opacity-0 absolute' : 'opacity-100'}`}>
             <h1 className="text-lg font-semibold text-slate-700 dark:text-white tracking-wide whitespace-nowrap">WC</h1>
           </div>
+          {/* 사이드바가 열렸을 때만 내부에 토글 버튼 표시 */}
+          {isOpen && (
+            <button
+              onClick={handleToggleSidebar}
+              className="hidden md:flex ml-2 p-2 rounded-lg transition-all duration-300"
+              style={{ position: 'absolute', right: '0.5rem' }}
+            >
+              <ChevronLeftIcon className={`h-5 w-5 ${currentTheme.text}`} />
+            </button>
+          )}
+          {/* 다크/라이트 토글 버튼은 항상 로고 오른쪽에 */}
+          
+          {/* 모바일 닫기 버튼 */}
           <button
             onClick={handleToggleSidebar}
-            className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200"
+            className="md:hidden text-slate-700 dark:text-white hover:text-slate-900 dark:hover:text-gray-200 ml-2"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -285,7 +299,6 @@ export default function Sidebar() {
                 onClick={() => {
                   const { logout } = useAuthStore.getState();
                   logout();
-                  router.push('/');
                 }}
                 className={`p-2 rounded-lg ${currentTheme.hoverBg} ${currentTheme.textColor} hover:text-red-500`}
                 title="로그아웃"

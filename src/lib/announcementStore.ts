@@ -29,12 +29,15 @@ export const useAnnouncementStore = create<AnnouncementState>((set) => ({
   fetchAnnouncements: async (page = 0, size = 10) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetchApi<AnnouncementsResponse>('/api/announcement', {
+      const apiResponse = await fetchApi<{data: AnnouncementsResponse, message: string, statusCode: number}>('/api/announcements', {
         page,
         size
       });
       
-      console.log('API 원본 응답:', response);
+      console.log('API 원본 응답:', apiResponse);
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const response = apiResponse.data || apiResponse;
       
       // announcementId를 id로 매핑하여 처리
       const processedAnnouncements = response.content.map((item, index) => {
@@ -73,9 +76,12 @@ export const useAnnouncementStore = create<AnnouncementState>((set) => ({
   fetchAnnouncementDetail: async (id: number) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetchApi<AnnouncementApiResponse>(`/api/announcement/${id}`);
+      const apiResponse = await fetchApi<{data: AnnouncementApiResponse, message: string, statusCode: number}>(`/api/announcements/${id}`);
       
-      console.log('상세 API 원본 응답:', response);
+      console.log('상세 API 원본 응답:', apiResponse);
+      
+      // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
+      const response = apiResponse.data || apiResponse;
       
       // announcementId를 id로 매핑하여 처리
       const processedDetail = {
