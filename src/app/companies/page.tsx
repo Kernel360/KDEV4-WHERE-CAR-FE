@@ -65,7 +65,7 @@ export default function CompaniesPage() {
         <div className="flex justify-between items-center mb-8">
           <PageHeader 
             title="업체 정보" 
-            description="위카 주식회사 정보와 직원 목록을 관리합니다" 
+            description="회사 정보와 직원 목록을 관리합니다" 
           />
           
           <div className="hidden md:flex space-x-2">

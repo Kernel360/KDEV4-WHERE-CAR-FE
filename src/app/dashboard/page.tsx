@@ -459,6 +459,7 @@ export default function DashboardPage() {
                       },
                       ticks: {
                         color: currentTheme.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                        callback: (value) => `${Number(value).toLocaleString()} km`
                       },
                     },
                     x: {
@@ -474,6 +475,11 @@ export default function DashboardPage() {
                     legend: {
                       display: false,
                     },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => `${Number(context.raw).toLocaleString()} km`
+                      }
+                    }
                   },
                 }}
               />
