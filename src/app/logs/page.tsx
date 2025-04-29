@@ -6,8 +6,6 @@ import { VehicleLogList } from "@/components/logs/VehicleLogList";
 import { VehicleLogFilter } from "@/components/logs/VehicleLogFilter";
 import { VehicleLogFilter as FilterType, VehicleLog, DriveType } from "@/types/logs";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
-import { downloadExcel } from "@/lib/utils";
 import VehicleLogDetailSlidePanel from "@/components/logs/VehicleLogDetailSlidePanel";
 import { useCarLogsStore } from "@/lib/carLogsStore";
 
@@ -59,10 +57,6 @@ export default function LogsPage() {
     }, 300);
   };
 
-  const handleExportExcel = (logs: VehicleLog[]) => {
-    downloadExcel(logs, 'vehicle-logs');
-  };
-
   const handleDeleteLog = (id: string) => {
     console.log(`삭제할 운행 기록 ID: ${id}`);
     
@@ -88,41 +82,6 @@ export default function LogsPage() {
           title="운행일지" 
           description="차량 운행 기록을 관리하고 조회할 수 있습니다." 
         />
-        <button
-          onClick={() => {
-            // VehicleLogList 컴포넌트에서 filteredLogs를 가져올 수 없으므로 
-            // carLogs를 VehicleLog 형식으로 변환해서 전달
-            const mappedLogs = carLogs.map(log => {
-              // API 응답의 driveType을 변환
-              let driveType: DriveType = 'UNCLASSIFIED';
-              if (log.driveType === 'COMMUTE' || log.driveType === 'BUSINESS' || log.driveType === 'PERSONAL') {
-                driveType = log.driveType as DriveType;
-              }
-              
-              return {
-                id: log.logId.toString(),
-                vehicleNumber: log.mdn || '',
-                startTime: log.onTime || '',
-                endTime: log.offTime || '',
-                startMileage: log.onMileage || 0,
-                endMileage: log.offMileage || 0,
-                totalDistance: log.totalMileage !== null && log.totalMileage !== undefined 
-                  ? log.totalMileage 
-                  : (log.offMileage || 0) - (log.onMileage || 0),
-                driveType: driveType,
-                driver: log.driver ? { id: '1', name: log.driver } : null,
-                note: log.description || null,
-                createdAt: log.onTime || '',
-                updatedAt: log.offTime || ''
-              };
-            });
-            handleExportExcel(mappedLogs);
-          }} 
-          className={`flex items-center px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm`}
-        >
-          <ArrowDownTrayIcon className="h-4 w-4 mr-1.5" />
-          <span>Excel 내보내기</span>
-        </button>
       </div>
 
       <div className="mt-4">
@@ -136,7 +95,6 @@ export default function LogsPage() {
         <div className="mt-4">
           <VehicleLogList 
             filter={currentFilter as FilterType}
-            onExport={handleExportExcel}
             onLogSelect={handleLogSelect}
             isSlideOpen={isSlidePanelOpen}
             onCloseSlide={handleCloseSlidePanel}

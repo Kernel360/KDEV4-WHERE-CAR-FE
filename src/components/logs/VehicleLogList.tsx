@@ -9,18 +9,16 @@ import { useCarLogsStore } from '@/lib/carLogsStore';
 interface VehicleLogListProps {
   filter: VehicleLogFilter;
   searchTerm?: string;
-  onExport: (logs: VehicleLog[]) => void;
-  onLogSelect?: (log: VehicleLog) => void;
+  onLogSelect: (log: VehicleLog) => void;
   isSlideOpen?: boolean;
   onCloseSlide?: () => void;
-  selectedLog?: VehicleLog | null;
+  selectedLog: VehicleLog | null;
   isLoading?: boolean;
 }
 
 export function VehicleLogList({ 
   filter, 
   searchTerm = '',
-  onExport,
   onLogSelect,
   isSlideOpen = false,
   onCloseSlide,
