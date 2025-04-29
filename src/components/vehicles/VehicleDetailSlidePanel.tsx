@@ -38,12 +38,12 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     
     setIsLoadingPosition(true);
     try {
-      const position = await fetchLatestPosition(vehicle.mdn);
-      if (position) {
+      const response = await fetchLatestPosition(vehicle.mdn);
+      if (response && response.data) {
         setLatestPosition({
-          latitude: position.latitude,
-          longitude: position.longitude,
-          timestamp: position.timestamp
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          timestamp: response.data.timestamp
         });
       } else {
         setLatestPosition(null);
@@ -493,14 +493,24 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                               </div>
                             </div>
                             <div className="relative rounded-xl overflow-hidden shadow-lg">
-                              <VehicleLocationMap
-                                latitude={latestPosition?.latitude || 37.5666805}
-                                longitude={latestPosition?.longitude || 126.9784147}
-                                zoom={15}
-                                height="400px"
-                                isLoading={isLoadingPosition}
-                                showLocationInfo={!!latestPosition}
-                              />
+                              {latestPosition && latestPosition.latitude && latestPosition.longitude ? (
+                                <VehicleLocationMap
+                                  latitude={latestPosition.latitude}
+                                  longitude={latestPosition.longitude}
+                                  zoom={15}
+                                  height="400px"
+                                  isLoading={isLoadingPosition}
+                                  showLocationInfo={true}
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl" style={{ height: "400px" }}>
+                                  <div className="text-center p-4">
+                                    <p className="text-gray-700 dark:text-gray-300">
+                                      현재 차량 위치 정보가 없습니다
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

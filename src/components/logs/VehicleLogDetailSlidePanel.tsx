@@ -57,16 +57,30 @@ export default function VehicleLogDetailSlidePanel({ isOpen, onClose, log, onDel
         formattedEndTime
       ) as RouteResponse;
 
-      if (routeData && routeData.route && routeData.route.length > 0) {
-        const points = routeData.route.map((point: RoutePoint) => ({
-          lat: point.latitude,
-          lng: point.longitude,
-          timestamp: point.timestamp
-        }));
-        setRoutePoints(points);
-      } else {
-        setRoutePoints([]);
-      }
+      // 응답 구조에 맞게 경로 데이터 추출 및 중복 제거
+      const points = routeData.data?.route
+        ? (() => {
+            // 중복 제거: 같은 타임스탬프의 위치 데이터는 한 번만 사용
+            const uniquePoints = [];
+            const seenTimestamps = new Set();
+            
+            for (const point of routeData.data.route) {
+              if (!seenTimestamps.has(point.timestamp)) {
+                uniquePoints.push({
+                  lat: point.latitude,
+                  lng: point.longitude,
+                  timestamp: point.timestamp
+                });
+                seenTimestamps.add(point.timestamp);
+              }
+            }
+            
+            console.log('중복 제거 후 위치 포인트:', uniquePoints.length, '개');
+            return uniquePoints;
+          })()
+        : [];
+
+      setRoutePoints(points);
     } catch (error) {
       setRoutePoints([]);
     } finally {
