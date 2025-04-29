@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
 import { 
   MinusIcon, 
   PlusIcon, 
@@ -51,6 +52,8 @@ interface VehicleSidebarProps {
   currentPositions: CurrentCarPosition[];
   showRoute: boolean;
   setShowRoute: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedVehicleDetails: Vehicle | null;
+  storeVehicles: Vehicle[];
 }
 
 function VehicleSidebar({ 
@@ -61,7 +64,9 @@ function VehicleSidebar({
   carLocations,
   currentPositions,
   showRoute,
-  setShowRoute
+  setShowRoute,
+  selectedVehicleDetails,
+  storeVehicles
 }: VehicleSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
@@ -80,6 +85,57 @@ function VehicleSidebar({
   
   const selectedVehicleFullData = selectedVehicle ?
     carLocations.find(car => car.carId === selectedVehicle) : null;
+  
+  const getStateDisplay = (state: string | null | undefined) => {
+    if (!state) return { 
+      text: "알 수 없음", 
+      color: "text-gray-500",
+      bgColor: "bg-gray-100 dark:bg-gray-700"
+    };
+    
+    switch (state) {
+      case "RUNNING":
+        return { 
+          text: "운행 중", 
+          color: "text-green-600 dark:text-green-400", 
+          bgColor: "bg-green-100 dark:bg-green-900/30"
+        };
+      case "STOPPED":
+        return { 
+          text: "정지", 
+          color: "text-red-600 dark:text-red-400", 
+          bgColor: "bg-red-100 dark:bg-red-900/30"
+        };
+      case "NOT_REGISTERED":
+        return { 
+          text: "미등록", 
+          color: "text-yellow-600 dark:text-yellow-400", 
+          bgColor: "bg-yellow-100 dark:bg-yellow-900/30"
+        };
+      default:
+        return { 
+          text: "알 수 없음", 
+          color: "text-gray-500",
+          bgColor: "bg-gray-100 dark:bg-gray-700"
+        };
+    }
+  };
+  
+  const vehicleState = selectedVehicleDetails?.carState;
+  const stateDisplay = getStateDisplay(vehicleState);
+  
+  useEffect(() => {
+    if (selectedVehicle) {
+      console.log('선택된 차량:', selectedVehicle);
+      console.log('차량 상세 정보:', selectedVehicleDetails);
+      console.log('스토어의 모든 차량:', storeVehicles);
+      
+      const matchingVehicle = storeVehicles.find(v => 
+        v.id === selectedVehicle || v.mdn === selectedVehicle
+      );
+      console.log('스토어에서 찾은 차량:', matchingVehicle);
+    }
+  }, [selectedVehicle, selectedVehicleDetails, storeVehicles]);
   
   return (
     <div className={`w-80 ${currentTheme.cardBg} ${currentTheme.border} rounded-lg shadow-sm overflow-hidden h-[calc(100vh-160px)] flex flex-col`}>
@@ -170,9 +226,16 @@ function VehicleSidebar({
           </div>
           
           <div className={`${currentTheme.border} border rounded-md p-3 mb-3`}>
-            <div className="grid grid-cols-1 gap-2 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div className={`${currentTheme.mutedText}`}>차량 상태</div>
+                <div className={`inline-flex items-center px-3 py-1 rounded-full ${stateDisplay.bgColor} ${stateDisplay.color} font-medium text-xs`}>
+                  {stateDisplay.text}
+                </div>
+              </div>
+              
               <div>
-                <div className={`${currentTheme.mutedText} mb-1`}>현재 위치</div>
+                <div className={`${currentTheme.mutedText} mb-1.5`}>현재 위치</div>
                 <div className={`${currentTheme.textColor} grid grid-cols-2 gap-1`}>
                   <div>
                     <span className="text-xs text-gray-500">위도: </span>
@@ -184,8 +247,9 @@ function VehicleSidebar({
                   </div>
                 </div>
               </div>
-              <div className="mt-2">
-                <div className={`${currentTheme.mutedText} mb-1`}>시간</div>
+              
+              <div>
+                <div className={`${currentTheme.mutedText} mb-1.5`}>시간</div>
                 <div className={`${currentTheme.textColor}`}>
                   {new Date(selectedVehicleData.currentLocation.timestamp).toLocaleTimeString()}
                 </div>
@@ -222,7 +286,6 @@ export default function MonitoringPage() {
   const [showRoute, setShowRoute] = useState(false);
   const [routePoints, setRoutePoints] = useState<RouteGroup[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  //Todo: 회사 아이디 받아오기
   const [companyId, setCompanyId] = useState<string>('1');
   const [selectedCars, setSelectedCars] = useState<string[]>([]);
   const [showAllCars, setShowAllCars] = useState(true);
@@ -236,7 +299,7 @@ export default function MonitoringPage() {
     longitude: 127.5,
     zoom: 7,
     followVehicle: false,
-    userSetPosition: true // 사용자가 직접 설정한 위치인지 여부
+    userSetPosition: true
   });
 
   const [lastDragTime, setLastDragTime] = useState<number>(0);
@@ -252,6 +315,10 @@ export default function MonitoringPage() {
     { name: '부산', latitude: 35.1796, longitude: 129.0756, zoom: 11 },
     { name: '대전', latitude: 36.3504, longitude: 127.3845, zoom: 11 }
   ]);
+
+  const { vehicles: storeVehicles, fetchVehicles } = useVehicleStore();
+  
+  const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<Vehicle | null>(null);
 
   const handleMapDrag = (center: {lat: number, lng: number}, zoom: number) => {
     setMapSettings(prev => ({
@@ -325,11 +392,8 @@ export default function MonitoringPage() {
     }
   }, [carLocations]);
 
-  // 연결 및 데이터 수신 처리
   useEffect(() => {
     connectWebSocket();
-    
-    // 테스트 데이터 생성은 제거 (직접 입력 기능으로 대체)
     
     return () => {
       if (wsRef.current) {
@@ -341,7 +405,6 @@ export default function MonitoringPage() {
     };
   }, []);
 
-  // WebSocket 연결 상태가 변경될 때 자동 구독
   useEffect(() => {
     if (wsConnected && companyId) {
       console.log('WebSocket 연결됨, 자동 구독 시도:', companyId);
@@ -434,14 +497,12 @@ export default function MonitoringPage() {
     }
   };
 
-  // 경로 포인트 업데이트 함수
   const updateRoutePoints = () => {
     if (!showRoute) {
       setRoutePoints([]);
       return;
     }
 
-    // 각 차량별로 경로를 그룹화하여 저장
     const groupedRoutes = currentPositions.map(pos => {
       const vehicle = carLocations.find(v => v.carId === pos.carId);
       if (vehicle) {
@@ -462,23 +523,27 @@ export default function MonitoringPage() {
     setRoutePoints(groupedRoutes);
   };
 
-  // 차량 선택 토글 함수 수정
-  const toggleCarSelection = (carId: string) => {
+  const toggleCarSelection = useCallback((carId: string) => {
     setSelectedCars(prev => {
       if (prev.includes(carId)) {
+        setSelectedVehicleDetails(null);
         return prev.filter(id => id !== carId);
       } else {
-        return [...prev, carId];
+        const vehicleInfo = storeVehicles.find(v => v.id === carId || v.mdn === carId);
+        setSelectedVehicleDetails(vehicleInfo || null);
+        return [carId];
       }
     });
-  };
+  }, [storeVehicles]);
 
-  // 차량 위치가 업데이트될 때마다 경로도 업데이트
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
   useEffect(() => {
     updateRoutePoints();
   }, [currentPositions, showRoute]);
 
-  // 경로 보기/숨기기 토글 시 경로 업데이트
   useEffect(() => {
     updateRoutePoints();
   }, [showRoute]);
@@ -497,7 +562,6 @@ export default function MonitoringPage() {
       }
     }));
     
-  // 차량 위치가 업데이트될 때마다 지도 위치 업데이트
   useEffect(() => {
     if (!mapSettings.followVehicle) {
       return;
@@ -606,6 +670,8 @@ export default function MonitoringPage() {
             currentPositions={currentPositions}
             showRoute={showRoute}
             setShowRoute={setShowRoute}
+            selectedVehicleDetails={selectedVehicleDetails}
+            storeVehicles={storeVehicles}
           />
           
           <div className={`flex-1 ${currentTheme.cardBg} ${currentTheme.border} rounded-lg shadow-sm overflow-hidden`}>
