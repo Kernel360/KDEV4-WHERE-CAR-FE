@@ -163,10 +163,16 @@ export default function HomePage() {
               </p>
               <div className="flex items-center gap-4 mt-8">
                 <Link
-                  href="/register"
+                  href="/trial"
                   className="px-8 py-3 text-lg rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-all duration-300 shadow-md inline-block font-medium"
                 >
                   무료 체험하기
+                </Link>
+                <Link
+                  href="/emulator-guide"
+                  className="px-8 py-3 text-lg rounded-md bg-blue-500/20 border border-blue-200/30 text-blue-100 hover:bg-blue-400/30 transition-all duration-300 shadow-md inline-block font-medium backdrop-blur-sm"
+                >
+                  에뮬레이터 가이드
                 </Link>
               </div>
             </div>
