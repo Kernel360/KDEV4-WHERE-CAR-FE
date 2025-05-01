@@ -59,9 +59,9 @@ export default function EmployeeList(props: EmployeeListProps) {
   const filteredEmployees = employeeData.filter(
     (employee) => {
       const matchesSearch = 
-        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        employee.phone.toLowerCase().includes(searchTerm.toLowerCase());
+        (employee.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (employee.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (employee.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       
       return matchesSearch;
     }
