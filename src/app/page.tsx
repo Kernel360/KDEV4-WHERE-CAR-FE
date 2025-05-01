@@ -204,7 +204,7 @@ export default function HomePage() {
                 </div>
                 <div className="absolute top-1/2 transform -translate-y-1/2 -right-12 px-4 py-2.5 bg-purple-900/80 backdrop-blur-sm rounded-full text-white text-sm animate-pulse-slow-delay2 shadow-lg border border-purple-700/50 flex items-center">
                   <div className="w-2 h-2 rounded-full bg-purple-400 mr-2"></div>
-                  데이터 분석
+                  애뮬레이터 분석
                 </div>
               </div>
             </div>
