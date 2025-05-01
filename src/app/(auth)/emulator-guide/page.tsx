@@ -3,6 +3,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function EmulatorGuidePage() {
   const { currentTheme } = useTheme();
@@ -134,82 +135,32 @@ export default function EmulatorGuidePage() {
             </ul>
           </section>
 
-          {/* 에뮬레이터 체험 섹션 */}
-          <section className={`${currentTheme.cardBg} rounded-lg shadow-lg p-8`}>
-            <h2 className="text-2xl font-bold mb-6">에뮬레이터 체험하기</h2>
-            <p className={`${currentTheme.mutedText} mb-6`}>
-              아래 링크에서 실제 에뮬레이터를 체험해보실 수 있습니다. 각각 다른 경로와 차량 정보로 테스트가 가능합니다.
+          {/* 데모 체험하기 버튼 섹션 추가 */}
+          <div className="flex flex-col items-center py-8">
+            <p className={`${currentTheme.mutedText} text-center mb-6 text-lg`}>
+              지금 바로 WHERE CAR 에뮬레이터를 체험해보세요!
             </p>
-            
-            <div className="grid gap-6">
-              {[
-                {
-                  url: 'https://emulator.where-car.com:8080/dashboard',
-                  vehicleId: '01284967350',
-                  plateNo: '23마8492',
-                  description: '광주 → 무주 경로'
-                },
-                {
-                  url: 'https://emulator.where-car.com:8081/dashboard',
-                  vehicleId: '09573482619',
-                  plateNo: '67다1359',
-                  description: '경주 → 서울 경로'
-                },
-                {
-                  url: 'https://emulator.where-car.com:8082/dashboard',
-                  vehicleId: '03759261845',
-                  plateNo: '12고9756',
-                  description: '서울 → 경주 경로'
-                },
-                {
-                  url: 'https://emulator.where-car.com:8083/dashboard',
-                  vehicleId: '07362519840',
-                  plateNo: '89버2431',
-                  description: '수원 → 대전 → 구미 경로'
-                },
-                {
-                  url: 'https://emulator.where-car.com:8084/dashboard',
-                  vehicleId: '05829463715',
-                  plateNo: '35자7650',
-                  description: '양양 → 대구 경로'
-                }
-              ].map((emulator, index) => (
-                <div 
-                  key={index} 
-                  className={`${currentTheme.hoverBg} rounded-lg p-6 border ${currentTheme.border} hover:shadow-md transition-all duration-300`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-blue-500">{emulator.description}</h3>
-                    <a 
-                      href={emulator.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                    >
-                      체험하기
-                    </a>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className={`${currentTheme.mutedText}`}>차량 ID:</span>
-                      <code className={`${currentTheme.cardBg} px-3 py-1 rounded`}>{emulator.vehicleId}</code>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={`${currentTheme.mutedText}`}>차량 번호:</span>
-                      <code className={`${currentTheme.cardBg} px-3 py-1 rounded`}>{emulator.plateNo}</code>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-              <p className={`${currentTheme.mutedText} text-sm`}>
-                💡 각 에뮬레이터는 독립적으로 실행되며, 서로 다른 경로와 차량 정보를 가지고 있습니다. 
-                여러 창을 동시에 열어 다중 차량 관제 시뮬레이션을 경험해보세요.
-              </p>
-            </div>
-          </section>
+            <Link
+              href="/trial"
+              className="inline-flex items-center px-8 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+            >
+              <span className="text-lg font-semibold">데모 체험하기</span>
+              <svg 
+                className="w-5 h-5 ml-2" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
