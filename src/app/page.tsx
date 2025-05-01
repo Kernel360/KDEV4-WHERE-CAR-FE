@@ -168,6 +168,12 @@ export default function HomePage() {
                 >
                   무료 체험하기
                 </Link>
+                <Link
+                  href="/emulator-guide"
+                  className="px-8 py-3 text-lg rounded-md bg-blue-500/20 border border-blue-200/30 text-blue-100 hover:bg-blue-400/30 transition-all duration-300 shadow-md inline-block font-medium backdrop-blur-sm"
+                >
+                  애뮬레이터 가이드
+                </Link>
               </div>
             </div>
             <div className={`relative ${isLoaded ? 'animate-fadeInRight' : 'opacity-0'} hidden lg:block`}>
