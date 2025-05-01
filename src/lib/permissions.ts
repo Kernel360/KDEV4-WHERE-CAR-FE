@@ -41,11 +41,15 @@ export const ALL_PERMISSIONS: Permission[] = [
   
   // 로그 관련 권한
   { id: 'PERM_LOGS_VIEW', name: '로그 조회', description: '시스템 로그를 조회할 수 있습니다.', isGranted: false },
-  { id: 'PERM_LOGS_EXPORT', name: '로그 내보내기', description: '시스템 로그를 내보낼 수 있습니다.', isGranted: false },
+  { id: 'PERM_LOGS_EDIT', name: '로그 수정', description: '시스템 로그를 수정할 수 있습니다.', isGranted: false },
+  { id: 'PERM_LOGS_DELETE', name: '로그 삭제', description: '시스템 로그를 삭제할 수 있습니다.', isGranted: false },
   
   // 대시보드 관련 권한
   { id: 'PERM_DASHBOARD_VIEW', name: '대시보드 조회', description: '대시보드를 조회할 수 있습니다.', isGranted: false },
   { id: 'PERM_DASHBOARD_EDIT', name: '대시보드 수정', description: '대시보드를 수정할 수 있습니다.', isGranted: false },
+  
+  // 통계 관련 권한
+  { id: 'PERM_STATS_VIEW', name: '통계 조회', description: '통계 정보를 조회할 수 있습니다.', isGranted: false },
   
   // 관리자 권한
   { id: 'PERM_ADMIN', name: '관리자', description: '시스템의 모든 기능에 접근할 수 있는 관리자 권한입니다.', isGranted: false },
@@ -59,6 +63,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   { id: 'vehicle', name: '차량 관리', permissions: ALL_PERMISSIONS.filter(p => p.id.startsWith('PERM_VEHICLE_')) },
   { id: 'logs', name: '로그 관리', permissions: ALL_PERMISSIONS.filter(p => p.id.startsWith('PERM_LOGS_')) },
   { id: 'dashboard', name: '대시보드', permissions: ALL_PERMISSIONS.filter(p => p.id.startsWith('PERM_DASHBOARD_')) },
+  { id: 'stats', name: '통계', permissions: ALL_PERMISSIONS.filter(p => p.id.startsWith('PERM_STATS_')) },
   { id: 'admin', name: '관리자', permissions: ALL_PERMISSIONS.filter(p => p.id === 'PERM_ADMIN') },
 ];
 
