@@ -20,6 +20,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
   
   // 사이드바를 표시할지 여부 결정
   const showSidebar = pathname ? !hideSidebarPaths.includes(pathname) : true;
+  const isMainPage = pathname === '/';
 
   // 인증 인터셉터 설정
   useEffect(() => {
@@ -36,19 +37,25 @@ export default function PageLayout({ children }: PageLayoutProps) {
   }, []);
 
   return (
-    <div className={`min-h-screen ${currentTheme.background}`}>
-      <div className="flex h-full">
-        {showSidebar && <Sidebar />}
-        <main 
-          className={`flex-1 overflow-y-auto ${currentTheme.background} transition-all duration-300 ease-in-out ${
-            showSidebar ? (sidebarOpen ? 'md:ml-64' : 'md:ml-20') : ''
-          }`}
-        >
-          <div className="max-w-7xl mx-auto">
-            {children}
+    <>
+      {isMainPage ? (
+        children
+      ) : (
+        <div className={`min-h-screen ${currentTheme.background}`}>
+          <div className="flex h-full">
+            {showSidebar && <Sidebar />}
+            <main 
+              className={`flex-1 overflow-y-auto ${currentTheme.background} transition-all duration-300 ease-in-out ${
+                showSidebar ? (sidebarOpen ? 'md:ml-64' : 'md:ml-20') : ''
+              }`}
+            >
+              <div className="max-w-7xl mx-auto">
+                {children}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 } 
