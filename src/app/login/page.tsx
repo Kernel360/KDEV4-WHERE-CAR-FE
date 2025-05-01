@@ -71,7 +71,7 @@ function LoginContent() {
 
   // 뒤로가기 처리
   const handleGoBack = () => {
-    router.back();
+    router.push('/');
   };
 
   // 폼 제출 처리

@@ -163,10 +163,16 @@ export default function HomePage() {
               </p>
               <div className="flex items-center gap-4 mt-8">
                 <Link
-                  href="/register"
+                  href="/trial"
                   className="px-8 py-3 text-lg rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-all duration-300 shadow-md inline-block font-medium"
                 >
-                  무료 체험하기
+                  데모 체험하기
+                </Link>
+                <Link
+                  href="/emulator-guide"
+                  className="px-8 py-3 text-lg rounded-md bg-blue-500/20 border border-blue-200/30 text-blue-100 hover:bg-blue-400/30 transition-all duration-300 shadow-md inline-block font-medium backdrop-blur-sm"
+                >
+                  에뮬레이터 가이드
                 </Link>
               </div>
             </div>
@@ -198,7 +204,7 @@ export default function HomePage() {
                 </div>
                 <div className="absolute top-1/2 transform -translate-y-1/2 -right-12 px-4 py-2.5 bg-purple-900/80 backdrop-blur-sm rounded-full text-white text-sm animate-pulse-slow-delay2 shadow-lg border border-purple-700/50 flex items-center">
                   <div className="w-2 h-2 rounded-full bg-purple-400 mr-2"></div>
-                  데이터 분석
+                  애뮬레이터 분석
                 </div>
               </div>
             </div>
