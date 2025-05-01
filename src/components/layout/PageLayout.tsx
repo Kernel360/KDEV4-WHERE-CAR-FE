@@ -16,7 +16,7 @@ export default function PageLayout({ children }: PageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // 사이드바를 표시하지 않을 경로 목록
-  const hideSidebarPaths = ['/', '/login', '/register'];
+  const hideSidebarPaths = ['/', '/login', '/register', '/emulator-guide', '/trial'];
   
   // 사이드바를 표시할지 여부 결정
   const showSidebar = pathname ? !hideSidebarPaths.includes(pathname) : true;
