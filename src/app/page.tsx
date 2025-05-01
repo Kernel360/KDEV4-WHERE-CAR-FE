@@ -166,7 +166,7 @@ export default function HomePage() {
                   href="/trial"
                   className="px-8 py-3 text-lg rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-all duration-300 shadow-md inline-block font-medium"
                 >
-                  무료 체험하기
+                  데모 체험하기
                 </Link>
                 <Link
                   href="/emulator-guide"
@@ -413,7 +413,7 @@ export default function HomePage() {
                   지금 바로 시작하세요
                 </h3>
                 <p className="text-blue-100 mb-12 max-w-2xl text-lg leading-relaxed">
-                  14일 무료 체험 기간 동안 WHERE CAR의 모든 기능을 경험해보세요.
+                   WHERE CAR의 모든 기능을 경험해보세요.
                   설치부터 운영까지 전문 컨설턴트가 함께합니다.
                 </p>
                 <div 
