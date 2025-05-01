@@ -198,29 +198,6 @@ function LoginContent() {
             </p>
           </div>
         </div>
-        {/* 데모 계정 정보 박스 */}
-        <div className={`mt-6 p-8 rounded-2xl ${currentTheme.cardBg} shadow-lg border ${currentTheme.border}`}>
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className={`text-lg font-semibold ${currentTheme.text}`}>데모 체험하기</h2>
-            </div>
-            <p className={`${currentTheme.subtext} text-sm mb-4`}>
-              WHERE CAR의 모든 기능을 체험해보세요.
-            </p>
-            <div className={`${currentTheme.hoverBg} rounded-lg p-4 space-y-3`}>
-              <div className="flex items-center justify-between">
-                <span className={`${currentTheme.text} text-sm`}>이메일 주소:</span>
-                <code className={`${currentTheme.cardBg} px-3 py-1.5 rounded text-blue-600 dark:text-blue-400 font-mono text-sm`}>
-                  user@example.com
-                </code>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className={`${currentTheme.text} text-sm`}>비밀번호:</span>
-                <code className={`${currentTheme.cardBg} px-3 py-1.5 rounded text-blue-600 dark:text-blue-400 font-mono text-sm`}>
-                  123
-                </code>
-              </div>
-            </div>
-          </div>
       </div>
     </div>
   );
