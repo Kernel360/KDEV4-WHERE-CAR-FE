@@ -290,7 +290,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             총 주행거리 (km)
                           </label>
                           <input
-                            type="number"
+                            type="text"
                             id="mileage"
                             value={newVehicle.mileage}
                             onChange={(e) => handleInputChange('mileage', e.target.value)}
@@ -350,7 +350,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                           배터리 전력 (V)
                         </label>
                         <input
-                          type="number"
+                          type="text"
                           id="batteryVoltage"
                           value={newVehicle.batteryVoltage}
                           onChange={(e) => handleInputChange('batteryVoltage', e.target.value)}
