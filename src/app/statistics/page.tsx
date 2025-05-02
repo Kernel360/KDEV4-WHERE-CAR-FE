@@ -382,39 +382,11 @@ export default function StatisticsPage() {
     }
   }, [mapLoaded, loading]);
 
-  // 지도 모드가 변경되거나 데이터가 변경될 때 히트맵 업데이트
+  // 지도 경계 설정 (데이터가 변경될 때만 실행)
   useEffect(() => {
     if (!mapLoaded || !window.naver || !mapInstance || loading) return;
 
-    // 이전 히트맵 제거 (효과 보장을 위해 최상단에서 실행)
-    if (heatmap) {
-      console.log('이전 히트맵 제거');
-      heatmap.setMap(null);
-      setHeatmap(null);
-    }
-
-    // 지도 모드에 따라 데이터 선택
-    const locationData = mapMode === 'departure' 
-      ? statistics.onList.map(item => ({
-          lat: item.latitude,
-          lng: item.longitude,
-          weight: 1.0
-        }))
-      : statistics.offList.map(item => ({
-          lat: item.latitude,
-          lng: item.longitude,
-          weight: 1.0
-        }));
-
-    // 데이터가 없는 경우 메시지 표시
-    if (locationData.length === 0) {
-      console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포를 위한 위치 데이터가 없습니다.`);
-      return;
-    }
-
-    console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포 데이터:`, locationData.length, "개 포인트");
-
-    // 항상 출발지와 도착지 데이터를 모두 고려한 bounds 계산
+    // 출발지와 도착지 데이터를 모두 고려한 bounds 계산
     if (statistics.onList.length > 0 || statistics.offList.length > 0) {
       // 도착지와 출발지 모두의 위치 데이터로 통합 bounds 계산
       const allLocationData = [...statistics.onList, ...statistics.offList].map(item => ({
@@ -448,6 +420,39 @@ export default function StatisticsPage() {
         }, 100);
       }
     }
+  }, [mapLoaded, statistics, loading, mapInstance]);
+
+  // 지도 모드가 변경되거나 데이터가 변경될 때 히트맵 업데이트
+  useEffect(() => {
+    if (!mapLoaded || !window.naver || !mapInstance || loading) return;
+
+    // 이전 히트맵 제거 (효과 보장을 위해 최상단에서 실행)
+    if (heatmap) {
+      console.log('이전 히트맵 제거');
+      heatmap.setMap(null);
+      setHeatmap(null);
+    }
+
+    // 지도 모드에 따라 데이터 선택
+    const locationData = mapMode === 'departure' 
+      ? statistics.onList.map(item => ({
+          lat: item.latitude,
+          lng: item.longitude,
+          weight: 1.0
+        }))
+      : statistics.offList.map(item => ({
+          lat: item.latitude,
+          lng: item.longitude,
+          weight: 1.0
+        }));
+
+    // 데이터가 없는 경우 메시지 표시
+    if (locationData.length === 0) {
+      console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포를 위한 위치 데이터가 없습니다.`);
+      return;
+    }
+
+    console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 분포 데이터:`, locationData.length, "개 포인트");
 
     // 현재 모드에 맞는 데이터만 사용하여 히트맵 생성
     console.log(`${mapMode === 'departure' ? '출발지' : '도착지'} 히트맵 생성 시작`);
