@@ -89,7 +89,19 @@ export default function ProfilePage() {
   // 사용자 정보 핸들러
   const handleUserInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUserInfo(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone') {
+      const numbers = value.replace(/[^\d]/g, '');
+      let formattedPhone = numbers;
+      if (numbers.length > 3) {
+        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+      }
+      if (numbers.length > 7) {
+        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+      }
+      setUserInfo(prev => ({ ...prev, [name]: formattedPhone }));
+    } else {
+      setUserInfo(prev => ({ ...prev, [name]: value }));
+    }
     setChangedFields(prev => ({ ...prev, [name]: true }));
   };
   
@@ -393,9 +405,11 @@ export default function ProfilePage() {
                       value={userInfo.phone}
                       onChange={handleUserInfoChange}
                       disabled={!isEditing}
+                      maxLength={13}
                       className={`w-full py-2 pl-10 pr-3 rounded-lg ${
                         !isEditing ? 'bg-transparent' : currentTheme.inputBg
                       } ${currentTheme.text} border ${currentTheme.border} focus:ring-blue-500 focus:border-blue-500`}
+                      placeholder="010-1234-5678"
                     />
                   </div>
                 </div>

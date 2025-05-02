@@ -49,13 +49,28 @@ export default function AddEmployeePage() {
     resetRegisterSuccess
   } = useEmployeeStore();
 
+  // 전화번호 포맷팅 함수
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
+
   // 입력 필드 변경 처리
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'phone') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formatPhoneNumber(value)
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // 뒤로가기 처리
@@ -228,8 +243,9 @@ export default function AddEmployeePage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
+                    maxLength={13}
                     className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                    placeholder="직원의 연락처를 입력하세요"
+                    placeholder="010-1234-5678"
                     disabled={isRegistering}
                   />
                 </div>
