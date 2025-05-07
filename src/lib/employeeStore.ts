@@ -42,7 +42,7 @@ export const useEmployeeStore = create<EmployeeState>((set) => ({
         method: 'POST',
         body: JSON.stringify(requestData)
       });
-
+      
       set({ 
         isRegistering: false,
         registerSuccess: true
@@ -56,12 +56,12 @@ export const useEmployeeStore = create<EmployeeState>((set) => ({
         registerError: error instanceof Error ? error.message : '직원 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
         registerSuccess: false
       });
-      
       return false;
     }
   },
   
   resetRegisterSuccess: () => {
     set({ registerSuccess: false });
+    localStorage.removeItem('employeeRegisterSuccess');
   }
 })); 
