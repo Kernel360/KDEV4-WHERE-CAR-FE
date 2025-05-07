@@ -31,6 +31,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     timestamp: string;
   } | null>(null);
   const [isLoadingPosition, setIsLoadingPosition] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   // fetchLatestPositionData를 useCallback으로 감싸기
   const fetchLatestPositionData = useCallback(async () => {
@@ -84,16 +85,63 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     onClose();
   };
 
+  // 필드 유효성 검사 함수
+  const validateField = (name: string, value: string): string | null => {
+    switch (name) {
+      case 'mdn':
+        if (!value.trim()) {
+          return '차량번호는 필수입니다';
+        }
+        break;
+      case 'make':
+        if (!value.trim()) {
+          return '제조사는 필수입니다';
+        }
+        if (value.length > 50) {
+          return '제조사는 50자를 초과할 수 없습니다';
+        }
+        break;
+      case 'model':
+        if (!value.trim()) {
+          return '모델명은 필수입니다';
+        }
+        if (value.length > 50) {
+          return '모델명은 50자를 초과할 수 없습니다';
+        }
+        break;
+      case 'year':
+        if (!value.trim()) {
+          return '연식은 필수입니다';
+        }
+        if (!/^\d{4}$/.test(value)) {
+          return '연식은 4자리 숫자여야 합니다';
+        }
+        const yearNum = parseInt(value);
+        const currentYear = new Date().getFullYear();
+        if (yearNum < 1900 || yearNum > currentYear) {
+          return `연식은 1900년부터 ${currentYear}년 사이여야 합니다`;
+        }
+        break;
+    }
+    return null;
+  };
+
   const handleInputChange = (field: keyof Vehicle, value: string | number) => {
     if (!editedVehicle) return;
     
     let processedValue: string | number = value;
     
-    // 숫자 필드 처리
-    if (field === 'year' || field === 'mileage' || field === 'batteryVoltage') {
-      const numValue = field === 'batteryVoltage' ? parseFloat(value as string) : parseInt(value as string);
-      processedValue = isNaN(numValue) ? 0 : numValue;
+    // 연식 입력 시 숫자만 허용
+    if (field === 'year') {
+      processedValue = value.toString().replace(/[^\d]/g, '').slice(0, 4);
     }
+
+    // 유효성 검사
+    const error = validateField(field, processedValue.toString());
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: error || ''
+    }));
 
     setEditedVehicle({
       ...editedVehicle,
@@ -101,8 +149,41 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
     });
   };
 
+  // 필수 필드가 모두 유효한지 확인하는 함수
+  const isFormValid = useCallback(() => {
+    if (!editedVehicle) return false;
+
+    // 필수 필드 목록
+    const requiredFields: (keyof Vehicle)[] = ['mdn', 'make', 'model', 'year', 'ownerType', 'acquisitionType'];
+    
+    // 모든 필수 필드가 채워져 있고 에러가 없는지 확인
+    return requiredFields.every(field => {
+      const value = editedVehicle[field];
+      return value && !fieldErrors[field];
+    });
+  }, [editedVehicle, fieldErrors]);
+
   const handleSaveEdit = async () => {
     if (!editedVehicle) return;
+    
+    // 모든 필드 유효성 검사
+    const errors: {[key: string]: string} = {};
+    let hasErrors = false;
+
+    Object.entries(editedVehicle).forEach(([field, value]) => {
+      if (field === 'id' || field === 'carState') return; // id와 carState 필드는 검사하지 않음
+      const error = validateField(field, value.toString());
+      if (error) {
+        errors[field] = error;
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setFieldErrors(errors);
+      setError('입력값을 확인해주세요');
+      return;
+    }
     
     try {
       // 낙관적 업데이트: 먼저 화면에 수정된 데이터를 표시
@@ -244,9 +325,13 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                             <>
                               <button
                                 type="button"
-                                className={`p-1.5 rounded-lg ${storeLoading ? 'text-gray-400' : 'text-green-600 hover:bg-green-50'} focus:outline-none`}
+                                className={`p-1.5 rounded-lg ${
+                                  storeLoading || !isFormValid() 
+                                    ? 'text-gray-400 cursor-not-allowed' 
+                                    : 'text-green-600 hover:bg-green-50'
+                                } focus:outline-none`}
                                 onClick={handleSaveEdit}
-                                disabled={storeLoading}
+                                disabled={storeLoading || !isFormValid()}
                               >
                                 {storeLoading ? (
                                   <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -257,6 +342,7 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                   <CheckIcon className="h-5 w-5" aria-hidden="true" />
                                 )}
                               </button>
+                             
                               <button
                                 type="button"
                                 className={`p-1.5 rounded-lg text-gray-500 hover:${currentTheme.hoverBg} focus:outline-none ml-1 ${storeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -327,11 +413,16 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                       type="text"
                                       value={editedVehicle?.make || ''}
                                       onChange={(e) => handleInputChange('make', e.target.value)}
-                                      className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                      className={`w-full rounded-md border ${
+                                        fieldErrors.make ? 'border-red-500' : currentTheme.border
+                                      } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                     />
                                   ) : displayVehicle.make}
                                 </p>
                               </div>
+                              {fieldErrors.make && (
+                                <p className="mt-1 text-sm text-red-500">{fieldErrors.make}</p>
+                              )}
                             </div>
 
                             <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white`}>
@@ -346,11 +437,16 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                       type="text"
                                       value={editedVehicle?.model || ''}
                                       onChange={(e) => handleInputChange('model', e.target.value)}
-                                      className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                      className={`w-full rounded-md border ${
+                                        fieldErrors.model ? 'border-red-500' : currentTheme.border
+                                      } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                     />
                                   ) : displayVehicle.model}
                                 </p>
                               </div>
+                              {fieldErrors.model && (
+                                <p className="mt-1 text-sm text-red-500">{fieldErrors.model}</p>
+                              )}
                             </div>
 
                             <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white`}>
@@ -365,11 +461,16 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                       type="text"
                                       value={editedVehicle?.year || ''}
                                       onChange={(e) => handleInputChange('year', e.target.value)}
-                                      className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                      className={`w-full rounded-md border ${
+                                        fieldErrors.year ? 'border-red-500' : currentTheme.border
+                                      } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                     />
                                   ) : `${displayVehicle.year}년`}
                                 </p>
                               </div>
+                              {fieldErrors.year && (
+                                <p className="mt-1 text-sm text-red-500">{fieldErrors.year}</p>
+                              )}
                             </div>
 
                             <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white`}>
@@ -404,14 +505,20 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                       <select
                                         value={editedVehicle?.ownerType || ''}
                                         onChange={(e) => handleInputChange('ownerType', e.target.value as "CORPORATE" | "PERSONAL")}
-                                        className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                        className={`w-full rounded-md border ${
+                                          fieldErrors.ownerType ? 'border-red-500' : currentTheme.border
+                                        } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                       >
+                                        <option value="">소유자 유형을 선택하세요</option>
                                         <option value="CORPORATE">법인</option>
                                         <option value="PERSONAL">개인</option>
                                       </select>
                                     ) : displayVehicle.ownerType === "CORPORATE" ? "법인" : "개인"}
                                   </p>
                                 </div>
+                                {fieldErrors.ownerType && (
+                                  <p className="mt-1 text-sm text-red-500">{fieldErrors.ownerType}</p>
+                                )}
                               </div>
 
                               <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white`}>
@@ -424,17 +531,22 @@ export default function VehicleDetailSlidePanel({ isOpen, onClose, vehicle }: Ve
                                     {isEditing ? (
                                       <select
                                         value={editedVehicle?.acquisitionType || ''}
-                                        onChange={(e) => handleInputChange('acquisitionType', e.target.value as "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING")}
-                                        className={`w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                        onChange={(e) => handleInputChange('acquisitionType', e.target.value as "PURCHASE" | "LEASE" | "RENTAL")}
+                                        className={`w-full rounded-md border ${
+                                          fieldErrors.acquisitionType ? 'border-red-500' : currentTheme.border
+                                        } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                                       >
+                                        <option value="">취득 유형을 선택하세요</option>
                                         <option value="PURCHASE">구매</option>
                                         <option value="LEASE">리스</option>
-                                        <option value="RENTAL">대여</option>
-                                        <option value="FINANCING">할부</option>
+                                        <option value="RENTAL">렌트</option>
                                       </select>
                                     ) : getAcquisitionTypeText(displayVehicle.acquisitionType)}
                                   </p>
                                 </div>
+                                {fieldErrors.acquisitionType && (
+                                  <p className="mt-1 text-sm text-red-500">{fieldErrors.acquisitionType}</p>
+                                )}
                               </div>
 
                               <div className={`p-4 rounded-xl ${currentTheme.border} border bg-white col-span-2`}>
