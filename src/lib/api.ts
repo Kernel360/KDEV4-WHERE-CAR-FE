@@ -55,7 +55,7 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
           throw new Error(`인증 오류가 발생했습니다.`);
         }
       }
-      throw new Error(`등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`);
+      throw new Error(`요청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`);
     }
     
     // 응답 크기가 0인 경우 (204 No Content 등)
