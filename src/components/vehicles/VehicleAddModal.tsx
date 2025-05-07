@@ -35,26 +35,39 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
   const validateField = (field: keyof Omit<Vehicle, 'id'>, value: any): string | null => {
     switch (field) {
       case 'year':
-        const currentYear = new Date().getFullYear();
-        const year = Number(value);
-        if (isNaN(year) || year < 1900 || year > currentYear + 1) {
-          return `연식은 1900년에서 ${currentYear + 1}년 사이여야 합니다`;
+        if (typeof value === 'string' && value.length === 0) {
+          return '연식을 입력해주세요';
         }
         break;
-      case 'mileage':
-        if (value < 0 || value > 1000000) {
-          return '주행거리는 0km에서 1,000,000km 사이여야 합니다';
-        }
-        break;
-      case 'batteryVoltage':
-        if (value < 0 || value > 1000) {
-          return '배터리 전압은 0V에서 1,000V 사이여야 합니다';
+      case 'mdn':
+        if (typeof value === 'string' && value.length === 0) {
+          return '차량번호를 입력해주세요';
         }
         break;
       case 'make':
+        if (typeof value === 'string' && value.length === 0) {
+          return '제조사를 입력해주세요';
+        }
+        if (value.length > 50) {
+          return '제조사명은 50자를 초과할 수 없습니다';
+        }
+        break;
       case 'model':
-        if (value.length < 1 || value.length > 50) {
-          return '1자에서 50자 사이로 입력해주세요';
+        if (typeof value === 'string' && value.length === 0) {
+          return '모델명을 입력해주세요';
+        }
+        if (value.length > 50) {
+          return '모델명은 50자를 초과할 수 없습니다';
+        }
+        break;
+      case 'ownerType':
+        if (!['CORPORATE', 'PERSONAL'].includes(value)) {
+          return '올바른 소유구분을 선택해주세요';
+        }
+        break;
+      case 'acquisitionType':
+        if (!['PURCHASE', 'LEASE', 'RENTAL', 'FINANCING'].includes(value)) {
+          return '올바른 구매방법을 선택해주세요';
         }
         break;
     }
@@ -64,9 +77,9 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
   const handleInputChange = (field: keyof Omit<Vehicle, 'id'>, value: string | number) => {
     let processedValue: string | number = value;
     
-    if (field === 'year' || field === 'mileage' || field === 'batteryVoltage') {
-      const numValue = field === 'batteryVoltage' ? parseFloat(value as string) : parseInt(value as string);
-      processedValue = isNaN(numValue) ? 0 : numValue;
+    // year는 문자열로 처리
+    if (field === 'year') {
+      processedValue = value.toString();
     }
 
     const error = validateField(field, processedValue);
@@ -263,49 +276,25 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="year" className={`block text-sm font-medium ${currentTheme.text}`}>
-                            연식
-                          </label>
-                          <input
-                            type="number"
-                            id="year"
-                            value={newVehicle.year}
-                            onChange={(e) => handleInputChange('year', e.target.value)}
-                            className={`mt-1 block w-full rounded-md border ${
-                              fieldErrors.year ? 'border-red-500' : currentTheme.border
-                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                            min="1900"
-                            max={new Date().getFullYear() + 1}
-                            required
-                            disabled={storeLoading}
-                          />
-                          {fieldErrors.year && (
-                            <p className="mt-1 text-sm text-red-500">{fieldErrors.year}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label htmlFor="mileage" className={`block text-sm font-medium ${currentTheme.text}`}>
-                            총 주행거리 (km)
-                          </label>
-                          <input
-                            type="text"
-                            id="mileage"
-                            value={newVehicle.mileage}
-                            onChange={(e) => handleInputChange('mileage', e.target.value)}
-                            className={`mt-1 block w-full rounded-md border ${
-                              fieldErrors.mileage ? 'border-red-500' : currentTheme.border
-                            } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                            min="0"
-                            max="1000000"
-                            required
-                            disabled={storeLoading}
-                          />
-                          {fieldErrors.mileage && (
-                            <p className="mt-1 text-sm text-red-500">{fieldErrors.mileage}</p>
-                          )}
-                        </div>
+                      <div>
+                        <label htmlFor="year" className={`block text-sm font-medium ${currentTheme.text}`}>
+                          연식
+                        </label>
+                        <input
+                          type="text"
+                          id="year"
+                          value={newVehicle.year}
+                          onChange={(e) => handleInputChange('year', e.target.value)}
+                          className={`mt-1 block w-full rounded-md border ${
+                            fieldErrors.year ? 'border-red-500' : currentTheme.border
+                          } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                          placeholder="2024"
+                          required
+                          disabled={storeLoading}
+                        />
+                        {fieldErrors.year && (
+                          <p className="mt-1 text-sm text-red-500">{fieldErrors.year}</p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
