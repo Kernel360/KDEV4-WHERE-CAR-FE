@@ -15,7 +15,7 @@ type VehicleAddModalProps = {
 
 export default function VehicleAddModal({ isOpen, onClose, onComplete }: VehicleAddModalProps) {
   const { currentTheme } = useTheme();
-  const { addVehicle, isLoading: storeLoading, error: storeError } = useVehicleStore();
+  const { addVehicle, isLoading: storeLoading, error: storeError, checkMdnExists } = useVehicleStore();
   const { fetchOverview } = useCarOverviewStore();
   const [newVehicle, setNewVehicle] = useState<Omit<Vehicle, 'id'>>({
     mdn: '',
@@ -74,7 +74,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     return null;
   };
 
-  const handleInputChange = (field: keyof Omit<Vehicle, 'id'>, value: string | number) => {
+  const handleInputChange = async (field: keyof Omit<Vehicle, 'id'>, value: string | number) => {
     let processedValue: string | number = value;
     
     // year는 문자열로 처리
@@ -87,6 +87,21 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
       ...prev,
       [field]: error || ''
     }));
+
+    // mdn 중복 체크
+    if (field === 'mdn' && typeof value === 'string' && value.length > 0) {
+      try {
+        const exists = await checkMdnExists(value);
+        if (exists) {
+          setFieldErrors(prev => ({
+            ...prev,
+            [field]: '이미 존재하는 차량번호입니다'
+          }));
+        }
+      } catch (err) {
+        console.error('차량번호 중복 체크 오류:', err);
+      }
+    }
 
     setNewVehicle({
       ...newVehicle,
