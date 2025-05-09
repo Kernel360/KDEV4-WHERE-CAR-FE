@@ -213,7 +213,7 @@ function VehicleSidebar({
         )}
       </div>
       
-      {selectedVehicleData && (
+      {selectedVehicleData && selectedCars.length > 0 && (
         <div className={`p-4 ${currentTheme.border} border-t`}>
           <div className="mb-2">
             <h3 className={`text-md font-bold ${currentTheme.headingText}`}>
@@ -292,6 +292,8 @@ function MonitoringContent() {
   const [dataReceived, setDataReceived] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedCarsOrder, setSelectedCarsOrder] = useState<string[]>([]);
+  const [lastSelectedCar, setLastSelectedCar] = useState<string | null>(null);
   
   const [mapSettings, setMapSettings] = useState({
     latitude: 36.5,
@@ -318,6 +320,9 @@ function MonitoringContent() {
   const { vehicles: storeVehicles, fetchVehicles } = useVehicleStore();
   
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<Vehicle | null>(null);
+
+  // 선택된 차량의 상세 정보만 표시할 차량 ID
+  const [displayVehicleId, setDisplayVehicleId] = useState<string | null>(null);
 
   const handleMapDrag = (center: {lat: number, lng: number}, zoom: number) => {
     setMapSettings(prev => ({
@@ -553,12 +558,25 @@ function MonitoringContent() {
   const toggleCarSelection = useCallback((carId: string) => {
     setSelectedCars(prev => {
       if (prev.includes(carId)) {
-        setSelectedVehicleDetails(null);
-        return prev.filter(id => id !== carId);
+        // 차량 선택 취소
+        const newSelectedCars = prev.filter(id => id !== carId);
+        
+        // 현재 표시 중인 차량이 취소되는 차량이라면
+        if (displayVehicleId === carId) {
+          setDisplayVehicleId(null);
+          setSelectedVehicleDetails(null);
+        }
+        
+        return newSelectedCars;
       } else {
+        // 차량 선택 - 항상 새 차량 정보를 표시
+        setDisplayVehicleId(carId);
+        
+        // 현재 차량의 정보를 상세 정보로 설정
         const vehicleInfo = storeVehicles.find(v => v.id === carId || v.mdn === carId);
         setSelectedVehicleDetails(vehicleInfo || null);
-        return [carId];
+        
+        return [...prev, carId]; // 기존 선택 유지하고 새 차량 추가
       }
     });
   }, [storeVehicles]);
