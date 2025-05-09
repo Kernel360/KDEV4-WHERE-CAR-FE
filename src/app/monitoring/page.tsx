@@ -126,14 +126,9 @@ function VehicleSidebar({
   
   useEffect(() => {
     if (selectedVehicle) {
-      console.log('선택된 차량:', selectedVehicle);
-      console.log('차량 상세 정보:', selectedVehicleDetails);
-      console.log('스토어의 모든 차량:', storeVehicles);
-      
       const matchingVehicle = storeVehicles.find(v => 
         v.id === selectedVehicle || v.mdn === selectedVehicle
       );
-      console.log('스토어에서 찾은 차량:', matchingVehicle);
     }
   }, [selectedVehicle, selectedVehicleDetails, storeVehicles]);
   
@@ -432,8 +427,6 @@ function MonitoringContent() {
   const connectWebSocket = () => {
     try {
       const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOKET_URL}/ws`;
-      
-      console.log(`WebSocket 연결 시도: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
