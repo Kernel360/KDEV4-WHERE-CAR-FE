@@ -56,7 +56,6 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
         vehicles = [];
       }
       
-      console.log('Fetched vehicles:', vehicles);
       set({ vehicles, isLoading: false });
     } catch (err) {
       set({ 

@@ -360,7 +360,6 @@ function MonitoringContent() {
 
       const initialPositions = assignCarColors(carLocations);
       setCurrentPositions(initialPositions);
-      console.log('초기 위치 설정 완료', initialPositions);
 
       animationRef.current = setInterval(() => {
         setCurrentPositions(prev => {
@@ -433,16 +432,13 @@ function MonitoringContent() {
 
   const connectWebSocket = () => {
     try {
+      const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOCKET_URL}/ws`;
+      
       setWsConnectingState('connecting');
-      
-      const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOKET_URL}/ws`;
-      
-      console.log(`WebSocket 연결 시도: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket 연결됨', new Date().toLocaleString());
         setWsConnected(true);
         setWsConnectingState('connected');
         setError(null);
@@ -450,10 +446,7 @@ function MonitoringContent() {
 
       ws.onmessage = (event) => {
         try {
-          console.log('데이터 수신:', new Date().toLocaleString());
-          
           const data = JSON.parse(event.data);
-          console.log('파싱된 데이터:', data);
           
           if (Array.isArray(data)) {
             const isValidData = data.every(item => 
@@ -471,53 +464,32 @@ function MonitoringContent() {
             
             if (isValidData) {
               processReceivedData(data);
-            } else {
-              console.error('데이터 형식이 올바르지 않습니다:', data);
-              setError('데이터 형식이 올바르지 않습니다');
             }
-          } else {
-            console.error('데이터가 배열이 아닙니다:', data);
-            setError('데이터가 배열이 아닙니다');
           }
         } catch (error) {
-          console.error('메시지 파싱 에러:', error);
-          setError(`메시지 파싱 에러: ${error}`);
         }
       };
 
       ws.onclose = () => {
         setWsConnected(false);
         setWsConnectingState('disconnected');
-        console.log('WebSocket 연결 종료', new Date().toLocaleString());
-        setTimeout(connectWebSocket, 5000); 
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket 에러:', error);
         setWsConnectingState('disconnected');
-        setError(`WebSocket 에러: ${error}`);
       };
     } catch (error) {
-      console.error('WebSocket 연결 시도 중 예외 발생:', error);
       setWsConnectingState('disconnected');
-      setError(`WebSocket 연결 시도 중 예외 발생: ${error}`);
     }
   };
 
   const processReceivedData = (data: CarLocation[]) => {
     try {
-      console.log('데이터 처리 중...', {
-        차량수: data.length,
-        첫차량: data[0]?.carId,
-        데이터포인트: data[0]?.locations.length
-      });
-      
       setCarLocations(data);
       setDataReceived(true);
       setLastUpdateTime(new Date().toLocaleString());
       setError(null);
     } catch (error) {
-      console.error('데이터 처리 중 오류:', error);
       setError(`데이터 처리 중 오류: ${error}`);
     }
   };
