@@ -27,6 +27,7 @@ interface VehicleState {
   updateVehicle: (vehicle: Vehicle) => Promise<string>;
   deleteVehicle: (id: string) => Promise<void>;
   setSelectedVehicle: (vehicle: Vehicle | null) => void;
+  checkMdnExists: (mdn: string) => Promise<boolean>;
 }
 
 export const useVehicleStore = create<VehicleState>((set, get) => ({
@@ -159,5 +160,15 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
 
   setSelectedVehicle: (vehicle: Vehicle | null) => {
     set({ selectedVehicle: vehicle });
+  },
+
+  checkMdnExists: async (mdn: string) => {
+    try {
+      const { vehicles } = get();
+      return vehicles.some(vehicle => vehicle.mdn === mdn);
+    } catch (err) {
+      console.error('차량번호 중복 체크 오류:', err);
+      return false;
+    }
   },
 })); 

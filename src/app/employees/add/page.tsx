@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrowLeftIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
@@ -39,6 +39,8 @@ export default function AddEmployeePage() {
     phone: '',
     jobTitle: '',
   });
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const errorRef = useRef<HTMLDivElement>(null);
   
   // 직원 스토어에서 상태와 메서드 가져오기
   const { 
@@ -49,6 +51,13 @@ export default function AddEmployeePage() {
     resetRegisterSuccess
   } = useEmployeeStore();
 
+  // 에러가 발생했을 때 스크롤 이동
+  useEffect(() => {
+    if (registerError && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [registerError]);
+
   // 전화번호 포맷팅 함수
   const formatPhoneNumber = (value: string) => {
     const numbers = value.replace(/[^\d]/g, '');
@@ -57,20 +66,63 @@ export default function AddEmployeePage() {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
+  // 필드 유효성 검사 함수
+  const validateField = (name: string, value: string): string | null => {
+    switch (name) {
+      case 'name':
+        if (!value.trim()) {
+          return '이름은 필수입니다';
+        }
+        break;
+      case 'email':
+        if (!value.trim()) {
+          return '이메일은 필수입니다';
+        }
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
+          return '올바른 이메일 형식이 아닙니다';
+        }
+        break;
+      case 'password':
+        if (!value.trim()) {
+          return '비밀번호는 필수입니다';
+        }
+        break;
+      case 'phone':
+        if (!value.trim()) {
+          return '전화번호는 필수입니다';
+        }
+        if (!/^\d{2,3}-\d{3,4}-\d{4}$/.test(value)) {
+          return '전화번호 형식이 올바르지 않습니다';
+        }
+        break;
+      case 'jobTitle':
+        if (!value.trim()) {
+          return '직책은 필수입니다';
+        }
+        break;
+    }
+    return null;
+  };
+
   // 입력 필드 변경 처리
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    let processedValue = value;
+
     if (name === 'phone') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: formatPhoneNumber(value)
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value
-      }));
+      processedValue = formatPhoneNumber(value);
     }
+
+    const error = validateField(name, processedValue);
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: error || ''
+    }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: processedValue
+    }));
   };
 
   // 뒤로가기 처리
@@ -80,6 +132,24 @@ export default function AddEmployeePage() {
 
   // 탭 변경 처리
   const handleTabChange = (tab: string) => {
+    if (tab === 'permissions') {
+      // 모든 필드 유효성 검사
+      const errors: {[key: string]: string} = {};
+      let hasErrors = false;
+
+      Object.entries(formData).forEach(([field, value]) => {
+        const error = validateField(field, value);
+        if (error) {
+          errors[field] = error;
+          hasErrors = true;
+        }
+      });
+
+      if (hasErrors) {
+        setFieldErrors(errors);
+        return;
+      }
+    }
     setActiveTab(tab);
   };
 
@@ -110,6 +180,23 @@ export default function AddEmployeePage() {
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 모든 필드 유효성 검사
+    const errors: {[key: string]: string} = {};
+    let hasErrors = false;
+
+    Object.entries(formData).forEach(([field, value]) => {
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+        hasErrors = true;
+      }
+    });
+
+    if (hasErrors) {
+      setFieldErrors(errors);
+      return;
+    }
     
     // 권한 ID 목록 생성
     const permissionTypes = permissions
@@ -144,7 +231,10 @@ export default function AddEmployeePage() {
 
         {/* 오류 메시지 */}
         {registerError && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          <div 
+            ref={errorRef}
+            className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg"
+          >
             <p className="font-medium">{registerError}</p>
           </div>
         )}
@@ -190,10 +280,15 @@ export default function AddEmployeePage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`w-full rounded-lg border ${
+                      fieldErrors.name ? 'border-red-500' : currentTheme.border
+                    } ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 이름을 입력하세요"
                     disabled={isRegistering}
                   />
+                  {fieldErrors.name && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.name}</p>
+                  )}
                 </div>
 
                 {/* 이메일 */}
@@ -208,10 +303,15 @@ export default function AddEmployeePage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`w-full rounded-lg border ${
+                      fieldErrors.email ? 'border-red-500' : currentTheme.border
+                    } ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 이메일 주소를 입력하세요"
                     disabled={isRegistering}
                   />
+                  {fieldErrors.email && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.email}</p>
+                  )}
                 </div>
 
                 {/* 비밀번호 */}
@@ -226,16 +326,21 @@ export default function AddEmployeePage() {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`w-full rounded-lg border ${
+                      fieldErrors.password ? 'border-red-500' : currentTheme.border
+                    } ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="임시 비밀번호를 설정하세요"
                     disabled={isRegistering}
                   />
+                  {fieldErrors.password && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.password}</p>
+                  )}
                 </div>
 
                 {/* 전화번호 */}
                 <div>
                   <label htmlFor="phone" className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    전화번호
+                    전화번호 <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -244,16 +349,22 @@ export default function AddEmployeePage() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     maxLength={13}
-                    className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    required
+                    className={`w-full rounded-lg border ${
+                      fieldErrors.phone ? 'border-red-500' : currentTheme.border
+                    } ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="010-1234-5678"
                     disabled={isRegistering}
                   />
+                  {fieldErrors.phone && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.phone}</p>
+                  )}
                 </div>
 
                 {/* 직책 */}
                 <div>
                   <label htmlFor="jobTitle" className={`block text-sm font-medium ${currentTheme.text} mb-2`}>
-                    직책
+                    직책 <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -261,10 +372,16 @@ export default function AddEmployeePage() {
                     name="jobTitle"
                     value={formData.jobTitle}
                     onChange={handleInputChange}
-                    className={`w-full rounded-lg border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    required
+                    className={`w-full rounded-lg border ${
+                      fieldErrors.jobTitle ? 'border-red-500' : currentTheme.border
+                    } ${currentTheme.inputBg} ${currentTheme.text} px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="직원의 직책을 입력하세요"
                     disabled={isRegistering}
                   />
+                  {fieldErrors.jobTitle && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.jobTitle}</p>
+                  )}
                 </div>
               </div>
             </div>
