@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { API_BASE_URL, fetchApi } from '@/lib/api';
 
 export interface CompanyResponse {
+  id?: string;
   name: string;
   address: string;
   phone: string;
@@ -22,6 +23,7 @@ export interface CompanyRequest {
 
 interface CompanyState {
   company: CompanyResponse | null;
+  companyId: string | null;
   isLoading: boolean;
   error: string | null;
   updating: boolean;
@@ -31,15 +33,22 @@ interface CompanyState {
   // Actions
   fetchMyCompany: () => Promise<CompanyResponse | undefined>;
   updateMyCompany: (companyRequest: CompanyRequest) => Promise<boolean>;
+  setCompanyId: (id: string) => void;
 }
 
-export const useCompanyStore = create<CompanyState>((set) => ({
+export const useCompanyStore = create<CompanyState>((set, get) => ({
   company: null,
+  companyId: null,
   isLoading: false,
   error: null,
   updating: false,
   updateError: null,
   updateSuccess: false,
+  
+  setCompanyId: (id: string) => {
+    set({ companyId: id });
+    console.log('회사 ID 저장됨 (Zustand):', id);
+  },
   
   fetchMyCompany: async () => {
     try {
@@ -49,6 +58,13 @@ export const useCompanyStore = create<CompanyState>((set) => ({
       
       // 새로운 API 응답 형식 처리 (data 필드에 실제 데이터가 있음)
       const data = response.data || response;
+      
+      // 회사 ID 추출 및 저장
+      const companyId = data.id?.toString() || null;
+      if (companyId) {
+        set({ companyId });
+        console.log('회사 정보에서 ID 추출됨:', companyId);
+      }
       
       set({ 
         company: data,
