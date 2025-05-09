@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
+import { useCompanyStore } from '@/lib/companyStore';
 import { 
   MinusIcon, 
   PlusIcon, 
@@ -274,15 +275,17 @@ interface RouteGroup {
 function MonitoringContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, userProfile } = useAuthStore();
+  const { companyId } = useCompanyStore();
   const { currentTheme } = useTheme(); 
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsConnectingState, setWsConnectingState] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [carLocations, setCarLocations] = useState<CarLocation[]>([]);
   const [currentPositions, setCurrentPositions] = useState<CurrentCarPosition[]>([]);
   const [showRoute, setShowRoute] = useState(false);
   const [routePoints, setRoutePoints] = useState<RouteGroup[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  const [companyId, setCompanyId] = useState<string>('1');
+  const [currentCompanyId, setCurrentCompanyId] = useState<string>(companyId || '1');
   const [selectedCars, setSelectedCars] = useState<string[]>([]);
   const [showAllCars, setShowAllCars] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -389,6 +392,12 @@ function MonitoringContent() {
   }, [carLocations]);
 
   useEffect(() => {
+    if (companyId) {
+      setCurrentCompanyId(companyId);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
     connectWebSocket();
     
     return () => {
@@ -402,12 +411,12 @@ function MonitoringContent() {
   }, []);
 
   const handleSubscribe = useCallback(() => {
-    if (wsRef.current && companyId && wsConnected) {
-      console.log('구독 요청 전송:', companyId);
+    if (wsRef.current && currentCompanyId && wsConnected) {
+      console.log('구독 요청 전송:', currentCompanyId);
       
       const subscribeMsg = JSON.stringify({
         type: 'subscribe',
-        companyId: companyId
+        companyId: currentCompanyId
       });
       
       wsRef.current.send(subscribeMsg);
@@ -415,24 +424,29 @@ function MonitoringContent() {
       console.warn('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
       setError('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
     }
-  }, [companyId, wsConnected]);
+  }, [currentCompanyId, wsConnected]);
 
   useEffect(() => {
-    if (wsConnected && companyId) {
-      console.log('WebSocket 연결됨, 자동 구독 시도:', companyId);
+    if (wsConnected && currentCompanyId) {
+      console.log('WebSocket 연결됨, 자동 구독 시도:', currentCompanyId);
       handleSubscribe();
     }
-  }, [wsConnected, companyId, handleSubscribe]);
+  }, [wsConnected, currentCompanyId, handleSubscribe]);
 
   const connectWebSocket = () => {
     try {
+      setWsConnectingState('connecting');
+      
       const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOKET_URL}/ws`;
+      
+      console.log(`WebSocket 연결 시도: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log('WebSocket 연결됨', new Date().toLocaleString());
         setWsConnected(true);
+        setWsConnectingState('connected');
         setError(null);
       };
 
@@ -475,16 +489,19 @@ function MonitoringContent() {
 
       ws.onclose = () => {
         setWsConnected(false);
+        setWsConnectingState('disconnected');
         console.log('WebSocket 연결 종료', new Date().toLocaleString());
         setTimeout(connectWebSocket, 5000); 
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket 에러:', error);
+        setWsConnectingState('disconnected');
         setError(`WebSocket 에러: ${error}`);
       };
     } catch (error) {
       console.error('WebSocket 연결 시도 중 예외 발생:', error);
+      setWsConnectingState('disconnected');
       setError(`WebSocket 연결 시도 중 예외 발생: ${error}`);
     }
   };
@@ -622,16 +639,27 @@ function MonitoringContent() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-3">
               <div className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${
-                wsConnected 
-                  ? `${currentTheme.successBg} ${currentTheme.successText}`
-                  : `${currentTheme.dangerBg} ${currentTheme.dangerText}`
+                wsConnectingState === 'connecting'
+                  ? `${currentTheme.infoBg} ${currentTheme.infoText}`
+                  : wsConnectingState === 'connected'
+                    ? `${currentTheme.successBg} ${currentTheme.successText}`
+                    : `${currentTheme.dangerBg} ${currentTheme.dangerText}`
               }`}>
-                <span className={`w-2 h-2 rounded-full ${
-                  wsConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}></span>
-                <span className="font-medium">
-                  {wsConnected ? '연결됨' : '연결 끊김'}
-                </span>
+                {wsConnectingState === 'connecting' ? (
+                  <>
+                    <div className="animate-spin h-2 w-2 border border-current rounded-full border-t-transparent"></div>
+                    <span className="font-medium">연결 중</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`w-2 h-2 rounded-full ${
+                      wsConnectingState === 'connected' ? 'bg-green-500' : 'bg-red-500'
+                    }`}></span>
+                    <span className="font-medium">
+                      {wsConnectingState === 'connected' ? '연결됨' : '연결 끊김'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             
