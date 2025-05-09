@@ -16,7 +16,9 @@ import {
   ChartBarIcon,
   ExclamationCircleIcon,
   MagnifyingGlassIcon,
-  MapIcon
+  MapIcon,
+  MagnifyingGlassPlusIcon,
+  MagnifyingGlassMinusIcon
 } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/common/PageHeader';
 import CarMap from '@/components/map/CarMap';
@@ -716,7 +718,7 @@ function MonitoringContent() {
                     className={`w-7 h-7 flex items-center justify-center rounded-md ${currentTheme.hoverBg} transition-colors`}
                     title="축소"
                   >
-                    <MinusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
+                    <MagnifyingGlassMinusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
                   </button>
                   <span className={`text-xs font-medium px-2 ${currentTheme.textColor}`}>{mapSettings.zoom}</span>
                   <button 
@@ -724,7 +726,7 @@ function MonitoringContent() {
                     className={`w-7 h-7 flex items-center justify-center rounded-md ${currentTheme.hoverBg} transition-colors`}
                     title="확대"
                   >
-                    <PlusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
+                    <MagnifyingGlassPlusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
                   </button>
                 </div>
                 
