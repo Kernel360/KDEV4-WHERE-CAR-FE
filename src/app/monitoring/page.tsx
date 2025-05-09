@@ -15,7 +15,8 @@ import {
   TruckIcon,
   ChartBarIcon,
   ExclamationCircleIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  MapIcon
 } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/common/PageHeader';
 import CarMap from '@/components/map/CarMap';
@@ -147,16 +148,6 @@ function VehicleSidebar({
               </span>
             </h2>
           </div>
-          <button
-            onClick={() => setShowRoute(!showRoute)}
-            className={`px-3 py-1 rounded-md text-sm ${
-              showRoute 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
-            }`}
-          >
-            {showRoute ? '경로 숨기기' : '경로 보기'}
-          </button>
         </div>
         
         <div className={`relative`}>
@@ -761,7 +752,24 @@ function MonitoringContent() {
                 </div>
               </div>
               
-              <div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowRoute(!showRoute)}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
+                    selectedCars.length === 0
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 opacity-60'
+                      : showRoute
+                        ? `${currentTheme.activeBg} ${currentTheme.activeText} cursor-pointer`
+                        : `${currentTheme.cardBg} ${currentTheme.textColor} ${currentTheme.border} cursor-pointer`
+                  }`}
+                  disabled={selectedCars.length === 0}
+                >
+                  <MapIcon className={`h-4 w-4 ${selectedCars.length === 0 ? 'opacity-60' : ''}`} />
+                  <span className="text-sm font-medium">
+                    {showRoute ? '경로 숨기기' : '경로 보기'}
+                  </span>
+                </button>
+                
                 <button
                   onClick={toggleVehicleFollow}
                   className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
