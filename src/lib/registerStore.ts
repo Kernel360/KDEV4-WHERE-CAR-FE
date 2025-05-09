@@ -61,7 +61,28 @@ export const useRegisterStore = create<RegisterState>((set) => ({
       });
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('회원가입 에러:', error);
+      
+      // 이메일 중복 오류 특별 처리
+      if (error?.message === "Email already exists") {
+        set({ 
+          isRegistering: false,
+          registerError: "이미 등록된 이메일입니다. 다른 이메일을 사용해주세요."
+        });
+        throw error; // 원본 에러 그대로 전달
+      }
+      
+      // API 응답에서 오는 에러인 경우
+      if (error?.statusCode && error?.message) {
+        set({ 
+          isRegistering: false,
+          registerError: error.message
+        });
+        throw error; // 원본 에러 그대로 전달
+      }
+      
+      // 일반적인 에러 처리
       set({ 
         isRegistering: false,
         registerError: error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
