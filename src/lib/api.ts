@@ -55,7 +55,28 @@ export const fetchApi = async <T>(endpoint: string, queryParams?: Record<string,
           throw new Error(`인증 오류가 발생했습니다.`);
         }
       }
-      throw new Error(`요청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`);
+      
+      // 에러 응답 내용 추출
+      try {
+        const errorData = await response.json();
+        // 에러 응답에 statusCode와 message가 포함된 경우
+        if (errorData.statusCode && errorData.message) {
+          // 이메일 중복 오류 처리
+          if (errorData.message === "Email already exists") {
+            const error = new Error("Email already exists");
+            throw error;
+          }
+          
+          const error = new Error(errorData.message) as Error & { statusCode?: number, data?: any };
+          error.statusCode = errorData.statusCode;
+          error.data = errorData.data;
+          throw error;
+        }
+        throw new Error(errorData.message || `요청 중 오류가 발생했습니다. (${response.status})`);
+      } catch (parseError) {
+        // JSON 파싱에 실패한 경우 기본 에러 생성
+        throw new Error(`요청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.`);
+      }
     }
     
     // 응답 크기가 0인 경우 (204 No Content 등)

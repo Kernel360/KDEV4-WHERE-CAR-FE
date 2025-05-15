@@ -34,40 +34,54 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
 
   const validateField = (field: keyof Omit<Vehicle, 'id'>, value: any): string | null => {
     switch (field) {
-      case 'year':
-        if (typeof value === 'string' && value.length === 0) {
-          return '연식을 입력해주세요';
-        }
-        break;
       case 'mdn':
-        if (typeof value === 'string' && value.length === 0) {
-          return '차량번호를 입력해주세요';
+        if (!value || typeof value === 'string' && value.trim().length === 0) {
+          return 'mdn은 필수입니다.';
         }
         break;
-      case 'make':
-        if (typeof value === 'string' && value.length === 0) {
-          return '제조사를 입력해주세요';
-        }
-        if (value.length > 50) {
-          return '제조사명은 50자를 초과할 수 없습니다';
+      case 'year':
+        if (value) {
+          const yearRegex = /^(19\d{2}|20[0-1]\d|202[0-6])$/;
+          if (!yearRegex.test(value.toString())) {
+            return '연도는 1900 ~ 2026 사이 값이어야 합니다.';
+          }
         }
         break;
-      case 'model':
-        if (typeof value === 'string' && value.length === 0) {
-          return '모델명을 입력해주세요';
-        }
-        if (value.length > 50) {
-          return '모델명은 50자를 초과할 수 없습니다';
+      case 'batteryVoltage':
+        const voltage = Number(value);
+        if (value !== null && value !== undefined && value !== '' && (isNaN(voltage) || voltage < 0 || voltage > 9999)) {
+          return 'batteryVoltage는 0 이상 9999 이하여야 합니다.';
         }
         break;
       case 'ownerType':
+        if (!value) {
+          return 'ownerType은 필수입니다.';
+        }
         if (!['CORPORATE', 'PERSONAL'].includes(value)) {
           return '올바른 소유구분을 선택해주세요';
         }
         break;
       case 'acquisitionType':
+        if (!value) {
+          return 'acquisitionType은 필수입니다.';
+        }
         if (!['PURCHASE', 'LEASE', 'RENTAL', 'FINANCING'].includes(value)) {
           return '올바른 구매방법을 선택해주세요';
+        }
+        break;
+      case 'make':
+        // make는 필수가 아닐 수 있음 (TODO로 표시되어 있음)
+        break;
+      case 'model':
+        // model은 필수가 아닐 수 있음 (TODO로 표시되어 있음)
+        break;
+      case 'mileage':
+        // mileage는 필수가 아닐 수 있음 (TODO로 표시되어 있음)
+        if (value !== null && value !== undefined && value !== '') {
+          const mileageNum = Number(value);
+          if (isNaN(mileageNum) || mileageNum < 0) {
+            return '주행거리는 0 이상이어야 합니다.';
+          }
         }
         break;
     }
@@ -118,8 +132,24 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
     const errors: {[key: string]: string} = {};
     let hasErrors = false;
 
+    // 백엔드 DTO의 필수 필드 검사
+    const requiredFields: (keyof Omit<Vehicle, 'id'>)[] = ['mdn', 'ownerType', 'acquisitionType'];
+    
+    for (const field of requiredFields) {
+      const value = newVehicle[field];
+      if (!value) {
+        errors[field] = `${field}는 필수입니다.`;
+        hasErrors = true;
+      }
+    }
+
+    // 모든 필드에 대한 형식 검증
     Object.entries(newVehicle).forEach(([field, value]) => {
       if (field === 'carState') return; // carState 필드는 검사하지 않음
+      
+      // 이미 필수 검사에서 에러가 있는 경우 스킵
+      if (errors[field]) return;
+      
       const error = validateField(field as keyof Omit<Vehicle, 'id'>, value);
       if (error) {
         errors[field] = error;
@@ -229,7 +259,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                       <div>
                         <label htmlFor="mdn" className={`block text-sm font-medium ${currentTheme.text}`}>
-                          차량 번호
+                          차량 번호 <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -262,7 +292,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                               fieldErrors.make ? 'border-red-500' : currentTheme.border
                             } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             placeholder="현대"
-                            required
                             disabled={storeLoading}
                           />
                           {fieldErrors.make && (
@@ -282,7 +311,6 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                               fieldErrors.model ? 'border-red-500' : currentTheme.border
                             } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             placeholder="아반떼"
-                            required
                             disabled={storeLoading}
                           />
                           {fieldErrors.model && (
@@ -304,7 +332,8 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             fieldErrors.year ? 'border-red-500' : currentTheme.border
                           } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                           placeholder="2024"
-                          required
+                          pattern="^(19\\d{2}|20[0-1]\\d|202[0-6])$"
+                          title="연도는 1900 ~ 2026 사이 값이어야 합니다."
                           disabled={storeLoading}
                         />
                         {fieldErrors.year && (
@@ -315,29 +344,32 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label htmlFor="ownerType" className={`block text-sm font-medium ${currentTheme.text}`}>
-                            소유구분
+                            소유구분 <span className="text-red-500">*</span>
                           </label>
                           <select
                             id="ownerType"
                             value={newVehicle.ownerType}
                             onChange={(e) => handleInputChange('ownerType', e.target.value as "CORPORATE" | "PERSONAL")}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            className={`mt-1 block w-full rounded-md border ${fieldErrors.ownerType ? 'border-red-500' : currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             required
                             disabled={storeLoading}
                           >
                             <option value="CORPORATE">법인</option>
                             <option value="PERSONAL">개인</option>
                           </select>
+                          {fieldErrors.ownerType && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.ownerType}</p>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="acquisitionType" className={`block text-sm font-medium ${currentTheme.text}`}>
-                            구매방법
+                            구매방법 <span className="text-red-500">*</span>
                           </label>
                           <select
                             id="acquisitionType"
                             value={newVehicle.acquisitionType}
                             onChange={(e) => handleInputChange('acquisitionType', e.target.value as "PURCHASE" | "LEASE" | "RENTAL" | "FINANCING")}
-                            className={`mt-1 block w-full rounded-md border ${currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            className={`mt-1 block w-full rounded-md border ${fieldErrors.acquisitionType ? 'border-red-500' : currentTheme.border} ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             required
                             disabled={storeLoading}
                           >
@@ -346,6 +378,9 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             <option value="RENTAL">대여</option>
                             <option value="FINANCING">할부</option>
                           </select>
+                          {fieldErrors.acquisitionType && (
+                            <p className="mt-1 text-sm text-red-500">{fieldErrors.acquisitionType}</p>
+                          )}
                         </div>
                       </div>
 
@@ -354,7 +389,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                           배터리 전력 (V)
                         </label>
                         <input
-                          type="text"
+                          type="number"
                           id="batteryVoltage"
                           value={newVehicle.batteryVoltage}
                           onChange={(e) => handleInputChange('batteryVoltage', e.target.value)}
@@ -362,8 +397,7 @@ export default function VehicleAddModal({ isOpen, onClose, onComplete }: Vehicle
                             fieldErrors.batteryVoltage ? 'border-red-500' : currentTheme.border
                           } ${currentTheme.inputBg} ${currentTheme.text} px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                           min="0"
-                          max="1000"
-                          required
+                          max="9999"
                           disabled={storeLoading}
                         />
                         {fieldErrors.batteryVoltage && (
