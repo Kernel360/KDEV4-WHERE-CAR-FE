@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVehicleStore, Vehicle } from '@/lib/vehicleStore';
+import { useCompanyStore } from '@/lib/companyStore';
 import { 
   MinusIcon, 
   PlusIcon, 
@@ -14,7 +15,10 @@ import {
   TruckIcon,
   ChartBarIcon,
   ExclamationCircleIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  MapIcon,
+  MagnifyingGlassPlusIcon,
+  MagnifyingGlassMinusIcon
 } from '@heroicons/react/24/outline';
 import PageHeader from '@/components/common/PageHeader';
 import CarMap from '@/components/map/CarMap';
@@ -126,14 +130,9 @@ function VehicleSidebar({
   
   useEffect(() => {
     if (selectedVehicle) {
-      console.log('선택된 차량:', selectedVehicle);
-      console.log('차량 상세 정보:', selectedVehicleDetails);
-      console.log('스토어의 모든 차량:', storeVehicles);
-      
       const matchingVehicle = storeVehicles.find(v => 
         v.id === selectedVehicle || v.mdn === selectedVehicle
       );
-      console.log('스토어에서 찾은 차량:', matchingVehicle);
     }
   }, [selectedVehicle, selectedVehicleDetails, storeVehicles]);
   
@@ -151,16 +150,6 @@ function VehicleSidebar({
               </span>
             </h2>
           </div>
-          <button
-            onClick={() => setShowRoute(!showRoute)}
-            className={`px-3 py-1 rounded-md text-sm ${
-              showRoute 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'
-            }`}
-          >
-            {showRoute ? '경로 숨기기' : '경로 보기'}
-          </button>
         </div>
         
         <div className={`relative`}>
@@ -217,7 +206,7 @@ function VehicleSidebar({
         )}
       </div>
       
-      {selectedVehicleData && (
+      {selectedVehicleData && selectedCars.length > 0 && (
         <div className={`p-4 ${currentTheme.border} border-t`}>
           <div className="mb-2">
             <h3 className={`text-md font-bold ${currentTheme.headingText}`}>
@@ -279,21 +268,25 @@ interface RouteGroup {
 function MonitoringContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, userProfile } = useAuthStore();
+  const { companyId } = useCompanyStore();
   const { currentTheme } = useTheme(); 
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsConnectingState, setWsConnectingState] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [carLocations, setCarLocations] = useState<CarLocation[]>([]);
   const [currentPositions, setCurrentPositions] = useState<CurrentCarPosition[]>([]);
   const [showRoute, setShowRoute] = useState(false);
   const [routePoints, setRoutePoints] = useState<RouteGroup[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-  const [companyId, setCompanyId] = useState<string>('1');
+  const [currentCompanyId, setCurrentCompanyId] = useState<string>(companyId || '1');
   const [selectedCars, setSelectedCars] = useState<string[]>([]);
   const [showAllCars, setShowAllCars] = useState(true);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   const [dataReceived, setDataReceived] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedCarsOrder, setSelectedCarsOrder] = useState<string[]>([]);
+  const [lastSelectedCar, setLastSelectedCar] = useState<string | null>(null);
   
   const [mapSettings, setMapSettings] = useState({
     latitude: 36.5,
@@ -320,6 +313,9 @@ function MonitoringContent() {
   const { vehicles: storeVehicles, fetchVehicles } = useVehicleStore();
   
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<Vehicle | null>(null);
+
+  // 선택된 차량의 상세 정보만 표시할 차량 ID
+  const [displayVehicleId, setDisplayVehicleId] = useState<string | null>(null);
 
   const handleMapDrag = (center: {lat: number, lng: number}, zoom: number) => {
     setMapSettings(prev => ({
@@ -364,7 +360,6 @@ function MonitoringContent() {
 
       const initialPositions = assignCarColors(carLocations);
       setCurrentPositions(initialPositions);
-      console.log('초기 위치 설정 완료', initialPositions);
 
       animationRef.current = setInterval(() => {
         setCurrentPositions(prev => {
@@ -394,6 +389,12 @@ function MonitoringContent() {
   }, [carLocations]);
 
   useEffect(() => {
+    if (companyId) {
+      setCurrentCompanyId(companyId);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
     connectWebSocket();
     
     return () => {
@@ -407,12 +408,12 @@ function MonitoringContent() {
   }, []);
 
   const handleSubscribe = useCallback(() => {
-    if (wsRef.current && companyId && wsConnected) {
-      console.log('구독 요청 전송:', companyId);
+    if (wsRef.current && currentCompanyId && wsConnected) {
+      console.log('구독 요청 전송:', currentCompanyId);
       
       const subscribeMsg = JSON.stringify({
         type: 'subscribe',
-        companyId: companyId
+        companyId: currentCompanyId
       });
       
       wsRef.current.send(subscribeMsg);
@@ -420,35 +421,32 @@ function MonitoringContent() {
       console.warn('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
       setError('WebSocket이 연결되지 않았거나 회사 ID가 없습니다');
     }
-  }, [companyId, wsConnected]);
+  }, [currentCompanyId, wsConnected]);
 
   useEffect(() => {
-    if (wsConnected && companyId) {
-      console.log('WebSocket 연결됨, 자동 구독 시도:', companyId);
+    if (wsConnected && currentCompanyId) {
+      console.log('WebSocket 연결됨, 자동 구독 시도:', currentCompanyId);
       handleSubscribe();
     }
-  }, [wsConnected, companyId, handleSubscribe]);
+  }, [wsConnected, currentCompanyId, handleSubscribe]);
 
   const connectWebSocket = () => {
     try {
-      const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOKET_URL}/ws`;
+      const wsUrl = `${process.env.NEXT_PUBLIC_API_WEBSOCKET_URL}/ws`;
       
-      console.log(`WebSocket 연결 시도: ${wsUrl}`);
+      setWsConnectingState('connecting');
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket 연결됨', new Date().toLocaleString());
         setWsConnected(true);
+        setWsConnectingState('connected');
         setError(null);
       };
 
       ws.onmessage = (event) => {
         try {
-          console.log('데이터 수신:', new Date().toLocaleString());
-          
           const data = JSON.parse(event.data);
-          console.log('파싱된 데이터:', data);
           
           if (Array.isArray(data)) {
             const isValidData = data.every(item => 
@@ -466,50 +464,32 @@ function MonitoringContent() {
             
             if (isValidData) {
               processReceivedData(data);
-            } else {
-              console.error('데이터 형식이 올바르지 않습니다:', data);
-              setError('데이터 형식이 올바르지 않습니다');
             }
-          } else {
-            console.error('데이터가 배열이 아닙니다:', data);
-            setError('데이터가 배열이 아닙니다');
           }
         } catch (error) {
-          console.error('메시지 파싱 에러:', error);
-          setError(`메시지 파싱 에러: ${error}`);
         }
       };
 
       ws.onclose = () => {
         setWsConnected(false);
-        console.log('WebSocket 연결 종료', new Date().toLocaleString());
-        setTimeout(connectWebSocket, 5000); 
+        setWsConnectingState('disconnected');
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket 에러:', error);
-        setError(`WebSocket 에러: ${error}`);
+        setWsConnectingState('disconnected');
       };
     } catch (error) {
-      console.error('WebSocket 연결 시도 중 예외 발생:', error);
-      setError(`WebSocket 연결 시도 중 예외 발생: ${error}`);
+      setWsConnectingState('disconnected');
     }
   };
 
   const processReceivedData = (data: CarLocation[]) => {
     try {
-      console.log('데이터 처리 중...', {
-        차량수: data.length,
-        첫차량: data[0]?.carId,
-        데이터포인트: data[0]?.locations.length
-      });
-      
       setCarLocations(data);
       setDataReceived(true);
       setLastUpdateTime(new Date().toLocaleString());
       setError(null);
     } catch (error) {
-      console.error('데이터 처리 중 오류:', error);
       setError(`데이터 처리 중 오류: ${error}`);
     }
   };
@@ -543,12 +523,25 @@ function MonitoringContent() {
   const toggleCarSelection = useCallback((carId: string) => {
     setSelectedCars(prev => {
       if (prev.includes(carId)) {
-        setSelectedVehicleDetails(null);
-        return prev.filter(id => id !== carId);
+        // 차량 선택 취소
+        const newSelectedCars = prev.filter(id => id !== carId);
+        
+        // 현재 표시 중인 차량이 취소되는 차량이라면
+        if (displayVehicleId === carId) {
+          setDisplayVehicleId(null);
+          setSelectedVehicleDetails(null);
+        }
+        
+        return newSelectedCars;
       } else {
+        // 차량 선택 - 항상 새 차량 정보를 표시
+        setDisplayVehicleId(carId);
+        
+        // 현재 차량의 정보를 상세 정보로 설정
         const vehicleInfo = storeVehicles.find(v => v.id === carId || v.mdn === carId);
         setSelectedVehicleDetails(vehicleInfo || null);
-        return [carId];
+        
+        return [...prev, carId]; // 기존 선택 유지하고 새 차량 추가
       }
     });
   }, [storeVehicles]);
@@ -629,16 +622,27 @@ function MonitoringContent() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-3">
               <div className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${
-                wsConnected 
-                  ? `${currentTheme.successBg} ${currentTheme.successText}`
-                  : `${currentTheme.dangerBg} ${currentTheme.dangerText}`
+                wsConnectingState === 'connecting'
+                  ? `${currentTheme.infoBg} ${currentTheme.infoText}`
+                  : wsConnectingState === 'connected'
+                    ? `${currentTheme.successBg} ${currentTheme.successText}`
+                    : `${currentTheme.dangerBg} ${currentTheme.dangerText}`
               }`}>
-                <span className={`w-2 h-2 rounded-full ${
-                  wsConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}></span>
-                <span className="font-medium">
-                  {wsConnected ? '연결됨' : '연결 끊김'}
-                </span>
+                {wsConnectingState === 'connecting' ? (
+                  <>
+                    <div className="animate-spin h-2 w-2 border border-current rounded-full border-t-transparent"></div>
+                    <span className="font-medium">연결 중</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`w-2 h-2 rounded-full ${
+                      wsConnectingState === 'connected' ? 'bg-green-500' : 'bg-red-500'
+                    }`}></span>
+                    <span className="font-medium">
+                      {wsConnectingState === 'connected' ? '연결됨' : '연결 끊김'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             
@@ -686,7 +690,7 @@ function MonitoringContent() {
                     className={`w-7 h-7 flex items-center justify-center rounded-md ${currentTheme.hoverBg} transition-colors`}
                     title="축소"
                   >
-                    <MinusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
+                    <MagnifyingGlassMinusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
                   </button>
                   <span className={`text-xs font-medium px-2 ${currentTheme.textColor}`}>{mapSettings.zoom}</span>
                   <button 
@@ -694,7 +698,7 @@ function MonitoringContent() {
                     className={`w-7 h-7 flex items-center justify-center rounded-md ${currentTheme.hoverBg} transition-colors`}
                     title="확대"
                   >
-                    <PlusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
+                    <MagnifyingGlassPlusIcon className={`h-4 w-4 ${currentTheme.iconColor}`} />
                   </button>
                 </div>
                 
@@ -722,7 +726,24 @@ function MonitoringContent() {
                 </div>
               </div>
               
-              <div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowRoute(!showRoute)}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
+                    selectedCars.length === 0
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 opacity-60'
+                      : showRoute
+                        ? `${currentTheme.activeBg} ${currentTheme.activeText} cursor-pointer`
+                        : `${currentTheme.cardBg} ${currentTheme.textColor} ${currentTheme.border} cursor-pointer`
+                  }`}
+                  disabled={selectedCars.length === 0}
+                >
+                  <MapIcon className={`h-4 w-4 ${selectedCars.length === 0 ? 'opacity-60' : ''}`} />
+                  <span className="text-sm font-medium">
+                    {showRoute ? '경로 숨기기' : '경로 보기'}
+                  </span>
+                </button>
+                
                 <button
                   onClick={toggleVehicleFollow}
                   className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${

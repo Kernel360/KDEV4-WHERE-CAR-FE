@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { fetchApi, API_BASE_URL } from '@/lib/api';
 import { UserRequest } from '@/lib/registerStore';
+import { useCompanyStore } from '@/lib/companyStore';
 
 // 로그인 요청 인터페이스
 export interface LoginRequest {
@@ -34,6 +35,7 @@ export interface UserInfo {
   email: string;
   phone: string;
   jobTitle: string;
+  companyId?: string;
   updatedAt: Date | string | null;
 }
 
@@ -51,6 +53,7 @@ interface AuthState {
   profileLoading: boolean;
   profileError: string | null;
   lastTokenRefresh: number; // 토큰 재발급 시간 추적
+  companyId: string | null;
   
   // 로그인 메서드
   login: (credentials: LoginRequest) => Promise<boolean>;
@@ -72,6 +75,9 @@ interface AuthState {
   
   // 토큰 재발급 메서드
   reissueToken: () => Promise<boolean>;
+
+  // 회사 ID 설정 메서드
+  setCompanyId: (id: string) => void;
 }
 
 // 로컬 스토리지에서 토큰 추출 함수
@@ -91,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profileLoading: false,
   profileError: null,
   lastTokenRefresh: 0, // 초기값
+  companyId: null,
   
   // 인증 상태 초기화 메서드
   initAuth: () => {
@@ -236,6 +243,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         
         console.log('토큰 저장 완료:', token);
+        
+        // 회사 정보 가져오기 및 저장
+        try {
+          const companyResponse = await fetch(`${API_BASE_URL}/api/companies/my`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (companyResponse.ok) {
+            const companyData = await companyResponse.json();
+            const companyId = companyData.data?.id || companyData.id;
+            
+            if (companyId) {
+              // Zustand companyStore에 회사 ID 저장
+              useCompanyStore.getState().setCompanyId(companyId.toString());
+            }
+          }
+        } catch (companyError) {
+          console.error('로그인 시 회사 ID 가져오기 실패:', companyError);
+          // 회사 ID 가져오기 실패해도 로그인 자체는 계속 진행
+        }
       } else {
         throw new Error('서버 응답에 Authorization 헤더가 없습니다.');
       }
@@ -411,6 +440,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       return false;
     }
+  },
+
+  // 회사 ID 설정 메서드
+  setCompanyId: (id: string) => {
+    set({ companyId: id });
   },
 }));
 
