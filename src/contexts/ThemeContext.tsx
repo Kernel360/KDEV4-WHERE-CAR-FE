@@ -29,6 +29,8 @@ export type Theme = {
   successText: string;
   dangerBg: string;
   dangerText: string;
+  infoBg: string;
+  infoText: string;
   primaryButton: string;
   primaryButtonText: string;
   mutedText: string;
@@ -62,6 +64,8 @@ export const themes: Theme[] = [
     successText: "text-green-700",
     dangerBg: "bg-red-50",
     dangerText: "text-red-700",
+    infoBg: "bg-blue-50",
+    infoText: "text-blue-700",
     primaryButton: "bg-blue-600",
     primaryButtonText: "text-white",
     mutedText: "text-gray-500",
@@ -93,6 +97,8 @@ export const themes: Theme[] = [
     successText: "text-green-300",
     dangerBg: "bg-red-900",
     dangerText: "text-red-300",
+    infoBg: "bg-blue-900",
+    infoText: "text-blue-300",
     primaryButton: "bg-blue-600",
     primaryButtonText: "text-white",
     mutedText: "text-gray-400",
@@ -124,6 +130,8 @@ export const themes: Theme[] = [
     successText: "text-green-700",
     dangerBg: "bg-red-50",
     dangerText: "text-red-700",
+    infoBg: "bg-blue-50",
+    infoText: "text-blue-700",
     primaryButton: "bg-teal-600",
     primaryButtonText: "text-white",
     mutedText: "text-slate-500",
@@ -155,6 +163,8 @@ export const themes: Theme[] = [
     successText: "text-green-300",
     dangerBg: "bg-red-900",
     dangerText: "text-red-300",
+    infoBg: "bg-blue-900",
+    infoText: "text-blue-300",
     primaryButton: "bg-teal-600",
     primaryButtonText: "text-white",
     mutedText: "text-slate-400",
@@ -186,6 +196,8 @@ export const themes: Theme[] = [
     successText: "text-green-700",
     dangerBg: "bg-red-50",
     dangerText: "text-red-700",
+    infoBg: "bg-blue-50",
+    infoText: "text-blue-700",
     primaryButton: "bg-orange-600",
     primaryButtonText: "text-white",
     mutedText: "text-gray-500",
@@ -217,6 +229,8 @@ export const themes: Theme[] = [
     successText: "text-green-300",
     dangerBg: "bg-red-900",
     dangerText: "text-red-300",
+    infoBg: "bg-blue-900",
+    infoText: "text-blue-300",
     primaryButton: "bg-orange-600",
     primaryButtonText: "text-white",
     mutedText: "text-gray-400",
