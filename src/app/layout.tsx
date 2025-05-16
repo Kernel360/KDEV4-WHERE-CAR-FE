@@ -9,6 +9,19 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "WHERE CAR",
   description: "차량 관리 시스템",
+  icons: [
+    {
+      rel: 'icon',
+      url: 'wherecar_favicon.ico',
+      type: 'image/svg+xml',
+    },
+    {
+      rel: 'icon',
+      url: '/wherecar_favicon.ico',
+      type: 'image/svg+xml',
+      sizes: '32x32',
+    },
+  ],
 };
 
 export default function RootLayout({
